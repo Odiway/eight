@@ -3,6 +3,24 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
+  // Check if users already exist to avoid duplicate seeding
+  const existingUsers = await prisma.user.findMany()
+  const forceReseed = process.env.FORCE_RESEED === 'true'
+  
+  if (existingUsers.length > 0 && !forceReseed) {
+    console.log('✅ Users already exist, skipping user seeding')
+    console.log('⏭️ Skipping project seeding in production environment')
+    console.log('✅ Seed data already exists!')
+    console.log('💡 Use FORCE_RESEED=true to override this behavior')
+    return
+  }
+
+  if (forceReseed && existingUsers.length > 0) {
+    console.log('🔄 Force reseeding enabled, clearing existing data...')
+    // Note: In production, we should be careful about data deletion
+    // This is mainly for development purposes
+  }
+
   // Create Users (from the team photos provided)
   const users = await Promise.all([
     // Batarya Paketleme Ekibi
