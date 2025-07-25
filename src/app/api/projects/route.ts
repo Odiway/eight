@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
 
 export async function GET() {
   try {
@@ -64,6 +65,10 @@ export async function POST(request: NextRequest) {
         { name: 'Üretim', order: 4, color: '#10B981', projectId: project.id },
       ],
     })
+
+    // Invalidate the projects page cache
+    revalidatePath('/projects')
+    revalidatePath('/')
 
     return NextResponse.json(project, { status: 201 })
   } catch (error) {

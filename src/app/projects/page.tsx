@@ -4,6 +4,10 @@ import ProjectsList from '@/components/ProjectsList'
 import { Plus, Briefcase, Users, Target, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
+// Force dynamic rendering - no caching
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getProjects() {
   return await prisma.project.findMany({
     include: {
