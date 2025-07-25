@@ -1,5 +1,4 @@
 {
-  "name": "temsa-one",
   "buildCommand": "npm run vercel-build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
@@ -8,8 +7,5 @@
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "env": {
-    "DATABASE_URL": "@database_url"
   }
 }
