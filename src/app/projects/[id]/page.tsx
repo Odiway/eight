@@ -29,7 +29,6 @@ interface ExtendedProject extends Project {
 
 interface ExtendedTask extends Task {
   assignedUser?: User
-  maxDailyHours?: number
 }
 
 export default function ProjectDetailsPage() {

@@ -36,6 +36,7 @@ interface Task {
   workloadPercentage: number
   isBottleneck: boolean
   originalEndDate?: Date
+  maxDailyHours?: number
   assignedUser?: {
     id: string
     name: string
@@ -103,8 +104,13 @@ function EnhancedCalendar2({
     workloadPercentage: task.workloadPercentage ?? null,
     isBottleneck: task.isBottleneck ?? false,
     delayReason: task.delayReason ?? null,
+    maxDailyHours: task.maxDailyHours ?? null,
+    taskType: 'INDIVIDUAL' as const,
+    parentTaskId: null,
+    groupOrder: 0,
+    isGroupParent: false,
   }))
-  const workloadAnalyzer = new WorkloadAnalyzer(users, tasksForAnalyzer)
+  const workloadAnalyzer = new WorkloadAnalyzer()
 
   // Calculate workload and bottlenecks
   useEffect(() => {
@@ -117,9 +123,16 @@ function EnhancedCalendar2({
       const currentDay = new Date(startDate)
       while (currentDay <= endDate) {
         // Calculate workload for every day, not just working days
-        dailyWorkload.push(
-          ...workloadAnalyzer.calculateDailyWorkload(new Date(currentDay))
-        )
+        dailyWorkload.push({
+          date: currentDay.toISOString().split('T')[0],
+          workloadPercent: WorkloadAnalyzer.calculateDailyWorkload(tasksForAnalyzer, new Date(currentDay)),
+          userId: 'all',
+          userName: 'All Users',
+          hoursAllocated: 0,
+          hoursAvailable: 8,
+          isOverloaded: false,
+          tasks: []
+        })
         currentDay.setDate(currentDay.getDate() + 1)
       }
       setWorkloadData(dailyWorkload)
@@ -142,11 +155,12 @@ function EnhancedCalendar2({
           return checkDate >= taskStart && checkDate <= taskEnd
         })
 
-        const dailyWorkload = workloadAnalyzer.calculateDailyWorkload(
+        const dailyWorkload = WorkloadAnalyzer.calculateDailyWorkload(
+          tasksForAnalyzer,
           currentBottleneckDate
         )
         const maxWorkload = Math.max(
-          ...dailyWorkload.map((w) => w.workloadPercent),
+          dailyWorkload,
           0
         )
 
@@ -271,14 +285,8 @@ function EnhancedCalendar2({
         (new Date(task.endDate).getTime() - now.getTime()) /
           (1000 * 60 * 60 * 24)
       )
-      const rescheduleOpts = workloadAnalyzer.calculateRescheduleOptions(
-        taskId,
-        -earlyDays
-      )
-      if (rescheduleOpts) {
-        setRescheduleOptions(rescheduleOpts)
-        setShowRescheduleModal(true)
-      }
+      // For now, just notify about the early completion
+      console.log(`Task completed ${earlyDays} days early`)
     }
 
     // If task is being delayed, calculate impact

@@ -267,115 +267,127 @@ async function main() {
     })
   }
 
-  // Create sample projects
-  const projects = await Promise.all([
-    prisma.project.create({
-      data: {
-        name: 'Yeni Batarya Hücre Tasarımı',
-        description:
-          'Gelişmiş enerji yoğunluğuna sahip yeni batarya hücre tasarımının geliştirilmesi',
-        status: 'IN_PROGRESS',
-        priority: 'HIGH',
-        startDate: new Date('2024-01-15'),
-        endDate: new Date('2024-06-30'),
-      },
-    }),
-    prisma.project.create({
-      data: {
-        name: 'Üretim Hattı Optimizasyonu',
-        description:
-          'Mevcut üretim hattının verimlilik artırımı için optimizasyon çalışmaları',
-        status: 'IN_PROGRESS',
-        priority: 'MEDIUM',
-        startDate: new Date('2024-02-01'),
-        endDate: new Date('2024-05-15'),
-      },
-    }),
-    prisma.project.create({
-      data: {
-        name: 'Kalite Kontrol Sistemi',
-        description:
-          'Otomatik kalite kontrol sisteminin geliştirilmesi ve uygulanması',
-        status: 'PLANNING',
-        priority: 'HIGH',
-        startDate: new Date('2024-03-01'),
-        endDate: new Date('2024-08-30'),
-      },
-    }),
-  ])
-
-  // Create workflow steps for projects
-  for (const project of projects) {
-    await prisma.workflowStep.createMany({
-      data: [
-        { name: 'Tasarım', order: 1, color: '#EF4444', projectId: project.id },
-        { name: 'Prototip', order: 2, color: '#F59E0B', projectId: project.id },
-        { name: 'Test', order: 3, color: '#3B82F6', projectId: project.id },
-        { name: 'Üretim', order: 4, color: '#10B981', projectId: project.id },
-      ],
-    })
+  // Create sample projects only in development
+  const shouldSeedProjects = process.env.NODE_ENV !== 'production' && process.env.SEED_PROJECTS !== 'false'
+  
+  let projects: any[] = []
+  
+  if (shouldSeedProjects) {
+    projects = await Promise.all([
+      prisma.project.create({
+        data: {
+          name: 'Yeni Batarya Hücre Tasarımı',
+          description:
+            'Gelişmiş enerji yoğunluğuna sahip yeni batarya hücre tasarımının geliştirilmesi',
+          status: 'IN_PROGRESS',
+          priority: 'HIGH',
+          startDate: new Date('2024-01-15'),
+          endDate: new Date('2024-06-30'),
+        },
+      }),
+      prisma.project.create({
+        data: {
+          name: 'Üretim Hattı Optimizasyonu',
+          description:
+            'Mevcut üretim hattının verimlilik artırımı için optimizasyon çalışmaları',
+          status: 'IN_PROGRESS',
+          priority: 'MEDIUM',
+          startDate: new Date('2024-02-01'),
+          endDate: new Date('2024-05-15'),
+        },
+      }),
+      prisma.project.create({
+        data: {
+          name: 'Kalite Kontrol Sistemi',
+          description:
+            'Otomatik kalite kontrol sisteminin geliştirilmesi ve uygulanması',
+          status: 'PLANNING',
+          priority: 'HIGH',
+          startDate: new Date('2024-03-01'),
+          endDate: new Date('2024-08-30'),
+        },
+      }),
+    ])
+  } else {
+    console.log('⏭️ Skipping project seeding in production environment')
   }
 
-  // Add project members
-  for (let i = 0; i < projects.length; i++) {
-    const project = projects[i]
-    const projectUsers = users.slice(i * 4, (i + 1) * 4)
-
-    for (const user of projectUsers) {
-      await prisma.projectMember.create({
-        data: {
-          projectId: project.id,
-          userId: user.id,
-          role: user.position.includes('Yönetici')
-            ? 'Manager'
-            : user.position.includes('Mühendis')
-            ? 'Lead'
-            : 'Member',
-        },
+  // Create workflow steps for projects (only if projects exist)
+  if (shouldSeedProjects && projects.length > 0) {
+    for (const project of projects) {
+      await prisma.workflowStep.createMany({
+        data: [
+          { name: 'Tasarım', order: 1, color: '#EF4444', projectId: project.id },
+          { name: 'Prototip', order: 2, color: '#F59E0B', projectId: project.id },
+          { name: 'Test', order: 3, color: '#3B82F6', projectId: project.id },
+          { name: 'Üretim', order: 4, color: '#10B981', projectId: project.id },
+        ],
       })
+    }
+
+    // Add project members
+    for (let i = 0; i < projects.length; i++) {
+      const project = projects[i]
+      const projectUsers = users.slice(i * 4, (i + 1) * 4)
+
+      for (const user of projectUsers) {
+        await prisma.projectMember.create({
+          data: {
+            projectId: project.id,
+            userId: user.id,
+            role: user.position.includes('Yönetici')
+              ? 'Manager'
+              : user.position.includes('Mühendis')
+              ? 'Lead'
+              : 'Member',
+          },
+        })
+      }
     }
   }
 
-  // Create sample tasks
-  const workflowSteps = await prisma.workflowStep.findMany()
+  // Create sample tasks (only if projects exist)
+  if (shouldSeedProjects && projects.length > 0) {
+    const workflowSteps = await prisma.workflowStep.findMany()
 
-  const taskSamples = [
-    'Batarya hücre spesifikasyonlarının belirlenmesi',
-    'Malzeme tedarik planının hazırlanması',
-    'Prototip üretim sürecinin tasarlanması',
-    'Test protokollerinin geliştirilmesi',
-    'Kalite standartlarının belirlenmesi',
-    'Üretim hattı düzeninin optimize edilmesi',
-    'Güvenlik prosedürlerinin güncellenmesi',
-    'Performans test sonuçlarının analizi',
-  ]
+    const taskSamples = [
+      'Batarya hücre spesifikasyonlarının belirlenmesi',
+      'Malzeme tedarik planının hazırlanması',
+      'Prototip üretim sürecinin tasarlanması',
+      'Test protokollerinin geliştirilmesi',
+      'Kalite standartlarının belirlenmesi',
+      'Üretim hattı düzeninin optimize edilmesi',
+      'Güvenlik prosedürlerinin güncellenmesi',
+      'Performans test sonuçlarının analizi',
+    ]
 
-  for (let i = 0; i < taskSamples.length; i++) {
-    const task = taskSamples[i]
-    const project = projects[i % projects.length]
-    const assignedUser = users[i % users.length]
-    const workflowStep = workflowSteps[i % workflowSteps.length]
+    for (let i = 0; i < taskSamples.length; i++) {
+      const task = taskSamples[i]
+      const project = projects[i % projects.length]
+      const assignedUser = users[i % users.length]
+      const workflowStep = workflowSteps[i % workflowSteps.length]
 
-    await prisma.task.create({
-      data: {
-        title: task,
-        description: `${task} için detaylı çalışma planı ve uygulama`,
-        status: ['TODO', 'IN_PROGRESS', 'REVIEW', 'COMPLETED'][
-          Math.floor(Math.random() * 4)
-        ] as any,
-        priority: ['LOW', 'MEDIUM', 'HIGH'][
-          Math.floor(Math.random() * 3)
-        ] as any,
-        projectId: project.id,
-        assignedId: assignedUser.id,
-        createdById: users[0].id,
-        workflowStepId: workflowStep.id,
-        startDate: new Date(),
-        endDate: new Date(
-          Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000
-        ), // Random date within 30 days
-      },
-    })
+      await prisma.task.create({
+        data: {
+          title: task,
+          description: `${task} için detaylı çalışma planı ve uygulama`,
+          status: ['TODO', 'IN_PROGRESS', 'REVIEW', 'COMPLETED'][
+            Math.floor(Math.random() * 4)
+          ] as any,
+          priority: ['LOW', 'MEDIUM', 'HIGH'][
+            Math.floor(Math.random() * 3)
+          ] as any,
+          projectId: project.id,
+          assignedId: assignedUser.id,
+          createdById: users[0].id,
+          workflowStepId: workflowStep.id,
+          startDate: new Date(),
+          endDate: new Date(
+            Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000
+          ), // Random date within 30 days
+        },
+      })
+    }
   }
 
   console.log('✅ Seed data created successfully!')
