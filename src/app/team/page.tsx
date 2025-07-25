@@ -1,6 +1,12 @@
 import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
 import TeamView from '@/components/TeamView'
+import { Users, UserPlus, Plus } from 'lucide-react'
+import Link from 'next/link'
+
+// Force dynamic rendering - no caching
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 async function getTeamData() {
   const users = await prisma.user.findMany({
@@ -70,14 +76,36 @@ export default async function TeamPage() {
 
       <div className='max-w-7xl mx-auto py-6 sm:px-6 lg:px-8'>
         <div className='px-4 py-6 sm:px-0'>
-          <div className='flex justify-between items-center mb-6'>
-            <div>
-              <h1 className='text-2xl font-bold text-gray-900'>
-                Takım Yönetimi
-              </h1>
-              <p className='text-gray-600 mt-1'>
-                {totalUsers} çalışan, {departmentCount} departman
-              </p>
+          <div className='flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0'>
+            <div className='flex items-center space-x-3'>
+              <div className='p-2 bg-blue-600 rounded-xl'>
+                <Users className='w-7 h-7 text-white' />
+              </div>
+              <div>
+                <h1 className='text-3xl font-bold text-gray-900'>
+                  Takım Yönetimi
+                </h1>
+                <p className='text-gray-600'>
+                  {totalUsers} çalışan, {departmentCount} departman
+                </p>
+              </div>
+            </div>
+
+            <div className='flex space-x-3'>
+              <Link
+                href='/team/new'
+                className='inline-flex items-center px-4 py-2 border border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50 transition-colors duration-200'
+              >
+                <UserPlus className='w-4 h-4 mr-2' />
+                Yeni Kullanıcı
+              </Link>
+              <Link
+                href='/team/new-team'
+                className='inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-colors duration-200 shadow-lg'
+              >
+                <Plus className='w-4 h-4 mr-2' />
+                Yeni Takım
+              </Link>
             </div>
           </div>
 
