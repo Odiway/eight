@@ -76,6 +76,12 @@ export async function POST(request: NextRequest) {
         skipDuplicates: true,
       })
 
+      // Update user departments to match team name
+      await prisma.user.updateMany({
+        where: { id: { in: body.memberIds } },
+        data: { department: team.name }
+      })
+
       // Fetch the updated team with members
       const updatedTeam = await prisma.team.findUnique({
         where: { id: team.id },

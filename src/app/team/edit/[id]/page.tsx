@@ -1,12 +1,42 @@
 import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
-import UserCreationForm from '@/components/UserCreationForm'
-import { Users, ArrowLeft } from 'lucide-react'
+import UserEditForm from '@/components/UserEditForm'
+import { User, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
 // Force dynamic rendering - no caching
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+async function getUser(id: string) {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      teamMembers: {
+        include: {
+          team: true,
+        },
+      },
+      assignedTasks: {
+        include: {
+          project: true,
+        },
+      },
+      projects: {
+        include: {
+          project: true,
+        },
+      },
+    },
+  })
+
+  if (!user) {
+    notFound()
+  }
+
+  return user
+}
 
 async function getDepartments() {
   // Get team names as departments
@@ -20,7 +50,13 @@ async function getDepartments() {
   return teams.map(t => t.name).filter(Boolean).sort()
 }
 
-export default async function NewUserPage() {
+export default async function EditUserPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const user = await getUser(id)
   const departments = await getDepartments()
 
   return (
@@ -40,12 +76,12 @@ export default async function NewUserPage() {
               </Link>
               <div className='flex items-center space-x-3'>
                 <div className='p-2 bg-blue-600 rounded-xl'>
-                  <Users className='w-7 h-7 text-white' />
+                  <User className='w-7 h-7 text-white' />
                 </div>
                 <div>
-                  <h1 className='text-3xl font-bold text-gray-900'>Yeni Kullanıcı</h1>
+                  <h1 className='text-3xl font-bold text-gray-900'>Kullanıcı Düzenle</h1>
                   <p className='text-gray-600'>
-                    Takıma yeni bir üye ekleyin
+                    {user.name} kullanıcısını düzenleyin
                   </p>
                 </div>
               </div>
@@ -54,7 +90,7 @@ export default async function NewUserPage() {
 
           {/* Form */}
           <div className='bg-white rounded-2xl shadow-xl border border-gray-100 p-8'>
-            <UserCreationForm existingDepartments={departments} />
+            <UserEditForm user={user} existingDepartments={departments} />
           </div>
         </div>
       </div>
