@@ -12,6 +12,7 @@ import {
   Clock,
   Zap,
   Plus,
+  Download,
 } from 'lucide-react'
 
 interface Project {
@@ -205,6 +206,32 @@ function getUniqueProjectMembers(project: Project): number {
 
 export default function ProjectsList({ projects }: ProjectsListProps) {
   const [filteredProjects, setFilteredProjects] = useState(projects)
+
+  const handleDownloadPDF = async (projectId: string, projectName: string, e: React.MouseEvent) => {
+    e.preventDefault() // Prevent Link navigation
+    e.stopPropagation()
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/export`)
+      if (!response.ok) {
+        throw new Error('PDF oluşturulamadı')
+      }
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+      a.download = `proje-${projectName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('PDF indirilemedi:', error)
+      alert('PDF indirilemedi. Lütfen tekrar deneyin.')
+    }
+  }
 
   const handleSearch = (search: string) => {
     filterProjects(search, currentStatus, currentPriority)
@@ -410,12 +437,22 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
                       </span>
                     </div>
 
-                    {isOverdue && (
-                      <div className='flex items-center space-x-1 text-red-600 bg-red-50 px-2 py-1 rounded-full'>
-                        <Clock className='w-3 h-3' />
-                        <span className='text-xs font-bold'>GECİKMİŞ</span>
-                      </div>
-                    )}
+                    <div className='flex items-center space-x-2'>
+                      <button
+                        onClick={(e) => handleDownloadPDF(project.id, project.name, e)}
+                        className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors duration-200'
+                        title='PDF İndir'
+                      >
+                        <Download className='w-4 h-4' />
+                      </button>
+
+                      {isOverdue && (
+                        <div className='flex items-center space-x-1 text-red-600 bg-red-50 px-2 py-1 rounded-full'>
+                          <Clock className='w-3 h-3' />
+                          <span className='text-xs font-bold'>GECİKMİŞ</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
