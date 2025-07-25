@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "echo 'Direct build - no seeding' && prisma generate && prisma migrate deploy && next build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
