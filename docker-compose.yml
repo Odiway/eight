@@ -1,0 +1,65 @@
+# Development için PostgreSQL + Next.js
+version: '3.8'
+
+services:
+  # PostgreSQL Veritabanı
+  postgres:
+    image: postgres:15
+    container_name: two-main-db
+    environment:
+      POSTGRES_DB: two_main
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  # Next.js Uygulaması
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: two-main-app
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password123@postgres:5432/two_main
+      - NODE_ENV=development
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - app-network
+    command: npm run dev
+
+  # Prisma Studio (Opsiyonel)
+  studio:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: two-main-studio
+    ports:
+      - "5555:5555"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password123@postgres:5432/two_main
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+    command: npx prisma studio --port 5555 --hostname 0.0.0.0
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
