@@ -13,7 +13,7 @@ interface WorkflowStep {
 interface Task {
   id: string
   title: string
-  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED'
+  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'BLOCKED'
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
   workflowStepId: string | null
 }

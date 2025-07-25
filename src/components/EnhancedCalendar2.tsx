@@ -24,7 +24,7 @@ interface Task {
   id: string
   title: string
   description?: string
-  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED'
+  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'BLOCKED'
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
   startDate?: Date
   endDate?: Date

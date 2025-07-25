@@ -32,7 +32,7 @@ interface Task {
   id: string
   title: string
   description: string | null
-  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED'
+  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'BLOCKED'
   priority: 'LOW' | 'MEDIUM' | 'HIGH'
   startDate: string | null
   endDate: string | null
