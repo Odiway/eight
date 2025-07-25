@@ -14,7 +14,14 @@ interface User {
 interface Team {
   id: string
   name: string
-  department: string
+  description?: string | null
+  members?: Array<{
+    user: {
+      id: string
+      name: string
+      department: string
+    }
+  }>
 }
 
 interface TeamFilterProps {

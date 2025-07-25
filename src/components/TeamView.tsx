@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import TeamFilter from '@/components/TeamFilter'
-import { Users, Badge, Clock } from 'lucide-react'
+import { Users, Badge, Clock, Edit, Trash2, Eye } from 'lucide-react'
+import Link from 'next/link'
 
 interface User {
   id: string
@@ -10,19 +11,33 @@ interface User {
   email: string
   department: string
   position: string
-  assignedTasks: Array<{
-    id: string
-    title: string
-    status: string
-    endDate: Date | string | null
+  photo?: string | null
+  activeTasks: number
+  completedTasks: number
+  activeProjects: number
+  totalTasks: number
+  teamMembers?: Array<{
+    team: {
+      id: string
+      name: string
+    }
   }>
-  projects?: Array<any>
 }
 
 interface Team {
   id: string
   name: string
-  department: string
+  description?: string | null
+  members: Array<{
+    user: {
+      id: string
+      name: string
+      email: string
+      department: string
+      position: string
+    }
+    role: string
+  }>
 }
 
 interface TeamViewProps {
@@ -38,12 +53,59 @@ export default function TeamView({
     users: initialUsers,
     teams: initialTeams,
   })
+  const [activeTab, setActiveTab] = useState<'users' | 'teams'>('users')
 
   const handleFilterChange = (newFilteredData: {
     users: any[]
     teams: any[]
   }) => {
     setFilteredData(newFilteredData)
+  }
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete user')
+      }
+
+      // Refresh the page to show updated data
+      window.location.reload()
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      alert(error instanceof Error ? error.message : 'Failed to delete user')
+    }
+  }
+
+  const handleDeleteTeam = async (teamId: string, teamName: string) => {
+    if (!confirm(`Are you sure you want to delete the team "${teamName}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/teams/${teamId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete team')
+      }
+
+      // Refresh the page to show updated data
+      window.location.reload()
+    } catch (error) {
+      console.error('Error deleting team:', error)
+      alert(error instanceof Error ? error.message : 'Failed to delete team')
+    }
   }
 
   // Group users by department
@@ -84,196 +146,224 @@ export default function TeamView({
   }
 
   return (
-    <>
+    <div className='space-y-6'>
       <TeamFilter
         users={initialUsers}
         teams={initialTeams}
         onFilterChange={handleFilterChange}
       />
 
-      {/* Team Statistics */}
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
-        <div className='bg-white overflow-hidden shadow rounded-lg'>
-          <div className='p-5'>
-            <div className='flex items-center'>
-              <div className='flex-shrink-0'>
-                <Users className='h-8 w-8 text-blue-500' />
-              </div>
-              <div className='ml-5 w-0 flex-1'>
-                <dl>
-                  <dt className='text-sm font-medium text-gray-500 truncate'>
-                    Toplam Takım Üyesi
-                  </dt>
-                  <dd className='text-2xl font-bold text-gray-900'>
-                    {filteredData.users.length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
+      {/* Tab Navigation */}
+      <div className='bg-white rounded-xl shadow-lg p-6'>
+        <div className='flex space-x-1 mb-6'>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`px-6 py-3 rounded-xl font-medium transition-colors ${
+              activeTab === 'users'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+            }`}
+          >
+            Kullanıcılar ({filteredData.users.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('teams')}
+            className={`px-6 py-3 rounded-xl font-medium transition-colors ${
+              activeTab === 'teams'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+            }`}
+          >
+            Takımlar ({filteredData.teams.length})
+          </button>
         </div>
 
-        <div className='bg-white overflow-hidden shadow rounded-lg'>
-          <div className='p-5'>
-            <div className='flex items-center'>
-              <div className='flex-shrink-0'>
-                <Badge className='h-8 w-8 text-green-500' />
-              </div>
-              <div className='ml-5 w-0 flex-1'>
-                <dl>
-                  <dt className='text-sm font-medium text-gray-500 truncate'>
-                    Departman Sayısı
-                  </dt>
-                  <dd className='text-2xl font-bold text-gray-900'>
-                    {Object.keys(departments).length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className='bg-white overflow-hidden shadow rounded-lg'>
-          <div className='p-5'>
-            <div className='flex items-center'>
-              <div className='flex-shrink-0'>
-                <Clock className='h-8 w-8 text-yellow-500' />
-              </div>
-              <div className='ml-5 w-0 flex-1'>
-                <dl>
-                  <dt className='text-sm font-medium text-gray-500 truncate'>
-                    Aktif Görevler
-                  </dt>
-                  <dd className='text-2xl font-bold text-gray-900'>
-                    {filteredData.users.reduce(
-                      (sum, user) => sum + user.assignedTasks.length,
-                      0
-                    )}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Department View */}
-      <div className='space-y-8'>
-        {Object.entries(departments).map(([department, departmentUsers]) => {
-          const users = departmentUsers as any[]
-          return (
-            <div key={department} className='bg-white shadow rounded-lg'>
-              <div className='px-6 py-4 border-b border-gray-200'>
-                <div className='flex items-center justify-between'>
-                  <h2 className='text-lg font-medium text-gray-900'>
-                    {department}
-                  </h2>
-                  <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
-                    {users.length} üye
-                  </span>
-                </div>
-              </div>
-              <div className='p-6'>
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                  {users.map((user: User) => (
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <div className='space-y-6'>
+            {Object.entries(departments).map(([department, users]) => (
+              <div key={department} className='space-y-4'>
+                <h3 className='text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2'>
+                  {department} ({users.length} kişi)
+                </h3>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                  {users.map((user) => (
                     <div
                       key={user.id}
-                      className='border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow'
+                      className='bg-gray-50 rounded-xl p-4 hover:shadow-md transition-shadow'
                     >
-                      <div className='flex items-center mb-4'>
-                        <div className='w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center'>
-                          <span className='text-white text-lg font-medium'>
-                            {user.name
-                              .split(' ')
-                              .map((n: string) => n[0])
-                              .join('')
-                              .slice(0, 2)}
-                          </span>
-                        </div>
-                        <div className='ml-4'>
-                          <h3 className='text-sm font-medium text-gray-900'>
-                            {user.name}
-                          </h3>
-                          <p className='text-sm text-gray-500'>{user.email}</p>
-                        </div>
-                      </div>
-
-                      <div className='mb-4'>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(
-                            user.position
-                          )}`}
-                        >
-                          {user.position}
-                        </span>
-                      </div>
-
-                      <div className='space-y-3'>
-                        <div className='flex items-center justify-between text-sm'>
-                          <span className='text-gray-500'>Aktif Görevler</span>
-                          <span className='font-medium text-blue-600'>
-                            {user.assignedTasks.length}
-                          </span>
-                        </div>
-                        <div className='flex items-center justify-between text-sm'>
-                          <span className='text-gray-500'>Projeler</span>
-                          <span className='font-medium text-green-600'>
-                            {user.projects?.length || 0}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Recent Tasks */}
-                      {user.assignedTasks.length > 0 && (
-                        <div className='mt-4 pt-4 border-t border-gray-100'>
-                          <h4 className='text-xs font-medium text-gray-500 mb-2'>
-                            Son Görevler
-                          </h4>
-                          <div className='space-y-1'>
-                            {user.assignedTasks
-                              .slice(0, 2)
-                              .map((task: User['assignedTasks'][0]) => (
-                                <div
-                                  key={task.id}
-                                  className='text-xs text-gray-600 truncate'
-                                >
-                                  {task.title}
-                                </div>
-                              ))}
-                            {user.assignedTasks.length > 2 && (
-                              <div className='text-xs text-gray-500'>
-                                +{user.assignedTasks.length - 2} daha fazla
-                              </div>
-                            )}
+                      <div className='flex items-start justify-between mb-3'>
+                        <div className='flex items-center space-x-3'>
+                          <div className='w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold'>
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className='font-semibold text-gray-900'>{user.name}</h4>
+                            <p className='text-sm text-gray-600'>{user.email}</p>
                           </div>
                         </div>
-                      )}
+                        
+                        <div className='flex space-x-1'>
+                          <Link
+                            href={`/team/edit/${user.id}`}
+                            className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
+                            title='Düzenle'
+                          >
+                            <Edit className='w-4 h-4' />
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteUser(user.id, user.name)}
+                            className='p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors'
+                            title='Sil'
+                          >
+                            <Trash2 className='w-4 h-4' />
+                          </button>
+                        </div>
+                      </div>
 
-                      <div className='mt-4 pt-4 border-t border-gray-100'>
-                        <button className='w-full text-sm text-blue-600 hover:text-blue-800 font-medium'>
-                          Profili Görüntüle
-                        </button>
+                      <div className='space-y-2'>
+                        <div className='flex items-center justify-between'>
+                          <span className='text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full'>
+                            {user.position}
+                          </span>
+                        </div>
+
+                        <div className='grid grid-cols-3 gap-2 text-center'>
+                          <div className='bg-white p-2 rounded-lg'>
+                            <div className='text-lg font-bold text-blue-600'>{user.activeTasks}</div>
+                            <div className='text-xs text-gray-500'>Aktif</div>
+                          </div>
+                          <div className='bg-white p-2 rounded-lg'>
+                            <div className='text-lg font-bold text-green-600'>{user.completedTasks}</div>
+                            <div className='text-xs text-gray-500'>Tamamlanan</div>
+                          </div>
+                          <div className='bg-white p-2 rounded-lg'>
+                            <div className='text-lg font-bold text-purple-600'>{user.activeProjects}</div>
+                            <div className='text-xs text-gray-500'>Proje</div>
+                          </div>
+                        </div>
+
+                        {user.teamMembers && user.teamMembers.length > 0 && (
+                          <div className='mt-2'>
+                            <div className='text-xs text-gray-500 mb-1'>Takımlar:</div>
+                            <div className='flex flex-wrap gap-1'>
+                              {user.teamMembers.map((membership: any) => (
+                                <span
+                                  key={membership.team.id}
+                                  className='text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full'
+                                >
+                                  {membership.team.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
-          )
-        })}
-      </div>
+            ))}
 
-      {filteredData.users.length === 0 && (
-        <div className='text-center py-12'>
-          <Users className='mx-auto h-12 w-12 text-gray-400' />
-          <h3 className='mt-2 text-sm font-medium text-gray-900'>
-            Takım üyesi bulunamadı
-          </h3>
-          <p className='mt-1 text-sm text-gray-500'>
-            Filtrelere uygun takım üyesi bulunmuyor.
-          </p>
-        </div>
-      )}
-    </>
+            {filteredData.users.length === 0 && (
+              <div className='text-center py-12'>
+                <Users className='w-12 h-12 text-gray-400 mx-auto mb-4' />
+                <p className='text-gray-500'>Hiç kullanıcı bulunamadı</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Teams Tab */}
+        {activeTab === 'teams' && (
+          <div className='space-y-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+              {filteredData.teams.map((team) => (
+                <div
+                  key={team.id}
+                  className='bg-gray-50 rounded-xl p-6 hover:shadow-md transition-shadow'
+                >
+                  <div className='flex items-start justify-between mb-4'>
+                    <div>
+                      <h3 className='text-lg font-semibold text-gray-900'>{team.name}</h3>
+                      {team.description && (
+                        <p className='text-sm text-gray-600 mt-1'>{team.description}</p>
+                      )}
+                    </div>
+                    
+                    <div className='flex space-x-1'>
+                      <Link
+                        href={`/team/edit-team/${team.id}`}
+                        className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
+                        title='Düzenle'
+                      >
+                        <Edit className='w-4 h-4' />
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteTeam(team.id, team.name)}
+                        className='p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors'
+                        title='Sil'
+                      >
+                        <Trash2 className='w-4 h-4' />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className='space-y-3'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm font-medium text-gray-700'>
+                        Üye Sayısı: {team.members.length}
+                      </span>
+                    </div>
+
+                    {team.members.length > 0 && (
+                      <div>
+                        <div className='text-xs text-gray-500 mb-2'>Takım Üyeleri:</div>
+                        <div className='space-y-1 max-h-32 overflow-y-auto'>
+                          {team.members.slice(0, 5).map((member) => (
+                            <div
+                              key={member.user.id}
+                              className='flex items-center space-x-2 text-sm'
+                            >
+                              <div className='w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-semibold'>
+                                {member.user.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className='text-gray-700'>{member.user.name}</span>
+                              <span className='text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full'>
+                                {member.user.position}
+                              </span>
+                            </div>
+                          ))}
+                          {team.members.length > 5 && (
+                            <div className='text-xs text-gray-500'>
+                              +{team.members.length - 5} daha fazla üye
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <Link
+                      href={`/team/${team.id}`}
+                      className='inline-flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-700'
+                    >
+                      <Eye className='w-4 h-4' />
+                      <span>Detayları Görüntüle</span>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {filteredData.teams.length === 0 && (
+              <div className='text-center py-12'>
+                <Users className='w-12 h-12 text-gray-400 mx-auto mb-4' />
+                <p className='text-gray-500'>Hiç takım bulunamadı</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

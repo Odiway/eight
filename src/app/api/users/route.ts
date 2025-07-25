@@ -41,6 +41,26 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
+    // Validate required fields
+    if (!body.name || !body.email || !body.department || !body.position) {
+      return NextResponse.json(
+        { error: 'Name, email, department, and position are required' },
+        { status: 400 }
+      )
+    }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: body.email },
+    })
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 409 }
+      )
+    }
+
     const user = await prisma.user.create({
       data: {
         name: body.name,
@@ -49,11 +69,23 @@ export async function POST(request: NextRequest) {
         position: body.position,
         photo: body.photo || null,
         studentId: body.studentId || null,
+        maxHoursPerDay: body.maxHoursPerDay || 8,
+        workingDays: body.workingDays || "1,2,3,4,5",
+      },
+      include: {
+        assignedTasks: true,
+        projects: true,
+        teamMembers: {
+          include: {
+            team: true,
+          },
+        },
       },
     })
 
     // Invalidate team page cache
     revalidatePath('/team')
+    revalidatePath('/projects')
 
     return NextResponse.json(user, { status: 201 })
   } catch (error) {

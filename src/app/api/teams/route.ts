@@ -39,6 +39,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if team name already exists
+    const existingTeam = await prisma.team.findFirst({
+      where: { name: body.name },
+    })
+
+    if (existingTeam) {
+      return NextResponse.json(
+        { error: 'Team with this name already exists' },
+        { status: 409 }
+      )
+    }
+
     const team = await prisma.team.create({
       data: {
         name: body.name,
@@ -59,12 +71,33 @@ export async function POST(request: NextRequest) {
         data: body.memberIds.map((userId: string) => ({
           teamId: team.id,
           userId: userId,
+          role: 'Member',
         })),
+        skipDuplicates: true,
       })
+
+      // Fetch the updated team with members
+      const updatedTeam = await prisma.team.findUnique({
+        where: { id: team.id },
+        include: {
+          members: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      })
+
+      // Invalidate relevant caches
+      revalidatePath('/team')
+      revalidatePath('/projects')
+
+      return NextResponse.json(updatedTeam, { status: 201 })
     }
 
     // Invalidate team page cache
     revalidatePath('/team')
+    revalidatePath('/projects')
 
     return NextResponse.json(team, { status: 201 })
   } catch (error) {

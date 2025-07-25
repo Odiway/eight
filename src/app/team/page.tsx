@@ -21,9 +21,27 @@ async function getTeamData() {
           project: true,
         },
       },
+      teamMembers: {
+        include: {
+          team: true,
+        },
+      },
     },
     orderBy: {
       department: 'asc',
+    },
+  })
+
+  const teams = await prisma.team.findMany({
+    include: {
+      members: {
+        include: {
+          user: true,
+        },
+      },
+    },
+    orderBy: {
+      name: 'asc',
     },
   })
 
@@ -61,14 +79,16 @@ async function getTeamData() {
 
   return {
     users: usersWithStats,
+    teams,
     departments,
     totalUsers: users.length,
+    totalTeams: teams.length,
     departmentCount: Object.keys(departments).length,
   }
 }
 
 export default async function TeamPage() {
-  const { users, totalUsers, departmentCount } = await getTeamData()
+  const { users, teams, totalUsers, totalTeams, departmentCount } = await getTeamData()
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -86,7 +106,7 @@ export default async function TeamPage() {
                   Takım Yönetimi
                 </h1>
                 <p className='text-gray-600'>
-                  {totalUsers} çalışan, {departmentCount} departman
+                  {totalUsers} çalışan, {totalTeams} takım, {departmentCount} departman
                 </p>
               </div>
             </div>
@@ -215,9 +235,7 @@ export default async function TeamPage() {
           </div>
 
           {/* Team Filter and View */}
-          <div className='bg-white shadow rounded-lg'>
-            <TeamView initialUsers={users} initialTeams={[]} />
-          </div>
+          <TeamView initialUsers={users} initialTeams={teams} />
         </div>
       </div>
     </div>
