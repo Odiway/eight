@@ -121,7 +121,6 @@ export async function PUT(
             userId: userId,
             role: 'Member',
           })),
-          skipDuplicates: true,
         })
       }
 

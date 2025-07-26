@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import puppeteer from 'puppeteer'
+import jsPDF from 'jspdf'
 
 interface PerformanceData {
   generatedAt: string
@@ -647,49 +647,155 @@ function generateHTML(data: PerformanceData): string {
   `
 }
 
+function generatePerformancePDF(data: PerformanceData): Buffer {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 20
+  const usableWidth = pageWidth - 2 * margin
+
+  let yPosition = margin
+
+  // Header
+  doc.setFillColor(102, 126, 234)
+  doc.rect(0, 0, pageWidth, 60, 'F')
+  
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(24)
+  doc.setFont('helvetica', 'bold')
+  doc.text('PERFORMANS RAPORU', pageWidth / 2, 25, { align: 'center' })
+  
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Kullanici ve proje performans analizi', pageWidth / 2, 40, { align: 'center' })
+  
+  yPosition = 80
+
+  // Summary Statistics
+  doc.setTextColor(0, 0, 0)
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text('OZET ISTATISTIKLER', margin, yPosition)
+  yPosition += 15
+
+  const stats = [
+    { label: 'Toplam Kullanici', value: data.summary.totalUsers.toString() },
+    { label: 'Toplam Proje', value: data.summary.totalProjects.toString() },
+    { label: 'Toplam Gorev', value: data.summary.totalTasks.toString() },
+    { label: 'Tamamlanan Gorev', value: data.summary.completedTasks.toString() },
+    { label: 'Geciken Gorev', value: data.summary.overdueTasks.toString() },
+    { label: 'Ort. Tamamlama', value: `%${Math.round(data.summary.averageTaskCompletion)}` }
+  ]
+
+  const colWidth = usableWidth / 3
+  const rowHeight = 25
+
+  for (let i = 0; i < stats.length; i++) {
+    const row = Math.floor(i / 3)
+    const col = i % 3
+    const x = margin + col * colWidth
+    const y = yPosition + row * rowHeight
+
+    // Background for stat card
+    doc.setFillColor(248, 250, 252)
+    doc.setDrawColor(226, 232, 240)
+    doc.rect(x, y, colWidth - 5, rowHeight - 5, 'FD')
+
+    // Value
+    doc.setTextColor(30, 41, 91)
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text(stats[i].value, x + colWidth / 2, y + 10, { align: 'center' })
+
+    // Label
+    doc.setTextColor(100, 116, 139)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(stats[i].label, x + colWidth / 2, y + 18, { align: 'center' })
+  }
+
+  yPosition += Math.ceil(stats.length / 3) * rowHeight + 20
+
+  // Top Performers
+  if (yPosition > pageHeight - 100) {
+    doc.addPage()
+    yPosition = margin
+  }
+
+  doc.setTextColor(0, 0, 0)
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text('EN YUKSEK PERFORMANS', margin, yPosition)
+  yPosition += 15
+
+  const topPerformers = data.userPerformance
+    .sort((a, b) => b.completionRate - a.completionRate)
+    .slice(0, 5)
+
+  for (const user of topPerformers) {
+    if (yPosition > pageHeight - 50) {
+      doc.addPage()
+      yPosition = margin
+    }
+
+    // User card background
+    doc.setFillColor(255, 255, 255)
+    doc.setDrawColor(229, 231, 235)
+    doc.rect(margin, yPosition, usableWidth, 20, 'FD')
+
+    // User name and performance
+    doc.setTextColor(30, 64, 175)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text(user.name, margin + 5, yPosition + 8)
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`${user.department} | %${Math.round(user.completionRate)} tamamlama | ${user.totalTasks} gorev`, margin + 5, yPosition + 15)
+
+    yPosition += 25
+  }
+
+  // Footer
+  if (yPosition > pageHeight - 40) {
+    doc.addPage()
+    yPosition = margin
+  }
+
+  yPosition = pageHeight - 30
+  doc.setFillColor(248, 250, 252)
+  doc.rect(0, yPosition - 10, pageWidth, 40, 'F')
+
+  doc.setTextColor(71, 85, 105)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Bu rapor ${new Date(data.generatedAt).toLocaleString('tr-TR')} tarihinde otomatik olusturulmustur.`, pageWidth / 2, yPosition, { align: 'center' })
+
+  return Buffer.from(doc.output('arraybuffer'))
+}
+
 export async function GET(request: NextRequest) {
   try {
     const data = await getPerformanceData()
-    const html = generateHTML(data)
-
-    // Launch Puppeteer browser
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    })
-
-    const page = await browser.newPage()
-
-    // Set content and wait for it to load
-    await page.setContent(html, { waitUntil: 'networkidle0' })
-
-    // Generate PDF
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm',
-      },
-    })
-
-    await browser.close()
+    const pdfBuffer = generatePerformancePDF(data)
 
     // Return PDF with proper headers
-    return new Response(pdf, {
+    return new Response(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="performans-raporu-${
           new Date().toISOString().split('T')[0]
         }.pdf"`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       },
     })
   } catch (error) {
     console.error('PDF generation error:', error)
     return NextResponse.json(
-      { error: 'PDF oluşturulurken hata oluştu' },
+      { error: 'PDF oluşturulurken hata oluştu', details: error instanceof Error ? error.message : 'Bilinmeyen hata' },
       { status: 500 }
     )
   }

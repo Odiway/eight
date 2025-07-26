@@ -73,7 +73,6 @@ export async function POST(request: NextRequest) {
           userId: userId,
           role: 'Member',
         })),
-        skipDuplicates: true,
       })
 
       // Update user departments to match team name
