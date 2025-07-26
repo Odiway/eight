@@ -923,55 +923,6 @@ export default async function WorkloadPage() {
               </div>
             </div>
           </div>
-
-          {/* Strategic Insights */}
-          <div className='mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6'>
-            <div className='bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-6 border border-blue-200'>
-              <h4 className='text-lg font-semibold text-blue-900 mb-4 flex items-center'>
-                <TrendingUp className='w-5 h-5 mr-2' />
-                Kapasite Optimizasyonu
-              </h4>
-              <div className='space-y-3 text-sm text-blue-800'>
-                <p>
-                  • İş yükü dengelenmesi gereken çalışan sayısı:{' '}
-                  {userWorkloads.filter((u) => u.workloadScore >= 8).length}
-                </p>
-                <p>
-                  • Kapasitesi olan çalışan sayısı:{' '}
-                  {userWorkloads.filter((u) => u.workloadScore <= 3).length}
-                </p>
-                <p>
-                  • Görev dağılımı optimize edilebilir departman:{' '}
-                  {
-                    departmentWorkloads.filter(
-                      (d: DepartmentWorkload) => d.avgWorkloadScore >= 6
-                    ).length
-                  }
-                </p>
-              </div>
-            </div>
-
-            <div className='bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-6 border border-green-200'>
-              <h4 className='text-lg font-semibold text-green-900 mb-4 flex items-center'>
-                <Award className='w-5 h-5 mr-2' />
-                Performans İyileştirme
-              </h4>
-              <div className='space-y-3 text-sm text-green-800'>
-                <p>
-                  • Yüksek performanslı çalışan:{' '}
-                  {userWorkloads.filter((u) => u.efficiency >= 80).length}
-                </p>
-                <p>
-                  • Mentörlük verebilecek çalışan:{' '}
-                  {userWorkloads.filter((u) => u.completionRate >= 85).length}
-                </p>
-                <p>
-                  • Destek gereken çalışan:{' '}
-                  {userWorkloads.filter((u) => u.efficiency < 60).length}
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
