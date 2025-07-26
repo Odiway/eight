@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calendar, Clock, AlertTriangle, Users, BarChart3, RefreshCw } from 'lucide-react'
+import { Calendar, Clock, AlertTriangle, Users, BarChart3, RefreshCw, TrendingDown } from 'lucide-react'
 import { WorkloadAnalyzer, WorkloadData, getWorkloadColor, getWorkloadLabel } from '@/lib/workload-analysis'
 import ImprovedWorkloadViewer from '@/components/ImprovedWorkloadViewer'
 
@@ -205,13 +205,17 @@ function EnhancedCalendar({
       ? Math.round(workload.reduce((sum, w) => sum + w.workloadPercent, 0) / workload.length)
       : 0
 
+    // Check if this is a bottleneck day (>80% workload with tasks)
+    const isBottleneck = avgWorkload > 80 && dayTasks.length > 0
+
     return (
       <div
         key={date.toISOString()}
         className={`
-          min-h-[120px] p-2 border border-gray-200 cursor-pointer transition-all duration-200
+          min-h-[120px] p-2 border border-gray-200 cursor-pointer transition-all duration-200 rounded-lg
           ${isToday ? 'bg-blue-50 border-blue-300' : ''}
-          ${isSelected ? 'bg-yellow-50 border-yellow-300' : ''}
+          ${isSelected ? 'ring-2 ring-blue-500' : ''}
+          ${isBottleneck ? 'ring-2 ring-red-400 bg-red-50' : ''}
           ${avgWorkload > 100 ? 'bg-red-50 border-red-300' : ''}
           ${dayTasks.length > 0 ? 'hover:bg-blue-50' : 'hover:bg-gray-50'}
         `}
@@ -227,7 +231,18 @@ function EnhancedCalendar({
           <span className={`text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-600'}`}>
             {date.getDate()}
           </span>
-          {avgWorkload > 100 && (
+          {dayTasks.length > 0 && (
+            <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-medium">
+              {dayTasks.length}
+            </span>
+          )}
+          {isBottleneck && (
+            <div className="flex items-center gap-1" title={`Darboğaz Günü - İş Yükü: ${avgWorkload}%`}>
+              <TrendingDown className="w-3 h-3 text-red-600" />
+              <span className="text-xs text-red-600 font-bold">!</span>
+            </div>
+          )}
+          {avgWorkload > 100 && !isBottleneck && (
             <AlertTriangle className="w-4 h-4 text-red-500" />
           )}
         </div>
@@ -342,6 +357,46 @@ function EnhancedCalendar({
     )
   }
 
+  // Calculate monthly stats for bottleneck analysis
+  const monthlyStats = React.useMemo(() => {
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+    
+    let totalTasks = 0
+    let bottleneckDays = 0
+    let totalWorkload = 0
+    let maxDailyTasks = 0
+    const totalDays = endOfMonth.getDate()
+    
+    for (let date = new Date(startOfMonth); date <= endOfMonth; date.setDate(date.getDate() + 1)) {
+      const tasksForDay = getTasksForDate(new Date(date))
+      totalTasks += tasksForDay.length
+      maxDailyTasks = Math.max(maxDailyTasks, tasksForDay.length)
+      
+      // Calculate workload percentage for this day
+      const dayWorkload = workloadData.filter(w => {
+        const workloadDate = new Date(w.date)
+        return workloadDate.toDateString() === date.toDateString()
+      })
+      
+      if (dayWorkload.length > 0) {
+        const avgWorkload = dayWorkload.reduce((sum, w) => sum + w.workloadPercent, 0) / dayWorkload.length
+        totalWorkload += avgWorkload
+        
+        if (avgWorkload > 80) { // Consider >80% as bottleneck
+          bottleneckDays++
+        }
+      }
+    }
+    
+    return {
+      totalTasks,
+      bottleneckDays,
+      avgDailyTasks: totalTasks / totalDays,
+      maxDailyTasks
+    }
+  }, [currentDate, workloadData, tasks])
+
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       {/* Header */}
@@ -404,6 +459,65 @@ function EnhancedCalendar({
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Monthly Workload Analysis */}
+      {viewMode === 'calendar' && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingDown className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-800">Aylık İş Yükü Analizi</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white p-3 rounded-lg shadow-sm">
+              <div className="text-sm text-gray-600">Toplam Görev</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {monthlyStats.totalTasks}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded-lg shadow-sm">
+              <div className="text-sm text-gray-600">Darboğaz Günler</div>
+              <div className="text-2xl font-bold text-red-600">
+                {monthlyStats.bottleneckDays}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded-lg shadow-sm">
+              <div className="text-sm text-gray-600">Ortalama Günlük</div>
+              <div className="text-2xl font-bold text-green-600">
+                {monthlyStats.avgDailyTasks.toFixed(1)}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded-lg shadow-sm">
+              <div className="text-sm text-gray-600">En Yoğun Gün</div>
+              <div className="text-2xl font-bold text-orange-600">
+                {monthlyStats.maxDailyTasks}
+              </div>
+            </div>
+          </div>
+          
+          {monthlyStats.bottleneckDays > 0 ? (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <span className="text-sm font-medium text-red-800">
+                  Bu ayda {monthlyStats.bottleneckDays} darboğaz günü tespit edildi
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-green-800">
+                  ✅ Bu ayda darboğaz tespit edilmedi
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
