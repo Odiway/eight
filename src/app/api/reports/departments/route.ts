@@ -126,15 +126,20 @@ export async function GET() {
         return new Date(task.endDate) < new Date()
       })
 
-      // Kullanıcının projelerini analiz et
+      // Kullanıcının projelerini analiz et - TaskAssignments'dan hesapla
+      const userActiveProjects = new Set()
+      const userCompletedProjects = new Set()
+      
       uniqueTasks.forEach((task) => {
         if (task.project) {
           if (
             task.project.status === 'IN_PROGRESS' ||
             task.project.status === 'PLANNING'
           ) {
+            userActiveProjects.add(task.project.id)
             acc[user.department].statistics.activeProjects.add(task.project.id)
           } else if (task.project.status === 'COMPLETED') {
+            userCompletedProjects.add(task.project.id)
             acc[user.department].statistics.completedProjects.add(
               task.project.id
             )
@@ -168,11 +173,7 @@ export async function GET() {
           userOverdueTasks.length === 0
             ? 100
             : Math.max(0, 100 - userOverdueTasks.length * 20),
-        activeProjects: user.projects.filter(
-          (p) =>
-            p.project.status === 'IN_PROGRESS' ||
-            p.project.status === 'PLANNING'
-        ).length,
+        activeProjects: userActiveProjects.size, // TaskAssignments'dan hesapla
       })
 
       // Departman istatistiklerini güncelle

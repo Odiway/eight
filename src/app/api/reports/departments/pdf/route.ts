@@ -419,66 +419,251 @@ function generateHTML(data: any): string {
 }
 
 function generateDepartmentsPDF(data: DepartmentReportData): Buffer {
-  const doc = new jsPDF()
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  })
+
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 20
-  const usableWidth = pageWidth - 2 * margin
-
-  let yPosition = margin
-
-  // Header
-  doc.setFillColor(102, 126, 234)
-  doc.rect(0, 0, pageWidth, 60, 'F')
   
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(24)
+  // Enhanced styling constants
+  const colors = {
+    primary: [30, 64, 175] as const,      // Blue-700
+    secondary: [8, 145, 178] as const,    // Cyan-600  
+    accent: [5, 150, 105] as const,       // Emerald-600
+    warning: [217, 119, 6] as const,      // Amber-600
+    danger: [220, 38, 38] as const,       // Red-600
+    text: [31, 41, 55] as const,          // Gray-800
+    lightText: [107, 114, 128] as const,  // Gray-500
+    background: [248, 250, 252] as const, // Slate-50
+    border: [226, 232, 240] as const      // Slate-200
+  }
+
+  // Header with gradient effect
+  doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2])
+  doc.rect(0, 0, pageWidth, 50, 'F')
+  
+  // Add decorative elements
+  doc.setFillColor(colors.secondary[0], colors.secondary[1], colors.secondary[2])
+  doc.circle(pageWidth - 30, 15, 10, 'F')
+  doc.circle(pageWidth - 15, 35, 6, 'F')
+  
+  // Company logo area
+  doc.setFillColor(255, 255, 255)
+  doc.roundedRect(15, 10, 15, 15, 3, 3, 'F')
+  doc.setFontSize(14)
+  doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2])
   doc.setFont('helvetica', 'bold')
-  doc.text('DEPARTMAN ANALIZI', pageWidth / 2, 25, { align: 'center' })
+  doc.text('T', 22, 22)
+  
+  // Header text
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(28)
+  doc.setFont('helvetica', 'bold')
+  doc.text('DEPARTMAN ANALİZİ', 40, 22)
   
   doc.setFontSize(12)
   doc.setFont('helvetica', 'normal')
-  doc.text('Departman performans raporu', pageWidth / 2, 40, { align: 'center' })
+  doc.text('Batarya Üretim - Performans Raporu', 40, 30)
   
-  yPosition = 80
+  doc.setFontSize(10)
+  doc.text(`Rapor Tarihi: ${new Date(data.generatedAt).toLocaleDateString('tr-TR', {
+    year: 'numeric',
+    month: 'long', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })}`, 40, 38)
 
-  // Department data
-  const departments = Object.values(data.departments) as Array<Omit<DepartmentInfo, 'projects'> & { projectCount: number }>
+  let yPosition = 60
+
+  // Executive Summary Card
+  doc.setFillColor(colors.background[0], colors.background[1], colors.background[2])
+  doc.roundedRect(10, yPosition, pageWidth - 20, 40, 4, 4, 'F')
+  doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2])
+  doc.setLineWidth(0.5)
+  doc.roundedRect(10, yPosition, pageWidth - 20, 40, 4, 4, 'S')
   
-  for (const dept of departments) {
-    if (yPosition > pageHeight - 60) {
+  doc.setTextColor(colors.text[0], colors.text[1], colors.text[2])
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text('📊 GENEL DURUM ÖZETİ', 15, yPosition + 10)
+  
+  const departments = Object.values(data.departments) as Array<Omit<DepartmentInfo, 'projects'> & { projectCount: number }>
+  const totalDepartments = departments.length
+  const totalUsers = departments.reduce((sum, dept) => sum + dept.userCount, 0)
+  const totalTasks = departments.reduce((sum, dept) => sum + dept.totalTasks, 0)
+  const totalCompleted = departments.reduce((sum, dept) => sum + dept.completedTasks, 0)
+  const overallCompletion = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0
+  
+  // Summary metrics
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'normal')
+  
+  const metrics = [
+    { label: 'Toplam Departman', value: totalDepartments.toString(), icon: '🏢' },
+    { label: 'Toplam Çalışan', value: totalUsers.toString(), icon: '👥' },
+    { label: 'Toplam Görev', value: totalTasks.toString(), icon: '📋' },
+    { label: 'Genel Başarı', value: `%${overallCompletion}`, icon: '🎯' }
+  ]
+  
+  metrics.forEach((metric, index) => {
+    const x = 15 + (index % 2) * 90
+    const y = yPosition + 20 + Math.floor(index / 2) * 12
+    
+    doc.text(metric.icon, x, y)
+    doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2])
+    doc.text(metric.label + ':', x + 8, y)
+    doc.setTextColor(colors.text[0], colors.text[1], colors.text[2])
+    doc.setFont('helvetica', 'bold')
+    doc.text(metric.value, x + 45, y)
+    doc.setFont('helvetica', 'normal')
+  })
+
+  yPosition += 50
+
+  // Department Analysis Section
+  doc.setTextColor(colors.text[0], colors.text[1], colors.text[2])
+  doc.setFontSize(18)
+  doc.setFont('helvetica', 'bold')
+  doc.text('🏢 DEPARTMAN DETAYLARI', 15, yPosition)
+  yPosition += 15
+
+  departments.forEach((dept, index) => {
+    // Check if we need a new page
+    if (yPosition > pageHeight - 90) {
       doc.addPage()
-      yPosition = margin
+      yPosition = 25
     }
 
-    // Department header
-    doc.setFillColor(248, 250, 252)
-    doc.setDrawColor(226, 232, 240)
-    doc.rect(margin, yPosition, usableWidth, 40, 'FD')
-
-    doc.setTextColor(30, 64, 175)
+    // Department card
+    const cardHeight = 70
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(10, yPosition, pageWidth - 20, cardHeight, 4, 4, 'F')
+    doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2])
+    doc.setLineWidth(0.5)
+    doc.roundedRect(10, yPosition, pageWidth - 20, cardHeight, 4, 4, 'S')
+    
+    // Department header with colored accent
+    const headerColor = index % 3 === 0 ? colors.primary : index % 3 === 1 ? colors.secondary : colors.accent
+    doc.setFillColor(headerColor[0], headerColor[1], headerColor[2])
+    doc.roundedRect(10, yPosition, pageWidth - 20, 15, 4, 4, 'F')
+    
+    doc.setTextColor(255, 255, 255)
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
-    doc.text(dept.name, margin + 5, yPosition + 15)
-
-    const completionRate = dept.totalTasks > 0 ? Math.round((dept.completedTasks / dept.totalTasks) * 100) : 0
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(10)
+    doc.text(dept.name, 15, yPosition + 10)
+    
+    // Department stats
+    doc.setTextColor(colors.text[0], colors.text[1], colors.text[2])
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'normal')
-    doc.text(`${dept.userCount} kullanici | ${dept.totalTasks} gorev | %${completionRate} tamamlama`, margin + 5, yPosition + 30)
+    
+    const completionRate = dept.totalTasks > 0 ? Math.round((dept.completedTasks / dept.totalTasks) * 100) : 0
+    
+    // Stats grid
+    const stats = [
+      { icon: '👥', label: 'Çalışan', value: `${dept.userCount} kişi` },
+      { icon: '📋', label: 'Toplam Görev', value: dept.totalTasks.toString() },
+      { icon: '✅', label: 'Tamamlanan', value: dept.completedTasks.toString() },
+      { icon: '📊', label: 'Başarı Oranı', value: `%${completionRate}` },
+      { icon: '🎯', label: 'Aktif Proje', value: `${dept.projectCount || 0} proje` }
+    ]
+    
+    stats.forEach((stat, statIndex) => {
+      const x = 15 + (statIndex % 3) * 60
+      const y = yPosition + 25 + Math.floor(statIndex / 3) * 12
+      
+      doc.setFontSize(9)
+      doc.text(stat.icon, x, y)
+      doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2])
+      doc.text(stat.label + ':', x + 8, y)
+      doc.setTextColor(colors.text[0], colors.text[1], colors.text[2])
+      doc.setFont('helvetica', 'bold')
+      doc.text(stat.value, x + 30, y)
+      doc.setFont('helvetica', 'normal')
+    })
+    
+    // Performance indicator circle
+    const performanceColor = completionRate >= 80 ? colors.accent : 
+                             completionRate >= 60 ? colors.warning : colors.danger
+    
+    doc.setFillColor(performanceColor[0], performanceColor[1], performanceColor[2])
+    doc.circle(pageWidth - 25, yPosition + 35, 10, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${completionRate}%`, pageWidth - 30, yPosition + 37)
+    
+    // Performance status text
+    const performanceText = completionRate >= 80 ? 'Mükemmel' : 
+                           completionRate >= 60 ? 'İyi' : 
+                           completionRate >= 40 ? 'Orta' : 'Geliştirilmeli'
+    
+    doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2])
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(performanceText, pageWidth - 35, yPosition + 45)
+    
+    // Top performers section
+    if (dept.users && dept.users.length > 0) {
+      const topPerformers = dept.users
+        .map(user => ({
+          ...user,
+          completion: user.totalTasks > 0 ? Math.round((user.completedTasks / user.totalTasks) * 100) : 0
+        }))
+        .sort((a, b) => b.completion - a.completion)
+        .slice(0, 3)
+      
+      doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2])
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.text('🏆 En İyi Performans:', 15, yPosition + 55)
+      
+      topPerformers.forEach((performer, perfIndex) => {
+        const perfX = 15 + perfIndex * 55
+        doc.setTextColor(colors.text[0], colors.text[1], colors.text[2])
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        const shortName = performer.name.split(' ').slice(0, 2).join(' ')
+        doc.text(shortName.length > 15 ? shortName.substring(0, 15) + '...' : shortName, perfX, yPosition + 62)
+        doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2])
+        doc.setFont('helvetica', 'bold')
+        doc.text(`%${performer.completion}`, perfX, yPosition + 67)
+      })
+    }
 
-    yPosition += 50
+    yPosition += cardHeight + 10
+  })
+
+  // Modern footer
+  if (yPosition > pageHeight - 30) {
+    doc.addPage()
+    yPosition = pageHeight - 25
+  } else {
+    yPosition = pageHeight - 25
   }
-
-  // Footer
-  yPosition = pageHeight - 30
-  doc.setFillColor(248, 250, 252)
-  doc.rect(0, yPosition - 10, pageWidth, 40, 'F')
-
-  doc.setTextColor(71, 85, 105)
+  
+  doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2])
+  doc.setLineWidth(0.8)
+  doc.line(15, yPosition, pageWidth - 15, yPosition)
+  
+  doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2])
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.text(`Bu rapor ${new Date(data.generatedAt).toLocaleString('tr-TR')} tarihinde otomatik olusturulmustur.`, pageWidth / 2, yPosition, { align: 'center' })
+  doc.text('Batarya Üretim Proje Yönetim Sistemi', 15, yPosition + 8)
+  doc.text(`Oluşturulma: ${new Date().toLocaleString('tr-TR')}`, pageWidth - 70, yPosition + 8)
+  
+  // Add page numbers
+  const pageCount = doc.internal.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setTextColor(colors.lightText[0], colors.lightText[1], colors.lightText[2])
+    doc.setFontSize(8)
+    doc.text(`Sayfa ${i} / ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+  }
 
   return Buffer.from(doc.output('arraybuffer'))
 }
