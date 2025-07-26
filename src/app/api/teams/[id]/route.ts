@@ -21,6 +21,15 @@ export async function GET(
                     project: true,
                   },
                 },
+                taskAssignments: {
+                  include: {
+                    task: {
+                      include: {
+                        project: true,
+                      },
+                    },
+                  },
+                },
                 projects: {
                   include: {
                     project: true,

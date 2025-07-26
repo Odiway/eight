@@ -16,6 +16,15 @@ async function getTeamData() {
           project: true,
         },
       },
+      taskAssignments: {
+        include: {
+          task: {
+            include: {
+              project: true,
+            },
+          },
+        },
+      },
       projects: {
         include: {
           project: true,
@@ -47,10 +56,21 @@ async function getTeamData() {
 
   // Calculate stats for each user
   const usersWithStats = users.map((user) => {
-    const activeTasks = user.assignedTasks.filter(
+    // Combine tasks from both assignedTasks (legacy) and taskAssignments (new)
+    const allUserTasks = [
+      ...user.assignedTasks,
+      ...user.taskAssignments.map(assignment => assignment.task)
+    ];
+
+    // Remove duplicates (in case a task is in both arrays)
+    const uniqueTasks = allUserTasks.filter((task, index, array) => 
+      array.findIndex(t => t.id === task.id) === index
+    );
+
+    const activeTasks = uniqueTasks.filter(
       (task) => task.status === 'TODO' || task.status === 'IN_PROGRESS'
     )
-    const completedTasks = user.assignedTasks.filter(
+    const completedTasks = uniqueTasks.filter(
       (task) => task.status === 'COMPLETED'
     )
     const activeProjects = user.projects.filter(
@@ -64,7 +84,7 @@ async function getTeamData() {
       activeTasks: activeTasks.length,
       completedTasks: completedTasks.length,
       activeProjects: activeProjects.length,
-      totalTasks: user.assignedTasks.length,
+      totalTasks: uniqueTasks.length,
     }
   })
 

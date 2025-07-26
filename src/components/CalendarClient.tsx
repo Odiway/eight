@@ -387,13 +387,10 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
       // Calculate bottleneck for this day
       const workload = WorkloadAnalyzer.calculateDailyWorkload(tasksForDay as any, date)
       const taskCount = tasksForDay.length
-      const avgWorkload = workload / Math.max(taskCount, 1)
       const isBottleneck = (
-        avgWorkload >= 90 ||
-        workload >= 120 ||
-        (taskCount >= 8 && avgWorkload >= 75)
+        workload > 80 && taskCount > 0
       )
-      const workloadPercentage = Math.min(100, (workload / 100) * 100)
+      const workloadPercentage = Math.min(100, workload)
 
       days.push(
         <div
@@ -745,6 +742,214 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
                 <CheckCircle2 className='w-6 h-6 text-green-600' />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Monthly Workload Analysis */}
+        <div className='bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mb-8'>
+          <div className='bg-gradient-to-r from-orange-500 to-red-600 px-8 py-6'>
+            <div className='flex items-center space-x-3'>
+              <TrendingDown className='w-6 h-6 text-white' />
+              <h3 className='text-xl font-bold text-white'>
+                {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()} - İş Yükü Analizi
+              </h3>
+            </div>
+          </div>
+          
+          <div className='p-6'>
+            {(() => {
+              // Calculate monthly bottlenecks
+              const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+              const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+              
+              interface BottleneckDay {
+                date: Date
+                workload: number
+                taskCount: number
+              }
+              
+              const bottleneckDays: BottleneckDay[] = []
+              
+              for (let date = new Date(startOfMonth); date <= endOfMonth; date.setDate(date.getDate() + 1)) {
+                const tasksForDay = filteredTasks.filter((task) => {
+                  const taskStart = task.startDate ? new Date(task.startDate) : null
+                  const taskEnd = task.endDate ? new Date(task.endDate) : null
+
+                  return (
+                    (taskStart && taskStart <= date && (!taskEnd || taskEnd >= date)) ||
+                    (!taskStart && !taskEnd) ||
+                    (taskEnd && taskEnd.toDateString() === date.toDateString()) ||
+                    (taskStart && taskStart.toDateString() === date.toDateString())
+                  )
+                })
+
+                const workloadPercentage = WorkloadAnalyzer.calculateDailyWorkload(tasksForDay as any, new Date(date))
+                
+                if (workloadPercentage > 80 && tasksForDay.length > 0) {
+                  bottleneckDays.push({
+                    date: new Date(date),
+                    workload: workloadPercentage,
+                    taskCount: tasksForDay.length
+                  })
+                }
+              }
+              
+              return (
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                  <div className='bg-red-50 rounded-xl p-6 border border-red-200'>
+                    <div className='flex items-center justify-between mb-4'>
+                      <div>
+                        <p className='text-sm font-medium text-red-600'>Darboğaz Günleri</p>
+                        <p className='text-3xl font-bold text-red-900'>{bottleneckDays.length}</p>
+                      </div>
+                      <div className='p-3 bg-red-100 rounded-full'>
+                        <TrendingDown className='w-6 h-6 text-red-600' />
+                      </div>
+                    </div>
+                    <p className='text-xs text-red-700'>
+                      {bottleneckDays.length > 0 
+                        ? `%80+ iş yükü olan günler` 
+                        : 'Bu ay darboğaz bulunmuyor'}
+                    </p>
+                  </div>
+                  
+                  <div className='bg-orange-50 rounded-xl p-6 border border-orange-200'>
+                    <div className='flex items-center justify-between mb-4'>
+                      <div>
+                        <p className='text-sm font-medium text-orange-600'>Ortalama İş Yükü</p>
+                        <p className='text-3xl font-bold text-orange-900'>
+                          {(() => {
+                            const totalDays = endOfMonth.getDate()
+                            let totalWorkload = 0
+                            
+                            for (let date = new Date(startOfMonth); date <= endOfMonth; date.setDate(date.getDate() + 1)) {
+                              const tasksForDay = filteredTasks.filter((task) => {
+                                const taskStart = task.startDate ? new Date(task.startDate) : null
+                                const taskEnd = task.endDate ? new Date(task.endDate) : null
+
+                                return (
+                                  (taskStart && taskStart <= date && (!taskEnd || taskEnd >= date)) ||
+                                  (!taskStart && !taskEnd) ||
+                                  (taskEnd && taskEnd.toDateString() === date.toDateString()) ||
+                                  (taskStart && taskStart.toDateString() === date.toDateString())
+                                )
+                              })
+
+                              totalWorkload += WorkloadAnalyzer.calculateDailyWorkload(tasksForDay as any, new Date(date))
+                            }
+                            
+                            return Math.round(totalWorkload / totalDays)
+                          })()}%
+                        </p>
+                      </div>
+                      <div className='p-3 bg-orange-100 rounded-full'>
+                        <Target className='w-6 h-6 text-orange-600' />
+                      </div>
+                    </div>
+                    <p className='text-xs text-orange-700'>Ayın tamamı için ortalama</p>
+                  </div>
+                  
+                  <div className='bg-green-50 rounded-xl p-6 border border-green-200'>
+                    <div className='flex items-center justify-between mb-4'>
+                      <div>
+                        <p className='text-sm font-medium text-green-600'>En Yüksek İş Yükü</p>
+                        <p className='text-3xl font-bold text-green-900'>
+                          {bottleneckDays.length > 0 
+                            ? Math.round(Math.max(...bottleneckDays.map(d => d.workload)))
+                            : 0}%
+                        </p>
+                      </div>
+                      <div className='p-3 bg-green-100 rounded-full'>
+                        <Zap className='w-6 h-6 text-green-600' />
+                      </div>
+                    </div>
+                    <p className='text-xs text-green-700'>
+                      {bottleneckDays.length > 0 
+                        ? `${bottleneckDays.find(d => d.workload === Math.max(...bottleneckDays.map(d => d.workload)))?.date.getDate()}. günde`
+                        : 'Bu ay yoğunluk yok'}
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
+            
+            {/* Bottleneck Details */}
+            {(() => {
+              const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+              const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+              
+              interface BottleneckDay {
+                date: Date
+                workload: number
+                taskCount: number
+              }
+              
+              const bottleneckDays: BottleneckDay[] = []
+              
+              for (let date = new Date(startOfMonth); date <= endOfMonth; date.setDate(date.getDate() + 1)) {
+                const tasksForDay = filteredTasks.filter((task) => {
+                  const taskStart = task.startDate ? new Date(task.startDate) : null
+                  const taskEnd = task.endDate ? new Date(task.endDate) : null
+
+                  return (
+                    (taskStart && taskStart <= date && (!taskEnd || taskEnd >= date)) ||
+                    (!taskStart && !taskEnd) ||
+                    (taskEnd && taskEnd.toDateString() === date.toDateString()) ||
+                    (taskStart && taskStart.toDateString() === date.toDateString())
+                  )
+                })
+
+                const workloadPercentage = WorkloadAnalyzer.calculateDailyWorkload(tasksForDay as any, new Date(date))
+                
+                if (workloadPercentage > 80 && tasksForDay.length > 0) {
+                  bottleneckDays.push({
+                    date: new Date(date),
+                    workload: workloadPercentage,
+                    taskCount: tasksForDay.length
+                  })
+                }
+              }
+              
+              if (bottleneckDays.length > 0) {
+                return (
+                  <div className='mt-6 bg-red-50 rounded-xl p-6 border border-red-200'>
+                    <h4 className='text-lg font-semibold text-red-900 mb-4 flex items-center gap-2'>
+                      <AlertTriangle className='w-5 h-5' />
+                      Darboğaz Günler Detayı
+                    </h4>
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                      {bottleneckDays.map((day, index) => (
+                        <div key={index} className='bg-white rounded-lg p-4 border border-red-200'>
+                          <div className='flex items-center justify-between mb-2'>
+                            <span className='font-semibold text-red-900'>
+                              {day.date.getDate()} {monthNames[day.date.getMonth()].slice(0, 3)}
+                            </span>
+                            <span className='text-sm font-bold text-red-700 bg-red-100 px-2 py-1 rounded'>
+                              %{Math.round(day.workload)}
+                            </span>
+                          </div>
+                          <p className='text-sm text-red-600'>
+                            {day.taskCount} görev
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              } else {
+                return (
+                  <div className='mt-6 bg-green-50 rounded-xl p-6 border border-green-200'>
+                    <div className='flex items-center gap-3 text-green-800'>
+                      <CheckCircle2 className='w-6 h-6' />
+                      <h4 className='text-lg font-semibold'>Mükemmel İş Yükü Dağılımı!</h4>
+                    </div>
+                    <p className='text-green-700 mt-2'>
+                      Bu ay hiçbir gün %80'in üzerinde iş yükü bulunmuyor. Görevler dengeli şekilde dağıtılmış.
+                    </p>
+                  </div>
+                )
+              }
+            })()}
           </div>
         </div>
 
