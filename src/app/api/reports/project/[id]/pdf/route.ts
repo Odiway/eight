@@ -165,273 +165,386 @@ function generateProjectPDF(data: ProjectReportData): Buffer {
 
   let yPosition = margin
 
-  // Enhanced Header with gradient effect
-  doc.setFillColor(67, 56, 202) // Indigo
-  doc.rect(0, 0, pageWidth, 70, 'F')
+  // Modern Header with sophisticated gradient effect
+  // Main gradient background
+  for (let i = 0; i < 80; i++) {
+    const ratio = i / 80
+    const r = Math.floor(67 + (99 - 67) * ratio)
+    const g = Math.floor(56 + (102 - 56) * ratio)
+    const b = Math.floor(202 + (241 - 202) * ratio)
+    doc.setFillColor(r, g, b)
+    doc.rect(0, i, pageWidth, 1, 'F')
+  }
   
-  // Header accent
-  doc.setFillColor(99, 102, 241) // Lighter indigo
-  doc.rect(0, 55, pageWidth, 15, 'F')
+  // Decorative elements
+  doc.setFillColor(255, 255, 255, 0.1)
+  doc.circle(pageWidth - 30, 25, 40, 'F')
+  doc.circle(30, 60, 25, 'F')
+  
+  // Title with shadow effect
+  doc.setTextColor(0, 0, 0, 0.2)
+  doc.setFontSize(32)
+  doc.setFont('helvetica', 'bold')
+  doc.text('PROJE RAPORU', pageWidth / 2 + 2, 32, { align: 'center' })
   
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(28)
-  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(32)
   doc.text('PROJE RAPORU', pageWidth / 2, 30, { align: 'center' })
   
-  doc.setFontSize(16)
+  // Project name with modern styling
+  doc.setFontSize(18)
   doc.setFont('helvetica', 'normal')
-  doc.text(project.name, pageWidth / 2, 50, { align: 'center' })
+  doc.text(project.name.toUpperCase(), pageWidth / 2, 52, { align: 'center' })
   
-  yPosition = 90
-
-  // Project Information
-  doc.setTextColor(0, 0, 0)
-  doc.setFontSize(16)
+  // Date badge
+  doc.setFillColor(255, 255, 255, 0.9)
+  doc.roundedRect(pageWidth - 80, 65, 70, 12, 3, 3, 'F')
+  doc.setTextColor(67, 56, 202)
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'bold')
-  doc.text('PROJE BILGILERI', margin, yPosition)
-  yPosition += 15
+  doc.text(generatedDate, pageWidth - 45, 72, { align: 'center' })
+  
+  yPosition = 100
 
-  // Project details
+  // Modern Project Information Section
+  doc.setFillColor(248, 250, 252)
+  doc.roundedRect(margin, yPosition, usableWidth, 70, 5, 5, 'F')
+  
+  // Section header with icon
+  doc.setTextColor(67, 56, 202)
+  doc.setFontSize(18)
+  doc.setFont('helvetica', 'bold')
+  doc.text('📋 PROJE BİLGİLERİ', margin + 10, yPosition + 20)
+  
+  yPosition += 35
+
+  // Enhanced project details with modern layout
   const projectInfo = [
-    { label: 'Proje Adi:', value: project.name },
-    { label: 'Durum:', value: getStatusText(project.status) },
-    { label: 'Baslangic:', value: new Date(project.startDate).toLocaleDateString('tr-TR') },
-    { label: 'Bitis:', value: project.endDate ? new Date(project.endDate).toLocaleDateString('tr-TR') : 'Belirlenmemis' },
-    { label: 'Ilerleme:', value: `%${statistics.progressPercentage}` }
+    { label: 'Proje Adı:', value: project.name, icon: '🎯' },
+    { label: 'Durum:', value: getStatusText(project.status), icon: '📊' },
+    { label: 'Başlangıç:', value: new Date(project.startDate).toLocaleDateString('tr-TR'), icon: '🚀' },
+    { label: 'Bitiş:', value: project.endDate ? new Date(project.endDate).toLocaleDateString('tr-TR') : 'Belirlenmemiş', icon: '🏁' },
+    { label: 'İlerleme:', value: `%${statistics.progressPercentage}`, icon: '📈' }
   ]
 
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(11)
+  const infoYStart = yPosition
 
-  for (const info of projectInfo) {
-    doc.setFont('helvetica', 'bold')
-    doc.text(info.label, margin, yPosition)
+  for (let i = 0; i < projectInfo.length; i++) {
+    const info = projectInfo[i]
+    const xPos = margin + 15 + (i % 2) * (usableWidth / 2)
+    const yPos = infoYStart + Math.floor(i / 2) * 12
+    
+    // Icon
     doc.setFont('helvetica', 'normal')
-    doc.text(info.value, margin + 40, yPosition)
-    yPosition += 8
+    doc.text(info.icon, xPos, yPos)
+    
+    // Label
+    doc.setTextColor(75, 85, 99)
+    doc.setFont('helvetica', 'bold')
+    doc.text(info.label, xPos + 10, yPos)
+    
+    // Value with accent color
+    doc.setTextColor(67, 56, 202)
+    doc.setFont('helvetica', 'normal')
+    doc.text(info.value, xPos + 60, yPos)
   }
 
-  yPosition += 10
+  yPosition += 50
 
-  // Enhanced Statistics with modern card design
-  if (yPosition > pageHeight - 120) {
+  // Ultra-Modern Statistics Cards with glassmorphism effect
+  if (yPosition > pageHeight - 150) {
     doc.addPage()
     yPosition = margin
   }
 
-  doc.setTextColor(0, 0, 0)
-  doc.setFontSize(18)
+  doc.setTextColor(31, 41, 55)
+  doc.setFontSize(22)
   doc.setFont('helvetica', 'bold')
-  doc.text('📊 PROJE İSTATİSTİKLERİ', margin, yPosition)
-  yPosition += 20
+  doc.text('📊 ÖZETLE İSTATİSTİKLER', margin, yPosition)
+  yPosition += 25
 
   const stats = [
-    { label: 'Toplam Görev', value: statistics.totalTasks.toString(), color: [59, 130, 246] },
-    { label: 'Tamamlanan', value: statistics.completedTasks.toString(), color: [16, 185, 129] },
-    { label: 'Devam Eden', value: statistics.inProgressTasks.toString(), color: [245, 158, 11] },
-    { label: 'Geciken', value: statistics.overdueTasks.toString(), color: [239, 68, 68] },
-    { label: 'Ekip Büyüklüğü', value: statistics.teamSize.toString(), color: [139, 92, 246] },
-    { label: 'Tamamlanma', value: `%${statistics.progressPercentage}`, color: [6, 182, 212] }
+    { label: 'Toplam Görev', value: statistics.totalTasks.toString(), color: [59, 130, 246], bgColor: [239, 246, 255] },
+    { label: 'Tamamlanan', value: statistics.completedTasks.toString(), color: [16, 185, 129], bgColor: [236, 253, 245] },
+    { label: 'Devam Eden', value: statistics.inProgressTasks.toString(), color: [245, 158, 11], bgColor: [255, 251, 235] },
+    { label: 'Geciken', value: statistics.overdueTasks.toString(), color: [239, 68, 68], bgColor: [254, 242, 242] },
+    { label: 'Ekip Büyüklüğü', value: statistics.teamSize.toString(), color: [139, 92, 246], bgColor: [245, 243, 255] },
+    { label: 'Tamamlanma', value: `%${statistics.progressPercentage}`, color: [6, 182, 212], bgColor: [236, 254, 255] }
   ]
 
-  const colWidth = usableWidth / 3
-  const rowHeight = 35
+  const cardWidth = (usableWidth - 20) / 3
+  const cardHeight = 45
 
   for (let i = 0; i < stats.length; i++) {
     const row = Math.floor(i / 3)
     const col = i % 3
-    const x = margin + col * colWidth
-    const y = yPosition + row * rowHeight
+    const x = margin + col * (cardWidth + 10)
+    const y = yPosition + row * (cardHeight + 10)
 
-    // Enhanced card background with shadow effect
-    doc.setFillColor(255, 255, 255)
-    doc.rect(x + 2, y + 2, colWidth - 8, rowHeight - 8, 'F') // Shadow
-    doc.setFillColor(248, 250, 252)
-    doc.rect(x, y, colWidth - 6, rowHeight - 6, 'F')
+    // Modern card with shadow and glassmorphism
+    // Shadow
+    doc.setFillColor(0, 0, 0, 0.1)
+    doc.roundedRect(x + 2, y + 2, cardWidth, cardHeight, 8, 8, 'F')
     
-    // Colored left border
+    // Card background with gradient simulation
+    doc.setFillColor(stats[i].bgColor[0], stats[i].bgColor[1], stats[i].bgColor[2])
+    doc.roundedRect(x, y, cardWidth, cardHeight, 8, 8, 'F')
+    
+    // Subtle border
+    doc.setDrawColor(stats[i].color[0], stats[i].color[1], stats[i].color[2], 0.3)
+    doc.setLineWidth(0.5)
+    doc.roundedRect(x, y, cardWidth, cardHeight, 8, 8, 'D')
+    
+    // Decorative corner accent
     doc.setFillColor(stats[i].color[0], stats[i].color[1], stats[i].color[2])
-    doc.rect(x, y, 4, rowHeight - 6, 'F')
+    doc.roundedRect(x, y, 25, 8, 8, 8, 'F')
 
-    // Value with colored text
+    // Large value with modern typography
     doc.setTextColor(stats[i].color[0], stats[i].color[1], stats[i].color[2])
-    doc.setFontSize(18)
+    doc.setFontSize(24)
     doc.setFont('helvetica', 'bold')
-    doc.text(stats[i].value, x + colWidth / 2, y + 15, { align: 'center' })
+    doc.text(stats[i].value, x + cardWidth / 2, y + 20, { align: 'center' })
 
-    // Label
+    // Elegant label
     doc.setTextColor(75, 85, 99)
-    doc.setFontSize(9)
+    doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.text(stats[i].label, x + colWidth / 2, y + 25, { align: 'center' })
+    doc.text(stats[i].label, x + cardWidth / 2, y + 32, { align: 'center' })
   }
 
-  yPosition += Math.ceil(stats.length / 3) * rowHeight + 25
+  yPosition += Math.ceil(stats.length / 3) * (cardHeight + 10) + 30
 
-  // Enhanced Tasks Table
+  // Ultra-Modern Tasks Table
   if (yPosition > pageHeight - 120) {
     doc.addPage()
     yPosition = margin
   }
 
-  doc.setTextColor(0, 0, 0)
-  doc.setFontSize(18)
+  doc.setTextColor(31, 41, 55)
+  doc.setFontSize(22)
   doc.setFont('helvetica', 'bold')
-  doc.text('📋 GÖREV LİSTESİ', margin, yPosition)
-  yPosition += 20
+  doc.text('📋 GÖREV DETAYLARİ', margin, yPosition)
+  yPosition += 25
 
-  // Enhanced Table Header
-  const tableHeaders = ['Görev Adı', 'Durum', 'Atanan', 'Başlangıç', 'Bitiş']
-  const colWidths = [usableWidth * 0.25, usableWidth * 0.15, usableWidth * 0.2, usableWidth * 0.2, usableWidth * 0.2]
+  // Modern Table Header with gradient
+  const tableHeaders = ['Görev Adı', 'Durum', 'Atanan Kişi', 'Başlangıç', 'Bitiş']
+  const colWidths = [usableWidth * 0.3, usableWidth * 0.15, usableWidth * 0.25, usableWidth * 0.15, usableWidth * 0.15]
 
-  // Header background with gradient effect
-  doc.setFillColor(67, 56, 202)
-  doc.rect(margin, yPosition, usableWidth, 12, 'F')
+  // Header with sophisticated gradient
+  for (let i = 0; i < 15; i++) {
+    const ratio = i / 15
+    const r = Math.floor(67 + (99 - 67) * ratio)
+    const g = Math.floor(56 + (102 - 56) * ratio)
+    const b = Math.floor(202 + (241 - 202) * ratio)
+    doc.setFillColor(r, g, b)
+    doc.rect(margin, yPosition + i, usableWidth, 1, 'F')
+  }
   
-  // Header text
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(10)
+  // Header text with shadow
+  doc.setTextColor(0, 0, 0, 0.2)
+  doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
-
   let xPos = margin
   for (let i = 0; i < tableHeaders.length; i++) {
-    doc.text(tableHeaders[i], xPos + 4, yPosition + 8)
+    doc.text(tableHeaders[i], xPos + 6, yPosition + 11)
+    xPos += colWidths[i]
+  }
+  
+  doc.setTextColor(255, 255, 255)
+  xPos = margin
+  for (let i = 0; i < tableHeaders.length; i++) {
+    doc.text(tableHeaders[i], xPos + 5, yPosition + 10)
     xPos += colWidths[i]
   }
 
-  yPosition += 12
+  yPosition += 15
 
-  // Enhanced Table Content
-  doc.setTextColor(0, 0, 0)
+  // Enhanced Table Content with modern styling
+  doc.setTextColor(31, 41, 55)
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
 
-  for (let i = 0; i < Math.min(tasks.length, 15); i++) { // Increased limit to 15 tasks
-    if (yPosition > pageHeight - 35) {
+  const maxTasksToShow = Math.min(tasks.length, 12)
+  
+  for (let i = 0; i < maxTasksToShow; i++) {
+    if (yPosition > pageHeight - 40) {
       doc.addPage()
       yPosition = margin
       
       // Redraw header on new page
-      doc.setFillColor(67, 56, 202)
-      doc.rect(margin, yPosition, usableWidth, 12, 'F')
+      for (let j = 0; j < 15; j++) {
+        const ratio = j / 15
+        const r = Math.floor(67 + (99 - 67) * ratio)
+        const g = Math.floor(56 + (102 - 56) * ratio)
+        const b = Math.floor(202 + (241 - 202) * ratio)
+        doc.setFillColor(r, g, b)
+        doc.rect(margin, yPosition + j, usableWidth, 1, 'F')
+      }
+      
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(10)
+      doc.setFontSize(11)
       doc.setFont('helvetica', 'bold')
       xPos = margin
       for (let j = 0; j < tableHeaders.length; j++) {
-        doc.text(tableHeaders[j], xPos + 4, yPosition + 8)
+        doc.text(tableHeaders[j], xPos + 5, yPosition + 10)
         xPos += colWidths[j]
       }
-      yPosition += 12
-      doc.setTextColor(0, 0, 0)
+      yPosition += 15
+      doc.setTextColor(31, 41, 55)
       doc.setFontSize(9)
       doc.setFont('helvetica', 'normal')
     }
 
     const task = tasks[i]
+    const rowHeight = 20
     
-    // Enhanced alternating row colors with hover effect
+    // Modern alternating row design
     if (i % 2 === 0) {
       doc.setFillColor(248, 250, 252)
-      doc.rect(margin, yPosition, usableWidth, 18, 'F')
     } else {
       doc.setFillColor(255, 255, 255)
-      doc.rect(margin, yPosition, usableWidth, 18, 'F')
     }
+    doc.roundedRect(margin, yPosition, usableWidth, rowHeight, 2, 2, 'F')
 
-    // Add subtle border
-    doc.setDrawColor(229, 231, 235)
-    doc.setLineWidth(0.1)
-    doc.rect(margin, yPosition, usableWidth, 18, 'D')
+    // Status indicator with color coding
+    const statusColor = getStatusColor(task.status)
+    doc.setFillColor(statusColor[0], statusColor[1], statusColor[2])
+    doc.circle(margin + 5, yPosition + rowHeight/2, 3, 'F')
 
-    xPos = margin
+    // Row content
+    xPos = margin + 10
     const assignedUsers = task.assignedUsers?.map((au: any) => au.user.name) || []
-    const assignedUser = assignedUsers.length > 0 ? assignedUsers.join(', ') : 'Atanmamış'
+    const assignedUser = assignedUsers.length > 0 ? assignedUsers.slice(0, 2).join(', ') : 'Atanmamış'
+    
     const rowData = [
-      task.title.substring(0, 25) + (task.title.length > 25 ? '...' : ''),
+      task.title.length > 35 ? task.title.substring(0, 35) + '...' : task.title,
       getStatusText(task.status),
-      assignedUser.substring(0, 18) + (assignedUser.length > 18 ? '...' : ''),
+      assignedUser.length > 25 ? assignedUser.substring(0, 25) + '...' : assignedUser,
       task.startDate ? new Date(task.startDate).toLocaleDateString('tr-TR') : '-',
       task.endDate ? new Date(task.endDate).toLocaleDateString('tr-TR') : '-'
     ]
 
     for (let j = 0; j < rowData.length; j++) {
-      // Enhanced status color coding
+      // Status text with color
       if (j === 1) {
-        const color = getStatusColor(task.status)
-        doc.setTextColor(color[0], color[1], color[2])
+        doc.setTextColor(statusColor[0], statusColor[1], statusColor[2])
         doc.setFont('helvetica', 'bold')
       } else {
-        doc.setTextColor(55, 65, 81)
+        doc.setTextColor(31, 41, 55)
         doc.setFont('helvetica', 'normal')
       }
       
-      doc.text(rowData[j], xPos + 4, yPosition + 12)
+      doc.text(rowData[j], xPos + 2, yPosition + 12)
       xPos += colWidths[j]
     }
 
-    yPosition += 18
+    yPosition += rowHeight + 2
   }
 
-  yPosition += 15
-
-  // Team Section
-  if (yPosition > pageHeight - 100) {
-    doc.addPage()
-    yPosition = margin
+  if (tasks.length > maxTasksToShow) {
+    yPosition += 10
+    doc.setTextColor(107, 114, 128)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'italic')
+    doc.text(`... ve ${tasks.length - maxTasksToShow} görev daha`, margin, yPosition)
+    yPosition += 10
   }
 
-  doc.setTextColor(0, 0, 0)
-  doc.setFontSize(16)
-  doc.setFont('helvetica', 'bold')
-  doc.text('EKIP UYELERI', margin, yPosition)
-  yPosition += 15
-
-  for (let i = 0; i < Math.min(team.length, 5); i++) { // Limit to 5 team members
-    if (yPosition > pageHeight - 50) {
+  // Enhanced Team Section
+  if (team.length > 0) {
+    yPosition += 20
+    
+    if (yPosition > pageHeight - 100) {
       doc.addPage()
       yPosition = margin
     }
 
-    const member = team[i]
-
-    // Member card background
-    doc.setFillColor(255, 255, 255)
-    doc.setDrawColor(229, 231, 235)
-    doc.rect(margin, yPosition, usableWidth, 20, 'FD')
-
-    // Member name and role
-    doc.setTextColor(30, 64, 175)
-    doc.setFontSize(10)
+    doc.setTextColor(31, 41, 55)
+    doc.setFontSize(22)
     doc.setFont('helvetica', 'bold')
-    doc.text(member.user.name, margin + 5, yPosition + 8)
-
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`${member.user.department} | ${member.role}`, margin + 5, yPosition + 15)
-
+    doc.text('👥 EKİP ÜYELERİ', margin, yPosition)
     yPosition += 25
+
+    // Team cards layout
+    const memberCardWidth = (usableWidth - 20) / 3
+    const memberCardHeight = 35
+
+    for (let i = 0; i < team.length; i++) {
+      const row = Math.floor(i / 3)
+      const col = i % 3
+      
+      if (yPosition + (row + 1) * (memberCardHeight + 10) > pageHeight - 30) {
+        doc.addPage()
+        yPosition = margin
+        
+        doc.setTextColor(31, 41, 55)
+        doc.setFontSize(22)
+        doc.setFont('helvetica', 'bold')
+        doc.text('👥 EKİP ÜYELERİ (devamı)', margin, yPosition)
+        yPosition += 25
+      }
+      
+      const x = margin + col * (memberCardWidth + 10)
+      const y = yPosition + row * (memberCardHeight + 10)
+
+      // Member card with modern design
+      doc.setFillColor(0, 0, 0, 0.05)
+      doc.roundedRect(x + 1, y + 1, memberCardWidth, memberCardHeight, 6, 6, 'F')
+      
+      doc.setFillColor(255, 255, 255)
+      doc.roundedRect(x, y, memberCardWidth, memberCardHeight, 6, 6, 'F')
+      
+      doc.setDrawColor(67, 56, 202, 0.2)
+      doc.setLineWidth(0.5)
+      doc.roundedRect(x, y, memberCardWidth, memberCardHeight, 6, 6, 'D')
+
+      // Role indicator
+      const roleColors = {
+        'Manager': [239, 68, 68],
+        'Developer': [59, 130, 246],
+        'Designer': [245, 158, 11],
+        'Tester': [16, 185, 129]
+      }
+      const roleColor = roleColors[team[i].role as keyof typeof roleColors] || [107, 114, 128]
+      doc.setFillColor(roleColor[0], roleColor[1], roleColor[2])
+      doc.circle(x + 8, y + 8, 4, 'F')
+
+      // Member name
+      doc.setTextColor(31, 41, 55)
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      const name = team[i].user.name.length > 18 ? team[i].user.name.substring(0, 18) + '...' : team[i].user.name
+      doc.text(name, x + 16, y + 12)
+
+      // Role
+      doc.setTextColor(107, 114, 128)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.text(team[i].role, x + 16, y + 22)
+    }
+
+    yPosition += Math.ceil(team.length / 3) * (memberCardHeight + 10) + 20
   }
 
-  // Footer
-  if (yPosition > pageHeight - 40) {
+  // Modern Footer
+  if (yPosition > pageHeight - 50) {
     doc.addPage()
     yPosition = margin
   }
 
-  yPosition = pageHeight - 30
-  doc.setFillColor(248, 250, 252)
-  doc.rect(0, yPosition - 10, pageWidth, 40, 'F')
+  // Footer gradient
+  for (let i = 0; i < 20; i++) {
+    const ratio = i / 20
+    const opacity = 0.1 * (1 - ratio)
+    doc.setFillColor(67, 56, 202, opacity)
+    doc.rect(0, pageHeight - 20 + i, pageWidth, 1, 'F')
+  }
 
-  doc.setTextColor(71, 85, 105)
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`Bu rapor ${generatedDate} tarihinde otomatik olusturulmustur.`, pageWidth / 2, yPosition, { align: 'center' })
-  
-  doc.setTextColor(148, 163, 184)
+  doc.setTextColor(107, 114, 128)
   doc.setFontSize(8)
-  doc.text('Proje Yonetim Sistemi • Versiyon 2.0', pageWidth / 2, yPosition + 8, { align: 'center' })
+  doc.setFont('helvetica', 'italic')
+  doc.text(`Rapor oluşturulma tarihi: ${generatedDate}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
 
   return Buffer.from(doc.output('arraybuffer'))
 }
