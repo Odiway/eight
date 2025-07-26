@@ -752,6 +752,16 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
               <TrendingDown className='w-6 h-6 text-white' />
               <h3 className='text-xl font-bold text-white'>
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()} - İş Yükü Analizi
+                {selectedProject && (
+                  <span className='text-lg font-normal text-orange-100 ml-2'>
+                    ({selectedProject.name})
+                  </span>
+                )}
+                {!selectedProjectId && (
+                  <span className='text-lg font-normal text-orange-100 ml-2'>
+                    (Tüm Projeler)
+                  </span>
+                )}
               </h3>
             </div>
           </div>
