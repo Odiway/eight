@@ -182,13 +182,16 @@ export async function GET(
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="proje-${project.name.replace(/[^a-zA-Z0-9]/g, '-')}.pdf"`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       },
     })
     
   } catch (error) {
     console.error('Error generating PDF:', error)
     return NextResponse.json(
-      { error: 'Failed to generate PDF' },
+      { error: 'PDF oluşturulurken hata oluştu', details: error instanceof Error ? error.message : 'Bilinmeyen hata' },
       { status: 500 }
     )
   }

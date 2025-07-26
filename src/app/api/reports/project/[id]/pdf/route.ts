@@ -309,7 +309,8 @@ function generateProjectPDF(data: ProjectReportData): Buffer {
     }
 
     xPos = margin
-    const assignedUser = task.assignedUsers?.[0]?.user?.name || 'Atanmamis'
+    const assignedUsers = task.assignedUsers?.map((au: any) => au.user.name) || []
+    const assignedUser = assignedUsers.length > 0 ? assignedUsers.join(', ') : 'Atanmamis'
     const rowData = [
       task.title.substring(0, 20) + (task.title.length > 20 ? '...' : ''),
       getStatusText(task.status),

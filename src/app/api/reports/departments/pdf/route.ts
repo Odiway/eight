@@ -34,9 +34,13 @@ interface DepartmentReportData {
 async function getDepartmentData(): Promise<DepartmentReportData> {
   const users = await prisma.user.findMany({
     include: {
-      assignedTasks: {
+      taskAssignments: {
         include: {
-          project: true,
+          task: {
+            include: {
+              project: true,
+            },
+          },
         },
       },
     },
@@ -58,9 +62,9 @@ async function getDepartmentData(): Promise<DepartmentReportData> {
 
     const dept = departments[user.department]
     dept.userCount++
-    dept.totalTasks += user.assignedTasks.length
-    dept.completedTasks += user.assignedTasks.filter(
-      (t) => t.status === 'COMPLETED'
+    dept.totalTasks += user.taskAssignments.length
+    dept.completedTasks += user.taskAssignments.filter(
+      (ta) => ta.task.status === 'COMPLETED'
     ).length
 
     dept.users.push({
@@ -68,14 +72,14 @@ async function getDepartmentData(): Promise<DepartmentReportData> {
       name: user.name,
       email: user.email,
       position: user.position,
-      totalTasks: user.assignedTasks.length,
-      completedTasks: user.assignedTasks.filter((t) => t.status === 'COMPLETED')
+      totalTasks: user.taskAssignments.length,
+      completedTasks: user.taskAssignments.filter((ta) => ta.task.status === 'COMPLETED')
         .length,
     })
 
     // Add unique projects
-    user.assignedTasks.forEach((task) => {
-      dept.projects.add(task.project.id)
+    user.taskAssignments.forEach((taskAssignment) => {
+      dept.projects.add(taskAssignment.task.project.id)
     })
   })
 

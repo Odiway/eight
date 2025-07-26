@@ -25,10 +25,18 @@ interface ReportsData {
 }
 
 async function getReportsData(): Promise<ReportsData> {
-  // Projects with tasks and members
+  // Projects with tasks and members including task assignments
   const projects = await prisma.project.findMany({
     include: {
-      tasks: true,
+      tasks: {
+        include: {
+          assignedUsers: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      },
       members: {
         include: {
           user: true,
@@ -37,10 +45,22 @@ async function getReportsData(): Promise<ReportsData> {
     },
   })
 
-  // Users with their departments
+  // Users with their assigned tasks through TaskAssignment
   const users = await prisma.user.findMany({
     include: {
-      assignedTasks: true,
+      taskAssignments: {
+        include: {
+          task: {
+            include: {
+              assignedUsers: {
+                include: {
+                  user: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   })
 
@@ -85,9 +105,9 @@ async function getReportsData(): Promise<ReportsData> {
       }
     }
     departments[user.department].userCount++
-    departments[user.department].totalTasks += user.assignedTasks.length
-    departments[user.department].completedTasks += user.assignedTasks.filter(
-      (t) => t.status === 'COMPLETED'
+    departments[user.department].totalTasks += user.taskAssignments.length
+    departments[user.department].completedTasks += user.taskAssignments.filter(
+      (ta) => ta.task.status === 'COMPLETED'
     ).length
   })
 

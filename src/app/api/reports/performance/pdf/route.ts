@@ -47,12 +47,16 @@ interface PerformanceData {
 }
 
 async function getPerformanceData(): Promise<PerformanceData> {
-  // Get users with their tasks and projects
+  // Get users with their tasks and projects through TaskAssignment
   const users = await prisma.user.findMany({
     include: {
-      assignedTasks: {
+      taskAssignments: {
         include: {
-          project: true,
+          task: {
+            include: {
+              project: true,
+            },
+          },
         },
       },
       projects: {
@@ -77,13 +81,13 @@ async function getPerformanceData(): Promise<PerformanceData> {
 
   // Calculate user performance
   const userPerformance = users.map((user) => {
-    const totalTasks = user.assignedTasks.length
-    const completedTasks = user.assignedTasks.filter(
-      (t) => t.status === 'COMPLETED'
+    const totalTasks = user.taskAssignments.length
+    const completedTasks = user.taskAssignments.filter(
+      (ta) => ta.task.status === 'COMPLETED'
     ).length
-    const overdueTasks = user.assignedTasks.filter((t) => {
-      const endDate = t.endDate ? new Date(t.endDate) : null
-      return endDate && endDate < new Date() && t.status !== 'COMPLETED'
+    const overdueTasks = user.taskAssignments.filter((ta) => {
+      const endDate = ta.task.endDate ? new Date(ta.task.endDate) : null
+      return endDate && endDate < new Date() && ta.task.status !== 'COMPLETED'
     }).length
 
     const completionRate =
@@ -91,13 +95,14 @@ async function getPerformanceData(): Promise<PerformanceData> {
     const projectCount = user.projects.length
 
     // Calculate average task duration (simplified)
-    const completedTasksWithDates = user.assignedTasks.filter(
-      (t) => t.status === 'COMPLETED' && t.startDate && t.updatedAt
+    const completedTasksWithDates = user.taskAssignments.filter(
+      (ta) => ta.task.status === 'COMPLETED' && ta.task.startDate && ta.task.updatedAt
     )
     const averageTaskDuration =
       completedTasksWithDates.length > 0
         ? Math.round(
-            completedTasksWithDates.reduce((sum, task) => {
+            completedTasksWithDates.reduce((sum, taskAssignment) => {
+              const task = taskAssignment.task
               const start = new Date(task.startDate!)
               const end = new Date(task.updatedAt)
               return (
@@ -164,7 +169,7 @@ async function getPerformanceData(): Promise<PerformanceData> {
       departmentStats[user.department] = { users: [], tasks: [] }
     }
     departmentStats[user.department].users.push(user)
-    departmentStats[user.department].tasks.push(...user.assignedTasks)
+    departmentStats[user.department].tasks.push(...user.taskAssignments.map(ta => ta.task))
   })
 
   const departmentPerformance = Object.entries(departmentStats).map(
@@ -178,9 +183,9 @@ async function getPerformanceData(): Promise<PerformanceData> {
         totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
       const userPerformanceRates = data.users.map((user) => {
-        const userTasks = user.assignedTasks.length
-        const userCompleted = user.assignedTasks.filter(
-          (t: any) => t.status === 'COMPLETED'
+        const userTasks = user.taskAssignments.length
+        const userCompleted = user.taskAssignments.filter(
+          (ta: any) => ta.task.status === 'COMPLETED'
         ).length
         return userTasks > 0 ? Math.round((userCompleted / userTasks) * 100) : 0
       })
