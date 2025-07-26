@@ -362,7 +362,8 @@ function EnhancedCalendar({
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
     
-    let totalTasks = 0
+    // Get unique tasks for the month (not counting duplicates across days)
+    const uniqueTasksInMonth = new Set<string>()
     let bottleneckDays = 0
     let totalWorkload = 0
     let maxDailyTasks = 0
@@ -370,7 +371,11 @@ function EnhancedCalendar({
     
     for (let date = new Date(startOfMonth); date <= endOfMonth; date.setDate(date.getDate() + 1)) {
       const tasksForDay = getTasksForDate(new Date(date))
-      totalTasks += tasksForDay.length
+      
+      // Add unique task IDs to set (automatically handles duplicates)
+      tasksForDay.forEach(task => uniqueTasksInMonth.add(task.id))
+      
+      // Max daily tasks is still day-based count
       maxDailyTasks = Math.max(maxDailyTasks, tasksForDay.length)
       
       // Calculate workload percentage for this day
@@ -390,9 +395,9 @@ function EnhancedCalendar({
     }
     
     return {
-      totalTasks,
+      totalTasks: uniqueTasksInMonth.size, // Use unique count instead of inflated count
       bottleneckDays,
-      avgDailyTasks: totalTasks / totalDays,
+      avgDailyTasks: uniqueTasksInMonth.size / totalDays, // Average based on unique tasks
       maxDailyTasks
     }
   }, [currentDate, workloadData, tasks])
