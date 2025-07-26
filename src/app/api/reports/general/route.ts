@@ -65,6 +65,7 @@ export async function GET() {
         status: project.status,
         startDate: project.startDate,
         endDate: project.endDate,
+        updatedAt: project.updatedAt,
         progress:
           project.tasks.length > 0
             ? Math.round(
@@ -77,8 +78,17 @@ export async function GET() {
         completedTasks: project.tasks.filter((t) => t.status === 'COMPLETED')
           .length,
         teamSize: project.members.length,
+        tasks: project.tasks.map(task => ({
+          id: task.id,
+          status: task.status
+        })),
+        members: project.members.map(member => ({
+          user: {
+            id: member.user.id,
+            name: member.user.name
+          }
+        })),
         createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
       })),
       departments: users.reduce((acc, user) => {
         if (!acc[user.department]) {
