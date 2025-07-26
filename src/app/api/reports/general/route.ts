@@ -38,7 +38,6 @@ export async function GET() {
       }),
       prisma.user.findMany({
         include: {
-          assignedTasks: true,
           taskAssignments: true,
         },
       }),
@@ -92,12 +91,9 @@ export async function GET() {
         }
         acc[user.department].userCount++
 
-        const userTasks = [
-          ...user.assignedTasks,
-          ...user.taskAssignments
-            .map((ta) => tasks.find((t) => t.id === ta.taskId))
-            .filter(Boolean),
-        ]
+        const userTasks = user.taskAssignments
+          .map((ta) => tasks.find((t) => t.id === ta.taskId))
+          .filter(Boolean)
 
         userTasks.forEach((task) => {
           if (task) {

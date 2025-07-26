@@ -6,7 +6,15 @@ export async function GET() {
   try {
     const projects = await prisma.project.findMany({
       include: {
-        tasks: true,
+        tasks: {
+          include: {
+            assignedUsers: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
         members: {
           include: {
             user: true,
@@ -22,6 +30,9 @@ export async function GET() {
         updatedAt: 'desc',
       },
     })
+
+    // Invalidate cache to ensure fresh data
+    revalidatePath('/projects')
 
     return NextResponse.json(projects)
   } catch (error) {
@@ -47,7 +58,15 @@ export async function POST(request: NextRequest) {
         endDate: body.endDate ? new Date(body.endDate) : null,
       },
       include: {
-        tasks: true,
+        tasks: {
+          include: {
+            assignedUsers: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
         members: {
           include: {
             user: true,

@@ -15,11 +15,6 @@ export async function GET() {
     const [users, tasks, projects] = await Promise.all([
       prisma.user.findMany({
         include: {
-          assignedTasks: {
-            include: {
-              project: true,
-            },
-          },
           taskAssignments: {
             include: {
               task: {
@@ -57,13 +52,10 @@ export async function GET() {
     // Kullanıcı performans analizi
     const userPerformance = users
       .map((user) => {
-        // Kullanıcının görevlerini topla
-        const allUserTasks = [
-          ...user.assignedTasks,
-          ...user.taskAssignments.map((assignment) => assignment.task),
-        ]
+        // Kullanıcının görevlerini topla (sadece taskAssignments kullan)
+        const allUserTasks = user.taskAssignments.map((assignment) => assignment.task)
 
-        // Tekrar eden görevleri filtrele
+        // Tekrar eden görevleri filtrele (artık gerekli olmayabilir ama güvenlik için)
         const uniqueTasks = allUserTasks.filter(
           (task, index, self) =>
             index === self.findIndex((t) => t.id === task.id)
