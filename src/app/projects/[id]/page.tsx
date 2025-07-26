@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Circle,
   AlertCircle,
+  ArrowLeft,
 } from 'lucide-react'
 import type { Project, Task, User } from '@prisma/client'
 import EnhancedCalendar from '@/components/EnhancedCalendar'
@@ -597,10 +598,20 @@ export default function ProjectDetailsPage() {
         {/* Header */}
         <div className='bg-white rounded-lg shadow-sm p-6 mb-6'>
           <div className='flex items-center justify-between'>
-            <div>
-              <h1 className='text-3xl font-bold text-gray-900'>
-                {project.name}
-              </h1>
+            <div className='flex items-center gap-4'>
+              {/* Go Back Button */}
+              <button
+                onClick={() => router.push('/projects')}
+                className='flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors'
+                title='Projelere Geri Dön'
+              >
+                <ArrowLeft className='w-5 h-5' />
+                <span className='hidden sm:inline'>Geri</span>
+              </button>
+              <div>
+                <h1 className='text-3xl font-bold text-gray-900'>
+                  {project.name}
+                </h1>
               {project.description && (
                 <p className='text-gray-600 mt-2'>{project.description}</p>
               )}
@@ -625,6 +636,7 @@ export default function ProjectDetailsPage() {
                 </div>
               </div>
             </div>
+          </div>
             <div className='flex items-center gap-3'>
               <button
                 onClick={() => setShowTaskModal(true)}

@@ -30,9 +30,11 @@ export default function Navbar() {
         <div className='flex justify-between h-16'>
           <div className='flex'>
             <div className='flex-shrink-0 flex items-center'>
-              <h1 className='text-xl font-bold text-white'>
-                Batarya Üretim Departmanı
-              </h1>
+              <Link href='/' className='hover:scale-105 transition-transform duration-200'>
+                <h1 className='text-xl font-bold text-white cursor-pointer'>
+                  Batarya Üretim Departmanı
+                </h1>
+              </Link>
             </div>
             <div className='hidden sm:ml-8 sm:flex sm:space-x-1'>
               {navigation.map((item) => {
