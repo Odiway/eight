@@ -586,6 +586,38 @@ export default function ProjectDetailsPage() {
                 )}
               </div>
             </div>
+            
+            {/* Start and End Date Display */}
+            {(task.startDate || task.endDate) && (
+              <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500">
+                <div className="flex items-center justify-between">
+                  {task.startDate && (
+                    <div className="flex items-center">
+                      <span className="text-green-600 mr-1">🚀</span>
+                      <span>{new Date(task.startDate).toLocaleDateString('tr-TR', { 
+                        day: '2-digit', 
+                        month: '2-digit' 
+                      })}</span>
+                    </div>
+                  )}
+                  {task.endDate && (
+                    <div className="flex items-center">
+                      <span className="text-red-600 mr-1">🏁</span>
+                      <span className={`${
+                        new Date(task.endDate) < new Date() && task.status !== 'COMPLETED' 
+                          ? 'text-red-600 font-semibold' 
+                          : ''
+                      }`}>
+                        {new Date(task.endDate).toLocaleDateString('tr-TR', { 
+                          day: '2-digit', 
+                          month: '2-digit' 
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
