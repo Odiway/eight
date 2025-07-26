@@ -25,7 +25,6 @@ interface UserProfile {
   department: string
   position: string
   photo?: string | null
-  studentId?: string | null
   createdAt: string
   updatedAt: string
   assignedTasks: {
@@ -241,15 +240,6 @@ export default function UserProfilePage() {
                     <p className='font-medium'>{user.department}</p>
                   </div>
                 </div>
-                {user.studentId && (
-                  <div className='flex items-center gap-3'>
-                    <User className='w-5 h-5 text-gray-400' />
-                    <div>
-                      <p className='text-sm text-gray-600'>Öğrenci No</p>
-                      <p className='font-medium'>{user.studentId}</p>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 

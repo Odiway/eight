@@ -96,7 +96,6 @@ export async function PUT(
         department: body.department || existingUser.department,
         position: body.position || existingUser.position,
         photo: body.photo !== undefined ? body.photo : existingUser.photo,
-        studentId: body.studentId !== undefined ? body.studentId : existingUser.studentId,
         maxHoursPerDay: body.maxHoursPerDay || existingUser.maxHoursPerDay,
         workingDays: body.workingDays || existingUser.workingDays,
       },

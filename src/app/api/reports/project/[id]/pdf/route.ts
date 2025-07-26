@@ -46,6 +46,7 @@ async function getProjectReportData(projectId: string): Promise<ProjectReportDat
               user: true,
             },
           },
+          assignedUser: true,
         },
       },
       members: {
@@ -61,7 +62,34 @@ async function getProjectReportData(projectId: string): Promise<ProjectReportDat
   }
 
   const tasks = project.tasks
-  const team = project.members
+  
+  // Calculate actual team from task assignments
+  const uniqueTeamMembers = new Set<string>();
+  const teamMembersMap = new Map<string, any>();
+  
+  tasks.forEach(task => {
+    // Add assignedUser (legacy single assignment)
+    if (task.assignedUser) {
+      uniqueTeamMembers.add(task.assignedUser.id);
+      teamMembersMap.set(task.assignedUser.id, {
+        id: task.assignedUser.id,
+        user: task.assignedUser,
+        role: 'Ekip Üyesi'
+      });
+    }
+    
+    // Add assignedUsers (new multiple assignments)
+    task.assignedUsers.forEach(assignment => {
+      uniqueTeamMembers.add(assignment.user.id);
+      teamMembersMap.set(assignment.user.id, {
+        id: assignment.user.id,
+        user: assignment.user,
+        role: 'Ekip Üyesi'
+      });
+    });
+  });
+  
+  const team = Array.from(teamMembersMap.values());
 
   // Calculate statistics
   const totalTasks = tasks.length

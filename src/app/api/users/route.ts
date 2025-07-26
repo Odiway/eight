@@ -68,7 +68,6 @@ export async function POST(request: NextRequest) {
         department: body.department,
         position: body.position,
         photo: body.photo || null,
-        studentId: body.studentId || null,
         maxHoursPerDay: body.maxHoursPerDay || 8,
         workingDays: body.workingDays || "1,2,3,4,5",
       },
