@@ -1,12 +1,14 @@
 import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
 import TeamView from '@/components/TeamView'
+import TeamRefreshButton from '@/components/TeamRefreshButton'
 import { Users, UserPlus, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 // Force dynamic rendering - no caching
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 async function getTeamData() {
   const users = await prisma.user.findMany({
@@ -131,7 +133,8 @@ export default async function TeamPage() {
               </div>
             </div>
 
-            <div className='flex space-x-3'>
+            <div className='flex items-center space-x-3'>
+              <TeamRefreshButton />
               <Link
                 href='/team/new'
                 className='inline-flex items-center px-4 py-2 border border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50 transition-colors duration-200'

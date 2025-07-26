@@ -94,15 +94,17 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // Invalidate relevant caches
+      // Invalidate relevant caches more aggressively
       revalidatePath('/team')
+      revalidatePath('/team', 'page')
       revalidatePath('/projects')
-
+      
       return NextResponse.json(updatedTeam, { status: 201 })
     }
 
-    // Invalidate team page cache
+    // Invalidate team page cache more aggressively  
     revalidatePath('/team')
+    revalidatePath('/team', 'page')
     revalidatePath('/projects')
 
     return NextResponse.json(team, { status: 201 })

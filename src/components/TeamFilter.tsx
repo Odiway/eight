@@ -68,7 +68,10 @@ export default function TeamFilter({
       )
     }
 
-    onFilterChange({ users: filteredUsers, teams })
+    // Always pass ALL teams - don't filter teams based on user filters
+    const allTeams = teams
+
+    onFilterChange({ users: filteredUsers, teams: allTeams })
   }
 
   const handleSearchChange = (value: string) => {

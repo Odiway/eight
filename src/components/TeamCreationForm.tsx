@@ -54,6 +54,8 @@ export default function TeamCreationForm({ availableUsers }: TeamCreationFormPro
         throw new Error(errorData.error || 'Takım oluşturulamadı')
       }
 
+      // Force router refresh and redirect
+      router.refresh()
       router.push('/team')
     } catch (error) {
       console.error('Error creating team:', error)
