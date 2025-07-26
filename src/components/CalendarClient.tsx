@@ -384,8 +384,8 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
       const isSelected =
         selectedDate && date.toDateString() === selectedDate.toDateString()
 
-      // Calculate bottleneck for this day
-      const workload = WorkloadAnalyzer.calculateDailyWorkload(tasksForDay as any, date)
+      // Simple workload calculation: task count * 25% (3+ tasks = 75%+ = bottleneck)
+      const workload = tasksForDay.length * 25
       const taskCount = tasksForDay.length
       const isBottleneck = (
         workload > 80 && taskCount > 0
@@ -793,13 +793,15 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
                   )
                 })
 
-                const workloadPercentage = WorkloadAnalyzer.calculateDailyWorkload(tasksForDay as any, new Date(date))
+                // Simple bottleneck calculation: 3+ tasks = bottleneck  
+                const taskCount = tasksForDay.length
+                const workloadPercentage = taskCount * 25 // 25% per task
                 
-                if (workloadPercentage > 80 && tasksForDay.length > 0) {
+                if (taskCount >= 3) { // Consider 3+ tasks as bottleneck
                   bottleneckDays.push({
                     date: new Date(date),
                     workload: workloadPercentage,
-                    taskCount: tasksForDay.length
+                    taskCount: taskCount
                   })
                 }
               }
@@ -845,7 +847,8 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
                                 )
                               })
 
-                              totalWorkload += WorkloadAnalyzer.calculateDailyWorkload(tasksForDay as any, new Date(date))
+                              // Simple workload: task count * 25%
+                              totalWorkload += tasksForDay.length * 25
                             }
                             
                             return Math.round(totalWorkload / totalDays)
@@ -909,13 +912,15 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
                   )
                 })
 
-                const workloadPercentage = WorkloadAnalyzer.calculateDailyWorkload(tasksForDay as any, new Date(date))
+                // Simple bottleneck calculation: 3+ tasks = bottleneck  
+                const taskCount = tasksForDay.length
+                const workloadPercentage = taskCount * 25 // 25% per task
                 
-                if (workloadPercentage > 80 && tasksForDay.length > 0) {
+                if (taskCount >= 3) { // Consider 3+ tasks as bottleneck
                   bottleneckDays.push({
                     date: new Date(date),
                     workload: workloadPercentage,
-                    taskCount: tasksForDay.length
+                    taskCount: taskCount
                   })
                 }
               }
@@ -1212,7 +1217,7 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
                               </p>
                             </div>
 
-                            {task.assignedUser ? (
+                            {task.assignedUser && (
                               <div className='bg-green-50 p-4 rounded-lg border border-green-200'>
                                 <div className='flex items-center space-x-2 mb-2'>
                                   <Users className='w-5 h-5 text-green-600' />
@@ -1240,22 +1245,6 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
                                     </span>
                                   </p>
                                 </div>
-                              </div>
-                            ) : (
-                              <div className='bg-yellow-50 p-4 rounded-lg border border-yellow-200'>
-                                <div className='flex items-center space-x-2 mb-2'>
-                                  <AlertTriangle className='w-5 h-5 text-yellow-600' />
-                                  <span className='font-semibold text-yellow-800'>
-                                    Atama Durumu
-                                  </span>
-                                </div>
-                                <p className='text-sm text-yellow-700'>
-                                  ⚠️ Henüz kimseye atanmamış
-                                </p>
-                                <p className='text-xs text-yellow-600 mt-1'>
-                                  Bu görev için bir takım üyesi ataması
-                                  yapılması gerekiyor
-                                </p>
                               </div>
                             )}
                           </div>

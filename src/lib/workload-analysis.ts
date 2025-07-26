@@ -75,20 +75,51 @@ export function calculateWorkloadPercentage(
 // Main WorkloadAnalyzer class
 export class WorkloadAnalyzer {
   static calculateDailyWorkload(tasks: Task[], date: Date): number {
-    const dateStr = date.toISOString().split('T')[0]
-    const dayTasks = tasks.filter(task => {
-      const taskDate = new Date(task.endDate || task.createdAt).toISOString().split('T')[0]
-      return taskDate === dateStr
-    })
-
-    return dayTasks.reduce((total, task) => {
-      switch (task.priority) {
-        case 'HIGH': return total + 40
-        case 'MEDIUM': return total + 25
-        case 'LOW': return total + 15
-        default: return total + 20
+    if (!tasks || tasks.length === 0) return 0
+    
+    // Calculate workload as percentage based on task count and complexity
+    let totalWorkload = 0
+    
+    tasks.forEach(task => {
+      // Base workload per task (considering 8-hour workday)
+      let baseHours = 4 // Default 4 hours per task
+      
+      // Adjust based on estimated hours if available
+      if (task.estimatedHours && task.estimatedHours > 0) {
+        // If task spans multiple days, distribute hours
+        if (task.startDate && task.endDate) {
+          const taskStart = new Date(task.startDate)
+          const taskEnd = new Date(task.endDate)
+          const taskDays = Math.max(1, Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)))
+          baseHours = task.estimatedHours / taskDays
+        } else {
+          baseHours = Math.min(8, task.estimatedHours) // Cap at 8 hours per day
+        }
+      } else {
+        // Estimate based on priority if no hours specified
+        switch (task.priority) {
+          case 'HIGH': 
+          case 'URGENT': 
+            baseHours = 6
+            break
+          case 'MEDIUM': 
+            baseHours = 4
+            break
+          case 'LOW': 
+            baseHours = 2
+            break
+          default: 
+            baseHours = 3
+        }
       }
-    }, 0)
+      
+      totalWorkload += baseHours
+    })
+    
+    // Convert to percentage (assuming 8-hour workday = 100%)
+    const workloadPercentage = (totalWorkload / 8) * 100
+    
+    return Math.round(workloadPercentage)
   }
 
   static detectBottlenecks(tasks: Task[], startDate: Date, endDate: Date): BottleneckData[] {
