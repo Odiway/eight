@@ -197,6 +197,53 @@ export async function POST(request: NextRequest) {
           userId: userId,
         })),
       })
+
+      // Auto-add users to ProjectMember table if they're not already there
+      for (const userId of body.assignedUserIds) {
+        try {
+          // Check if user is already a project member
+          const existingMember = await prisma.projectMember.findUnique({
+            where: {
+              projectId_userId: {
+                projectId: body.projectId,
+                userId: userId
+              }
+            }
+          })
+
+          if (!existingMember) {
+            // Get user info to determine role
+            const user = await prisma.user.findUnique({
+              where: { id: userId }
+            })
+
+            if (user) {
+              // Determine role based on position
+              let role = 'Member'
+              if (user.position.toLowerCase().includes('müdür') || user.position.toLowerCase().includes('yönetici')) {
+                role = 'Manager'
+              } else if (user.position.toLowerCase().includes('mühendis')) {
+                role = 'Developer'
+              } else if (user.position.toLowerCase().includes('uzman') || user.position.toLowerCase().includes('lider')) {
+                role = 'Specialist'
+              }
+
+              await prisma.projectMember.create({
+                data: {
+                  projectId: body.projectId,
+                  userId: userId,
+                  role: role
+                }
+              })
+            }
+          }
+        } catch (error) {
+          // Ignore duplicate errors, but log other errors
+          if ((error as any)?.code !== 'P2002') {
+            console.error(`Error adding user ${userId} to project ${body.projectId}:`, error)
+          }
+        }
+      }
     }
 
     // Fetch the complete task with relations
