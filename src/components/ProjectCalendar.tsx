@@ -14,6 +14,7 @@ import {
   Timer,
   Calendar,
   X,
+  TrendingDown,
 } from 'lucide-react'
 import {
   WorkloadAnalyzer,
@@ -499,6 +500,180 @@ export default function ProjectCalendar({
         </div>
       </div>
 
+      {/* Monthly Workload Analysis */}
+      <div className='bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden'>
+        <div className='bg-gradient-to-r from-orange-500 to-red-600 px-8 py-6'>
+          <div className='flex items-center space-x-3'>
+            <AlertTriangle className='w-6 h-6 text-white' />
+            <h3 className='text-xl font-bold text-white'>
+              {monthNames[currentMonth]} {currentYear} - İş Yükü Analizi ({projectName})
+            </h3>
+          </div>
+        </div>
+        
+        <div className='p-6'>
+          {(() => {
+            // Calculate monthly bottlenecks
+            const startOfMonth = new Date(currentYear, currentMonth, 1)
+            const endOfMonth = new Date(currentYear, currentMonth + 1, 0)
+            
+            interface BottleneckDay {
+              date: Date
+              workload: number
+              taskCount: number
+            }
+            
+            const bottleneckDays: BottleneckDay[] = []
+            
+            for (let date = new Date(startOfMonth); date <= endOfMonth; date.setDate(date.getDate() + 1)) {
+              const dayTasks = getTasksForDate(new Date(date))
+              const workloadPercentage = getWorkloadForDate(new Date(date))
+              
+              if (workloadPercentage > 80 && dayTasks.length > 0) {
+                bottleneckDays.push({
+                  date: new Date(date),
+                  workload: workloadPercentage,
+                  taskCount: dayTasks.length
+                })
+              }
+            }
+            
+            return (
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                <div className='bg-red-50 rounded-xl p-6 border border-red-200'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <div>
+                      <p className='text-sm font-medium text-red-600'>Darboğaz Günleri</p>
+                      <p className='text-3xl font-bold text-red-900'>{bottleneckDays.length}</p>
+                    </div>
+                    <div className='p-3 bg-red-100 rounded-full'>
+                      <AlertTriangle className='w-6 h-6 text-red-600' />
+                    </div>
+                  </div>
+                  <p className='text-xs text-red-700'>
+                    {bottleneckDays.length > 0 
+                      ? `%80+ iş yükü olan günler` 
+                      : 'Bu ay darboğaz bulunmuyor'}
+                  </p>
+                </div>
+                
+                <div className='bg-orange-50 rounded-xl p-6 border border-orange-200'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <div>
+                      <p className='text-sm font-medium text-orange-600'>Ortalama İş Yükü</p>
+                      <p className='text-3xl font-bold text-orange-900'>
+                        {(() => {
+                          const totalDays = endOfMonth.getDate()
+                          let totalWorkload = 0
+                          
+                          for (let date = new Date(startOfMonth); date <= endOfMonth; date.setDate(date.getDate() + 1)) {
+                            totalWorkload += getWorkloadForDate(new Date(date))
+                          }
+                          
+                          return Math.round(totalWorkload / totalDays)
+                        })()}%
+                      </p>
+                    </div>
+                    <div className='p-3 bg-orange-100 rounded-full'>
+                      <Target className='w-6 h-6 text-orange-600' />
+                    </div>
+                  </div>
+                  <p className='text-xs text-orange-700'>Ayın tamamı için ortalama</p>
+                </div>
+                
+                <div className='bg-green-50 rounded-xl p-6 border border-green-200'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <div>
+                      <p className='text-sm font-medium text-green-600'>En Yüksek İş Yükü</p>
+                      <p className='text-3xl font-bold text-green-900'>
+                        {bottleneckDays.length > 0 
+                          ? Math.round(Math.max(...bottleneckDays.map(d => d.workload)))
+                          : 0}%
+                      </p>
+                    </div>
+                    <div className='p-3 bg-green-100 rounded-full'>
+                      <Zap className='w-6 h-6 text-green-600' />
+                    </div>
+                  </div>
+                  <p className='text-xs text-green-700'>
+                    {bottleneckDays.length > 0 
+                      ? `${bottleneckDays.find(d => d.workload === Math.max(...bottleneckDays.map(d => d.workload)))?.date.getDate()}. günde`
+                      : 'Bu ay yoğunluk yok'}
+                  </p>
+                </div>
+              </div>
+            )
+          })()}
+          
+          {/* Bottleneck Details */}
+          {(() => {
+            const startOfMonth = new Date(currentYear, currentMonth, 1)
+            const endOfMonth = new Date(currentYear, currentMonth + 1, 0)
+            
+            interface BottleneckDay {
+              date: Date
+              workload: number
+              taskCount: number
+            }
+            
+            const bottleneckDays: BottleneckDay[] = []
+            
+            for (let date = new Date(startOfMonth); date <= endOfMonth; date.setDate(date.getDate() + 1)) {
+              const dayTasks = getTasksForDate(new Date(date))
+              const workloadPercentage = getWorkloadForDate(new Date(date))
+              
+              if (workloadPercentage > 80 && dayTasks.length > 0) {
+                bottleneckDays.push({
+                  date: new Date(date),
+                  workload: workloadPercentage,
+                  taskCount: dayTasks.length
+                })
+              }
+            }
+            
+            if (bottleneckDays.length > 0) {
+              return (
+                <div className='mt-6 bg-red-50 rounded-xl p-6 border border-red-200'>
+                  <h4 className='text-lg font-semibold text-red-900 mb-4 flex items-center gap-2'>
+                    <AlertTriangle className='w-5 h-5' />
+                    Darboğaz Günler Detayı
+                  </h4>
+                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                    {bottleneckDays.map((day, index) => (
+                      <div key={index} className='bg-white rounded-lg p-4 border border-red-200'>
+                        <div className='flex items-center justify-between mb-2'>
+                          <span className='font-semibold text-red-900'>
+                            {day.date.getDate()} {monthNames[day.date.getMonth()].slice(0, 3)}
+                          </span>
+                          <span className='text-sm font-bold text-red-700 bg-red-100 px-2 py-1 rounded'>
+                            %{Math.round(day.workload)}
+                          </span>
+                        </div>
+                        <p className='text-sm text-red-600'>
+                          {day.taskCount} görev
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            } else {
+              return (
+                <div className='mt-6 bg-green-50 rounded-xl p-6 border border-green-200'>
+                  <div className='flex items-center gap-3 text-green-800'>
+                    <CheckCircle2 className='w-6 h-6' />
+                    <h4 className='text-lg font-semibold'>Mükemmel İş Yükü Dağılımı!</h4>
+                  </div>
+                  <p className='text-green-700 mt-2'>
+                    Bu ay hiçbir gün %80'in üzerinde iş yükü bulunmuyor. Görevler dengeli şekilde dağıtılmış.
+                  </p>
+                </div>
+              )
+            }
+          })()}
+        </div>
+      </div>
+
       {/* Enhanced Calendar */}
       <div className='bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden'>
         {/* Calendar Header */}
@@ -549,6 +724,9 @@ export default function ProjectCalendar({
             const dayTasks = getTasksForDate(date)
             // Get workload percentage using the same method as EnhancedCalendar
             const workloadPercent = getWorkloadForDate(date)
+            
+            // Check if this day is a bottleneck
+            const isBottleneck = workloadPercent > 80 && dayTasks.length > 0
 
             return (
               <div
@@ -556,7 +734,9 @@ export default function ProjectCalendar({
                 onClick={() => handleDayClick(date)}
                 className={`min-h-[100px] border-r border-b border-gray-200 p-2 transition-all duration-200 hover:bg-gray-50 cursor-pointer ${
                   !isCurrentMonth ? 'bg-gray-50/50 text-gray-400' : 'bg-white'
-                } ${dayTasks.length > 0 ? 'hover:bg-blue-50' : ''}`}
+                } ${dayTasks.length > 0 ? 'hover:bg-blue-50' : ''} ${
+                  isBottleneck ? 'ring-2 ring-red-400 bg-red-50' : ''
+                }`}
                 title={
                   dayTasks.length > 0
                     ? `${dayTasks.length} görev - Detayları görüntülemek için tıklayın`
@@ -583,20 +763,28 @@ export default function ProjectCalendar({
                     )}
                     {/* Workload indicator - same as EnhancedCalendar */}
                     {workloadPercent > 0 && (
-                      <span
-                        className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                          workloadPercent > 100
-                            ? 'bg-red-100 text-red-700'
-                            : workloadPercent > 80
-                            ? 'bg-orange-100 text-orange-700'
-                            : workloadPercent > 60
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-green-100 text-green-700'
-                        }`}
-                        title={`Doluluk: ${workloadPercent.toFixed(0)}%`}
-                      >
-                        {workloadPercent.toFixed(0)}%
-                      </span>
+                      <div className='flex items-center gap-1'>
+                        <span
+                          className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                            workloadPercent > 100
+                              ? 'bg-red-100 text-red-700'
+                              : workloadPercent > 80
+                              ? 'bg-orange-100 text-orange-700'
+                              : workloadPercent > 60
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-green-100 text-green-700'
+                          }`}
+                          title={`Doluluk: ${workloadPercent.toFixed(0)}%`}
+                        >
+                          {workloadPercent.toFixed(0)}%
+                        </span>
+                        {/* Bottleneck indicator */}
+                        {isBottleneck && (
+                          <div className='flex items-center gap-1' title={`Darboğaz Günü - İş Yükü: ${Math.round(workloadPercent)}%`}>
+                            <AlertTriangle className='w-3 h-3 text-red-600' />
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
