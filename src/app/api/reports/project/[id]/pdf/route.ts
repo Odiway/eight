@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import jsPDF from 'jspdf'
+import { 
+  setupTurkishPDF, 
+  addTurkishText
+} from '@/lib/pdf-utils'
 
 // Helper function to draw a progress bar chart
 function drawProgressChart(doc: jsPDF, x: number, y: number, width: number, height: number, percentage: number, color: [number, number, number]) {
@@ -304,6 +308,10 @@ function getStatusColor(status: string): [number, number, number] {
 
 function generateProjectPDF(data: ProjectReportData): Buffer {
   const doc = new jsPDF()
+  
+  // Setup Turkish font support
+  setupTurkishPDF(doc)
+  
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 20
