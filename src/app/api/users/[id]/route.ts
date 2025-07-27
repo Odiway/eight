@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { updateUserTeamMembership } from '@/lib/team-utils'
 import { revalidatePath } from 'next/cache'
 
 export async function GET(
@@ -118,11 +119,52 @@ export async function PUT(
       },
     })
 
+    // Handle team membership changes if department changed
+    const departmentChanged = body.department && body.department !== existingUser.department
+    const positionChanged = body.position && body.position !== existingUser.position
+
+    if (departmentChanged || positionChanged) {
+      try {
+        await updateUserTeamMembership(
+          id,
+          existingUser.department,
+          updatedUser.department,
+          updatedUser.position
+        )
+        console.log(`Updated team membership for user ${updatedUser.name}`)
+      } catch (error) {
+        console.error('Error updating team membership:', error)
+        // Don't fail the user update if team assignment fails
+      }
+    }
+
+    // Get the final updated user with team membership
+    const finalUser = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        assignedTasks: {
+          include: {
+            project: true,
+          },
+        },
+        projects: {
+          include: {
+            project: true,
+          },
+        },
+        teamMembers: {
+          include: {
+            team: true,
+          },
+        },
+      },
+    })
+
     // Invalidate caches
     revalidatePath('/team')
     revalidatePath('/projects')
 
-    return NextResponse.json(updatedUser)
+    return NextResponse.json(finalUser)
   } catch (error) {
     console.error('Error updating user:', error)
     return NextResponse.json(

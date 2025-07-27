@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { assignUserToTeam } from '@/lib/team-utils'
 import { revalidatePath } from 'next/cache'
 
 export async function GET() {
@@ -82,11 +83,33 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Auto-assign user to team based on department
+    try {
+      await assignUserToTeam(user.id, body.department, body.position)
+    } catch (error) {
+      console.error('Error assigning user to team:', error)
+      // Don't fail the user creation if team assignment fails
+    }
+
+    // Get the updated user with team membership
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        assignedTasks: true,
+        projects: true,
+        teamMembers: {
+          include: {
+            team: true,
+          },
+        },
+      },
+    })
+
     // Invalidate team page cache
     revalidatePath('/team')
     revalidatePath('/projects')
 
-    return NextResponse.json(user, { status: 201 })
+    return NextResponse.json(updatedUser, { status: 201 })
   } catch (error) {
     console.error('Error creating user:', error)
     return NextResponse.json(
