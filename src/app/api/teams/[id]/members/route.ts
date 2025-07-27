@@ -133,6 +133,49 @@ export async function PUT(
         where: { id: { in: memberIds } },
         data: { department: team.name }
       })
+
+      // Sync ProjectMember table with current task assignments
+      console.log('Syncing ProjectMember table after department update...')
+      
+      // Get all current task assignments
+      const taskAssignments = await prisma.taskAssignment.findMany({
+        include: {
+          user: true,
+          task: {
+            include: {
+              project: true
+            }
+          }
+        }
+      })
+
+      // Create unique project-user combinations
+      const projectUserPairs = new Map()
+      taskAssignments.forEach(ta => {
+        const key = `${ta.task.projectId}-${ta.userId}`
+        if (!projectUserPairs.has(key)) {
+          projectUserPairs.set(key, {
+            projectId: ta.task.projectId,
+            userId: ta.userId,
+          })
+        }
+      })
+
+      // Clear and rebuild ProjectMember table
+      await prisma.projectMember.deleteMany({})
+      
+      const projectMemberData = Array.from(projectUserPairs.values()).map(data => ({
+        projectId: data.projectId,
+        userId: data.userId,
+        role: 'MEMBER'
+      }))
+
+      if (projectMemberData.length > 0) {
+        await prisma.projectMember.createMany({
+          data: projectMemberData
+        })
+        console.log(`Synced ${projectMemberData.length} ProjectMember entries`)
+      }
     }
 
     // Get updated team with members
