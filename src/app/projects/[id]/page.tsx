@@ -18,6 +18,12 @@ import {
   Circle,
   AlertCircle,
   ArrowLeft,
+  List,
+  Eye,
+  User as UserIcon,
+  Calendar as CalendarIcon,
+  Target,
+  Timer,
 } from 'lucide-react'
 import type { Project, Task, User } from '@prisma/client'
 import ImprovedEnhancedCalendar from '@/components/ImprovedEnhancedCalendar'
@@ -49,6 +55,8 @@ export default function ProjectDetailsPage() {
   const [editForm, setEditForm] = useState<any>({})
   const [draggedTask, setDraggedTask] = useState<string | null>(null)
   const [savingTask, setSavingTask] = useState<string | null>(null)
+  const [selectedTaskDetails, setSelectedTaskDetails] = useState<ExtendedTask | null>(null)
+  const [showTaskDetailsModal, setShowTaskDetailsModal] = useState(false)
 
   // Task management handlers
   const handleTaskEdit = (taskId: string) => {
@@ -239,6 +247,12 @@ export default function ProjectDetailsPage() {
     } catch (err) {
       console.error('Görev güncellenirken hata:', err)
     }
+  }
+
+  // Handle task click for details view
+  const handleTaskClick = (task: ExtendedTask) => {
+    setSelectedTaskDetails(task)
+    setShowTaskDetailsModal(true)
   }
 
   // Handle project reschedule
@@ -434,6 +448,189 @@ export default function ProjectDetailsPage() {
   ).length
   const progressPercentage =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+
+  // TaskList Component
+  function TaskList({ tasks, users, onTaskClick }: { 
+    tasks: ExtendedTask[]
+    users: User[]
+    onTaskClick: (task: ExtendedTask) => void 
+  }) {
+    const [filter, setFilter] = useState<'all' | 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'BLOCKED'>('all')
+    const [sortBy, setSortBy] = useState<'title' | 'priority' | 'status' | 'dueDate'>('title')
+
+    const filteredTasks = tasks.filter(task => filter === 'all' || task.status === filter)
+    
+    const sortedTasks = [...filteredTasks].sort((a, b) => {
+      switch (sortBy) {
+        case 'priority':
+          const priorityOrder = { 'URGENT': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 }
+          return priorityOrder[a.priority] - priorityOrder[b.priority]
+        case 'status':
+          return a.status.localeCompare(b.status)
+        case 'dueDate':
+          if (!a.endDate && !b.endDate) return 0
+          if (!a.endDate) return 1
+          if (!b.endDate) return -1
+          return new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
+        default:
+          return a.title.localeCompare(b.title)
+      }
+    })
+
+    const getStatusText = (status: string) => {
+      const statusMap: { [key: string]: string } = {
+        'TODO': 'Yapılacak',
+        'IN_PROGRESS': 'Devam Ediyor',
+        'REVIEW': 'İncelemede',
+        'COMPLETED': 'Tamamlandı',
+        'BLOCKED': 'Engellenmiş'
+      }
+      return statusMap[status] || status
+    }
+
+    const getPriorityText = (priority: string) => {
+      const priorityMap: { [key: string]: string } = {
+        'LOW': 'Düşük',
+        'MEDIUM': 'Orta',
+        'HIGH': 'Yüksek',
+        'URGENT': 'Acil'
+      }
+      return priorityMap[priority] || priority
+    }
+
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'TODO': return 'bg-gray-100 text-gray-700'
+        case 'IN_PROGRESS': return 'bg-blue-100 text-blue-700'
+        case 'REVIEW': return 'bg-purple-100 text-purple-700'
+        case 'COMPLETED': return 'bg-green-100 text-green-700'
+        case 'BLOCKED': return 'bg-red-100 text-red-700'
+        default: return 'bg-gray-100 text-gray-700'
+      }
+    }
+
+    const getPriorityColor = (priority: string) => {
+      switch (priority) {
+        case 'LOW': return 'bg-green-100 text-green-700'
+        case 'MEDIUM': return 'bg-yellow-100 text-yellow-700'
+        case 'HIGH': return 'bg-orange-100 text-orange-700'
+        case 'URGENT': return 'bg-red-100 text-red-700'
+        default: return 'bg-gray-100 text-gray-700'
+      }
+    }
+
+    return (
+      <div className='space-y-4'>
+        {/* Filters and Sort */}
+        <div className='flex flex-col sm:flex-row gap-4 bg-gray-50 p-4 rounded-lg'>
+          <div className='flex items-center gap-2'>
+            <span className='text-sm font-medium text-gray-700'>Filtrele:</span>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as any)}
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+            >
+              <option value='all'>Tümü ({tasks.length})</option>
+              <option value='TODO'>Yapılacak ({tasks.filter(t => t.status === 'TODO').length})</option>
+              <option value='IN_PROGRESS'>Devam Eden ({tasks.filter(t => t.status === 'IN_PROGRESS').length})</option>
+              <option value='REVIEW'>İncelemede ({tasks.filter(t => t.status === 'REVIEW').length})</option>
+              <option value='COMPLETED'>Tamamlandı ({tasks.filter(t => t.status === 'COMPLETED').length})</option>
+              <option value='BLOCKED'>Engellenmiş ({tasks.filter(t => t.status === 'BLOCKED').length})</option>
+            </select>
+          </div>
+          
+          <div className='flex items-center gap-2'>
+            <span className='text-sm font-medium text-gray-700'>Sırala:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+            >
+              <option value='title'>Başlık</option>
+              <option value='priority'>Öncelik</option>
+              <option value='status'>Durum</option>
+              <option value='dueDate'>Son Tarih</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Task Grid */}
+        {sortedTasks.length === 0 ? (
+          <div className='text-center py-12'>
+            <div className='text-gray-400 mb-4'>
+              <Target className='w-12 h-12 mx-auto' />
+            </div>
+            <p className='text-gray-500'>
+              {filter === 'all' ? 'Henüz görev eklenmemiş' : `${getStatusText(filter)} durumunda görev bulunamadı`}
+            </p>
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+            {sortedTasks.map(task => {
+              const assignedUser = users.find(u => u.id === task.assignedId)
+              const isOverdue = task.endDate && new Date(task.endDate) < new Date() && task.status !== 'COMPLETED'
+              
+              return (
+                <div
+                  key={task.id}
+                  onClick={() => onTaskClick(task)}
+                  className={`bg-white border rounded-lg p-4 hover:shadow-lg transition-all cursor-pointer ${
+                    isOverdue ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-blue-300'
+                  }`}
+                >
+                  <div className='flex items-start justify-between mb-3'>
+                    <h4 className='font-semibold text-gray-900 flex-1 pr-2'>{task.title}</h4>
+                    <button className='text-gray-400 hover:text-blue-600 transition-colors'>
+                      <Eye className='w-4 h-4' />
+                    </button>
+                  </div>
+
+                  {task.description && (
+                    <p className='text-sm text-gray-600 mb-3 line-clamp-2'>{task.description}</p>
+                  )}
+
+                  <div className='flex items-center gap-2 mb-3'>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)}`}>
+                      {getStatusText(task.status)}
+                    </span>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(task.priority)}`}>
+                      {getPriorityText(task.priority)}
+                    </span>
+                  </div>
+
+                  <div className='space-y-2 text-xs text-gray-500'>
+                    {assignedUser && (
+                      <div className='flex items-center gap-1'>
+                        <UserIcon className='w-3 h-3' />
+                        <span>{assignedUser.name}</span>
+                      </div>
+                    )}
+                    
+                    {task.estimatedHours && (
+                      <div className='flex items-center gap-1'>
+                        <Timer className='w-3 h-3' />
+                        <span>{task.estimatedHours} saat</span>
+                      </div>
+                    )}
+                    
+                    {task.endDate && (
+                      <div className='flex items-center gap-1'>
+                        <CalendarIcon className='w-3 h-3' />
+                        <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
+                          {new Date(task.endDate).toLocaleDateString('tr-TR')}
+                          {isOverdue && ' (Gecikmiş)'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // Task Card Component
   function TaskCard({ task }: { task: ExtendedTask }) {
@@ -868,6 +1065,24 @@ export default function ProjectDetailsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Task List Section Below Kanban */}
+                <div className='mt-8'>
+                  <div className='bg-white rounded-lg shadow-sm border border-gray-200'>
+                    <div className='px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600'>
+                      <h3 className='text-lg font-semibold text-white flex items-center'>
+                        <List className='w-5 h-5 mr-2' />
+                        Tüm Görevler ({project.tasks.length})
+                      </h3>
+                      <p className='text-blue-100 text-sm mt-1'>
+                        Görevlere tıklayarak detaylı bilgileri görüntüleyebilirsiniz
+                      </p>
+                    </div>
+                    <div className='p-6'>
+                      <TaskList tasks={project.tasks} users={users} onTaskClick={handleTaskClick} />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1112,6 +1327,220 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* Task Details Modal */}
+      {showTaskDetailsModal && selectedTaskDetails && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto'>
+            <div className='px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600'>
+              <div className='flex items-center justify-between'>
+                <h3 className='text-xl font-semibold text-white flex items-center'>
+                  <Eye className='w-6 h-6 mr-2' />
+                  Görev Detayları
+                </h3>
+                <button
+                  onClick={() => setShowTaskDetailsModal(false)}
+                  className='text-white hover:text-gray-200 transition-colors p-2 hover:bg-white/20 rounded-lg'
+                >
+                  <X className='w-6 h-6' />
+                </button>
+              </div>
+            </div>
+            
+            <div className='p-6'>
+              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                {/* Left Column - Basic Info */}
+                <div className='space-y-6'>
+                  <div>
+                    <h4 className='text-2xl font-bold text-gray-900 mb-2'>{selectedTaskDetails.title}</h4>
+                    {selectedTaskDetails.description && (
+                      <div className='bg-gray-50 p-4 rounded-lg'>
+                        <h5 className='font-semibold text-gray-700 mb-2'>Açıklama:</h5>
+                        <p className='text-gray-600 leading-relaxed'>{selectedTaskDetails.description}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div className='bg-blue-50 p-4 rounded-lg'>
+                      <h5 className='font-semibold text-blue-700 mb-2 flex items-center'>
+                        <Target className='w-4 h-4 mr-1' />
+                        Durum
+                      </h5>
+                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                        selectedTaskDetails.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                        selectedTaskDetails.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+                        selectedTaskDetails.status === 'REVIEW' ? 'bg-purple-100 text-purple-700' :
+                        selectedTaskDetails.status === 'BLOCKED' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {selectedTaskDetails.status === 'TODO' ? 'Yapılacak' :
+                         selectedTaskDetails.status === 'IN_PROGRESS' ? 'Devam Ediyor' :
+                         selectedTaskDetails.status === 'REVIEW' ? 'İncelemede' :
+                         selectedTaskDetails.status === 'BLOCKED' ? 'Engellenmiş' : 'Tamamlandı'}
+                      </span>
+                    </div>
+
+                    <div className='bg-orange-50 p-4 rounded-lg'>
+                      <h5 className='font-semibold text-orange-700 mb-2 flex items-center'>
+                        <AlertTriangle className='w-4 h-4 mr-1' />
+                        Öncelik
+                      </h5>
+                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                        selectedTaskDetails.priority === 'URGENT' ? 'bg-red-100 text-red-700' :
+                        selectedTaskDetails.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                        selectedTaskDetails.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {selectedTaskDetails.priority === 'URGENT' ? 'Acil' :
+                         selectedTaskDetails.priority === 'HIGH' ? 'Yüksek' :
+                         selectedTaskDetails.priority === 'MEDIUM' ? 'Orta' : 'Düşük'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {selectedTaskDetails.assignedUser && (
+                    <div className='bg-purple-50 p-4 rounded-lg'>
+                      <h5 className='font-semibold text-purple-700 mb-2 flex items-center'>
+                        <UserIcon className='w-4 h-4 mr-1' />
+                        Sorumlu Kişi
+                      </h5>
+                      <div className='flex items-center gap-3'>
+                        <div className='w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm'>
+                          {selectedTaskDetails.assignedUser.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className='font-medium text-gray-900'>{selectedTaskDetails.assignedUser.name}</p>
+                          <p className='text-sm text-gray-600'>{selectedTaskDetails.assignedUser.email}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column - Time & Dates */}
+                <div className='space-y-6'>
+                  {(selectedTaskDetails.estimatedHours || selectedTaskDetails.actualHours) && (
+                    <div className='bg-green-50 p-4 rounded-lg'>
+                      <h5 className='font-semibold text-green-700 mb-3 flex items-center'>
+                        <Timer className='w-4 h-4 mr-1' />
+                        Zaman Bilgileri
+                      </h5>
+                      <div className='space-y-2'>
+                        {selectedTaskDetails.estimatedHours && (
+                          <div className='flex justify-between'>
+                            <span className='text-sm text-gray-600'>Tahmini Süre:</span>
+                            <span className='text-sm font-medium'>{selectedTaskDetails.estimatedHours} saat</span>
+                          </div>
+                        )}
+                        {selectedTaskDetails.actualHours && (
+                          <div className='flex justify-between'>
+                            <span className='text-sm text-gray-600'>Gerçekleşen Süre:</span>
+                            <span className='text-sm font-medium'>{selectedTaskDetails.actualHours} saat</span>
+                          </div>
+                        )}
+                        {selectedTaskDetails.estimatedHours && selectedTaskDetails.actualHours && (
+                          <div className='pt-2 border-t border-green-200'>
+                            <div className='flex justify-between'>
+                              <span className='text-sm text-gray-600'>Fark:</span>
+                              <span className={`text-sm font-medium ${
+                                selectedTaskDetails.actualHours > selectedTaskDetails.estimatedHours 
+                                  ? 'text-red-600' : 'text-green-600'
+                              }`}>
+                                {selectedTaskDetails.actualHours > selectedTaskDetails.estimatedHours ? '+' : ''}
+                                {selectedTaskDetails.actualHours - selectedTaskDetails.estimatedHours} saat
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {(selectedTaskDetails.startDate || selectedTaskDetails.endDate) && (
+                    <div className='bg-blue-50 p-4 rounded-lg'>
+                      <h5 className='font-semibold text-blue-700 mb-3 flex items-center'>
+                        <CalendarIcon className='w-4 h-4 mr-1' />
+                        Tarih Bilgileri
+                      </h5>
+                      <div className='space-y-2'>
+                        {selectedTaskDetails.startDate && (
+                          <div className='flex justify-between items-center'>
+                            <span className='text-sm text-gray-600'>Başlangıç:</span>
+                            <span className='text-sm font-medium'>
+                              {new Date(selectedTaskDetails.startDate).toLocaleDateString('tr-TR', {
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        {selectedTaskDetails.endDate && (
+                          <div className='flex justify-between items-center'>
+                            <span className='text-sm text-gray-600'>Bitiş:</span>
+                            <span className={`text-sm font-medium ${
+                              new Date(selectedTaskDetails.endDate) < new Date() && selectedTaskDetails.status !== 'COMPLETED'
+                                ? 'text-red-600' : ''
+                            }`}>
+                              {new Date(selectedTaskDetails.endDate).toLocaleDateString('tr-TR', {
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric'
+                              })}
+                              {new Date(selectedTaskDetails.endDate) < new Date() && selectedTaskDetails.status !== 'COMPLETED' && (
+                                <span className='ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full'>Gecikmiş</span>
+                              )}
+                            </span>
+                          </div>
+                        )}
+                        {selectedTaskDetails.startDate && selectedTaskDetails.endDate && (
+                          <div className='pt-2 border-t border-blue-200'>
+                            <div className='flex justify-between'>
+                              <span className='text-sm text-gray-600'>Süre:</span>
+                              <span className='text-sm font-medium'>
+                                {Math.ceil((new Date(selectedTaskDetails.endDate).getTime() - new Date(selectedTaskDetails.startDate).getTime()) / (1000 * 60 * 60 * 24))} gün
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className='bg-gray-50 p-4 rounded-lg'>
+                    <h5 className='font-semibold text-gray-700 mb-3'>Hızlı İşlemler</h5>
+                    <div className='space-y-2'>
+                      <button
+                        onClick={() => {
+                          handleTaskEdit(selectedTaskDetails.id)
+                          setShowTaskDetailsModal(false)
+                        }}
+                        className='w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                      >
+                        <Edit className='w-4 h-4' />
+                        Düzenle
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Bu görevi silmek istediğinizden emin misiniz?')) {
+                            handleTaskDelete(selectedTaskDetails.id)
+                            setShowTaskDetailsModal(false)
+                          }
+                        }}
+                        className='w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
+                      >
+                        <Trash2 className='w-4 h-4' />
+                        Sil
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Task Creation Modal */}
       <TaskCreationModal
