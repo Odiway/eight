@@ -6,6 +6,15 @@ interface DepartmentSummary {
   userCount: number
   totalTasks: number
   completedTasks: number
+  activeProjects: number
+}
+
+interface DepartmentWithActiveProjects {
+  name: string
+  userCount: number
+  totalTasks: number
+  completedTasks: number
+  activeProjects: Set<string>
 }
 
 export async function GET() {
@@ -97,6 +106,7 @@ export async function GET() {
             userCount: 0,
             totalTasks: 0,
             completedTasks: 0,
+            activeProjects: new Set<string>(),
           }
         }
         acc[user.department].userCount++
@@ -111,15 +121,38 @@ export async function GET() {
             if (task.status === 'COMPLETED') {
               acc[user.department].completedTasks++
             }
+            // Add project to active projects if task is active
+            if (task.status === 'IN_PROGRESS' || task.status === 'TODO') {
+              acc[user.department].activeProjects.add(task.projectId)
+            }
           }
         })
 
         return acc
-      }, {} as Record<string, DepartmentSummary>),
+      }, {} as Record<string, DepartmentWithActiveProjects>)
+    }
+
+    // Convert Sets to numbers before returning
+    const departmentsForResponse = Object.fromEntries(
+      Object.entries(reportData.departments).map(([key, dept]) => [
+        key,
+        {
+          name: dept.name,
+          userCount: dept.userCount,
+          totalTasks: dept.totalTasks,
+          completedTasks: dept.completedTasks,
+          activeProjects: dept.activeProjects.size,
+        }
+      ])
+    )
+
+    const finalReportData = {
+      ...reportData,
+      departments: departmentsForResponse
     }
 
     // PDF veya Excel formatında indir
-    const response = new NextResponse(JSON.stringify(reportData, null, 2), {
+    const response = new NextResponse(JSON.stringify(finalReportData, null, 2), {
       headers: {
         'Content-Type': 'application/json',
         'Content-Disposition': `attachment; filename="genel-rapor-${

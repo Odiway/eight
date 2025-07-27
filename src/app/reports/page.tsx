@@ -54,6 +54,7 @@ interface ReportsData {
       userCount: number
       totalTasks: number
       completedTasks: number
+      activeProjects: number
     }
   >
 }
@@ -150,12 +151,12 @@ export default function ReportsPage() {
     activeDepartments: Object.keys(departments || {}).length,
   }
 
-  // Convert departments object to array format
+  // Convert departments object to array format  
   const departmentsArray = Object.values(departments || {}).map(
     (dept: ReportsData['departments'][string]) => ({
       name: dept.name,
       users: dept.userCount,
-      projectCount: 0, // This would need to be calculated separately
+      projectCount: dept.activeProjects || 0,
       taskCount: dept.totalTasks,
       completedTasks: dept.completedTasks,
     })

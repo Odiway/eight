@@ -57,8 +57,34 @@ export async function GET(
         ? Math.round((completedTasks.length / project.tasks.length) * 100)
         : 0
 
-    // Takım üyeleri analizi
-    const teamAnalysis = project.members.map((member) => {
+    // Gerçek takım üyelerini task assignments'tan al
+    const uniqueTeamMembers = new Set<string>();
+    const teamMembersMap = new Map<string, any>();
+    
+    project.tasks.forEach(task => {
+      // Legacy single assignment
+      if (task.assignedUser) {
+        uniqueTeamMembers.add(task.assignedUser.id);
+        teamMembersMap.set(task.assignedUser.id, {
+          user: task.assignedUser,
+          role: 'Ekip Üyesi'
+        });
+      }
+      
+      // New multiple assignments
+      task.assignedUsers.forEach(assignment => {
+        uniqueTeamMembers.add(assignment.user.id);
+        teamMembersMap.set(assignment.user.id, {
+          user: assignment.user,
+          role: 'Ekip Üyesi'
+        });
+      });
+    });
+    
+    const actualTeamMembers = Array.from(teamMembersMap.values());
+
+    // Takım üyeleri analizi - gerçek team members kullan
+    const teamAnalysis = actualTeamMembers.map((member) => {
       const memberTasks = project.tasks.filter(
         (task) =>
           task.assignedUser?.id === member.user.id ||
@@ -117,7 +143,7 @@ export async function GET(
         reviewTasks: reviewTasks.length,
         overdueTasks: overdueTasks.length,
         progressPercentage: progress,
-        teamSize: project.members.length,
+        teamSize: actualTeamMembers.length,
       },
       tasks: project.tasks.map((task) => ({
         id: task.id,
