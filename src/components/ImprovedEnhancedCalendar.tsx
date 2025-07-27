@@ -1,0 +1,1181 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { 
+  Calendar, 
+  Clock, 
+  AlertTriangle, 
+  Users, 
+  BarChart3, 
+  RefreshCw, 
+  TrendingDown,
+  Eye,
+  Zap,
+  Target,
+  CheckCircle,
+  PlayCircle,
+  PauseCircle,
+  Timer,
+  Layers,
+  Filter,
+  Circle,
+  X
+} from 'lucide-react'
+import { WorkloadAnalyzer, WorkloadData, getWorkloadColor, getWorkloadLabel } from '@/lib/workload-analysis'
+import ImprovedWorkloadViewer from '@/components/ImprovedWorkloadViewer'
+
+interface Task {
+  id: string
+  title: string
+  description?: string
+  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'BLOCKED'
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+  startDate?: Date
+  endDate?: Date
+  assignedId?: string
+  estimatedHours?: number
+  actualHours?: number
+  delayReason?: string
+  delayDays: number
+  workloadPercentage: number
+  isBottleneck: boolean
+  originalEndDate?: Date
+  assignedUser?: {
+    id: string
+    name: string
+    maxHoursPerDay: number
+  }
+  assignedUsers?: Array<{
+    userId: string
+    user: {
+      id: string
+      name: string
+    }
+  }>
+}
+
+interface Project {
+  id: string
+  name: string
+  startDate?: Date
+  endDate?: Date
+  originalEndDate?: Date
+  delayDays: number
+  autoReschedule: boolean
+}
+
+interface EnhancedCalendarProps {
+  tasks: Task[]
+  project: Project
+  users: any[]
+  onTaskUpdate: (taskId: string, updates: Partial<Task>) => void
+  onProjectReschedule: (rescheduleType: string) => void
+}
+
+function ImprovedEnhancedCalendar({ 
+  tasks, 
+  project, 
+  users, 
+  onTaskUpdate, 
+  onProjectReschedule 
+}: EnhancedCalendarProps) {
+  const [currentDate, setCurrentDate] = useState(() => new Date(2025, 6, 23))
+  const [viewMode, setViewMode] = useState<'calendar' | 'workload' | 'timeline'>('calendar')
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [workloadData, setWorkloadData] = useState<WorkloadData[]>([])
+  const [dayTasks, setDayTasks] = useState<Task[]>([])
+  const [showDayModal, setShowDayModal] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [priorityFilter, setPriorityFilter] = useState<string>('all')
+  const [calendarLayout, setCalendarLayout] = useState<'standard' | 'compact' | 'detailed'>('detailed')
+
+  // Calculate workload data
+  useEffect(() => {
+    if (project.startDate && project.endDate) {
+      const startDate = new Date(project.startDate)
+      const endDate = new Date(project.endDate)
+      
+      const tasksForAnalyzer = tasks.map(task => ({
+        ...task,
+        projectId: project.id,
+        createdById: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        workflowStepId: null,
+        completedAt: null,
+        assignedId: task.assignedId || null,
+        startDate: task.startDate || null,
+        endDate: task.endDate || null,
+        description: task.description || null,
+        originalEndDate: task.originalEndDate || null,
+        estimatedHours: task.estimatedHours ?? null,
+        actualHours: task.actualHours ?? null,
+        delayReason: task.delayReason ?? null,
+        delayDays: task.delayDays ?? 0,
+        workloadPercentage: task.workloadPercentage ?? 0,
+        isBottleneck: task.isBottleneck ?? false,
+      }))
+
+      // Calculate workload using static methods
+      const dailyWorkload = []
+      const currentDay = new Date(startDate)
+      while (currentDay <= endDate) {
+        // Use WorkloadAnalyzer static method to calculate daily workload
+        const dayWorkload = users.map(user => {
+          const userTasks = tasksForAnalyzer.filter(task => {
+            if (!task.startDate || !task.endDate) return false
+            
+            // Check both assignment systems: legacy assignedId and new assignedUsers
+            const isAssignedToUser = task.assignedId === user.id || 
+              (task.assignedUsers && task.assignedUsers.some((assignment: any) => assignment.userId === user.id))
+            
+            if (!isAssignedToUser) return false
+            
+            const taskStart = new Date(task.startDate)
+            const taskEnd = new Date(task.endDate)
+            const checkDate = new Date(currentDay)
+            
+            taskStart.setHours(0, 0, 0, 0)
+            taskEnd.setHours(0, 0, 0, 0)
+            checkDate.setHours(0, 0, 0, 0)
+            
+            return checkDate >= taskStart && checkDate <= taskEnd
+          })
+
+          const totalHours = userTasks.reduce((sum, task) => {
+            if (!task.estimatedHours) return sum + 4 // Default 4 hours
+            
+            const taskStart = new Date(task.startDate!)
+            const taskEnd = new Date(task.endDate!)
+            const workingDays = Math.max(1, Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)))
+            
+            return sum + (task.estimatedHours / workingDays)
+          }, 0)
+
+          const maxHours = user.maxHoursPerDay || 8
+          const workloadPercent = Math.round((totalHours / maxHours) * 100)
+
+          return {
+            userId: user.id,
+            userName: user.name,
+            date: currentDay.toISOString().split('T')[0],
+            workloadPercent,
+            hoursAllocated: totalHours,
+            hoursAvailable: maxHours,
+            isOverloaded: workloadPercent > 100,
+            tasks: userTasks
+          } as WorkloadData
+        })
+        
+        dailyWorkload.push(...dayWorkload)
+        currentDay.setDate(currentDay.getDate() + 1)
+      }
+      
+      setWorkloadData(dailyWorkload)
+    }
+  }, [tasks, users, project])
+
+  const getTasksForDate = (date: Date): Task[] => {
+    return tasks.filter(task => {
+      if (!task.startDate || !task.endDate) return false
+      
+      const taskStart = new Date(task.startDate)
+      const taskEnd = new Date(task.endDate)
+      const checkDate = new Date(date)
+      
+      taskStart.setHours(0, 0, 0, 0)
+      taskEnd.setHours(0, 0, 0, 0)
+      checkDate.setHours(0, 0, 0, 0)
+      
+      const dateMatch = checkDate >= taskStart && checkDate <= taskEnd
+      
+      // Apply filters
+      const statusMatch = statusFilter === 'all' || task.status === statusFilter
+      const priorityMatch = priorityFilter === 'all' || task.priority === priorityFilter
+      
+      return dateMatch && statusMatch && priorityMatch
+    })
+  }
+
+  const getWorkloadForDate = (date: Date): WorkloadData[] => {
+    const dateStr = date.toISOString().split('T')[0]
+    return workloadData.filter(w => w.date === dateStr)
+  }
+
+  const handleTaskStatusChange = (taskId: string, newStatus: Task['status']) => {
+    onTaskUpdate(taskId, { status: newStatus })
+  }
+
+  const handleDayClick = (date: Date) => {
+    const tasksForDay = getTasksForDate(date)
+    setSelectedDate(date)
+    setDayTasks(tasksForDay)
+    setShowDayModal(true)
+  }
+
+  const closeDayModal = () => {
+    setShowDayModal(false)
+    setSelectedDate(null)
+    setDayTasks([])
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'COMPLETED': return <CheckCircle className="w-3 h-3" />
+      case 'IN_PROGRESS': return <PlayCircle className="w-3 h-3" />
+      case 'REVIEW': return <Eye className="w-3 h-3" />
+      case 'BLOCKED': return <PauseCircle className="w-3 h-3" />
+      default: return <Circle className="w-3 h-3" />
+    }
+  }
+
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case 'URGENT': return <Zap className="w-3 h-3 text-red-500" />
+      case 'HIGH': return <AlertTriangle className="w-3 h-3 text-orange-500" />
+      case 'MEDIUM': return <Target className="w-3 h-3 text-blue-500" />
+      default: return <Timer className="w-3 h-3 text-gray-400" />
+    }
+  }
+
+  const renderCalendarDay = (date: Date) => {
+    const dayTasks = getTasksForDate(date)
+    const workload = getWorkloadForDate(date)
+    const isToday = date.toDateString() === new Date().toDateString()
+    const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString()
+    
+    // Calculate enhanced workload metrics
+    const avgWorkload = workload.length > 0 
+      ? Math.round(workload.reduce((sum, w) => sum + w.workloadPercent, 0) / workload.length)
+      : 0
+
+    const maxUserWorkload = workload.length > 0 
+      ? Math.max(...workload.map(w => w.workloadPercent))
+      : 0
+
+    const overloadedUsers = workload.filter(w => w.workloadPercent > 100).length
+    const isBottleneck = avgWorkload > 80 && dayTasks.length > 0
+    const isHighRisk = maxUserWorkload > 120 || overloadedUsers > 1
+
+    // Task categorization
+    const urgentTasks = dayTasks.filter(t => t.priority === 'URGENT')
+    const highPriorityTasks = dayTasks.filter(t => t.priority === 'HIGH')
+    const completedTasks = dayTasks.filter(t => t.status === 'COMPLETED')
+    const blockedTasks = dayTasks.filter(t => t.status === 'BLOCKED')
+
+    const dayHeight = calendarLayout === 'compact' ? 'min-h-[80px]' : 
+                    calendarLayout === 'standard' ? 'min-h-[120px]' : 'min-h-[160px]'
+
+    return (
+      <div
+        key={date.toISOString()}
+        className={`
+          calendar-day ${dayHeight} p-2 border border-gray-200 cursor-pointer transition-all duration-300 rounded-lg relative overflow-hidden
+          ${isToday ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-400 shadow-md' : ''}
+          ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''}
+          ${isHighRisk ? 'ring-2 ring-red-500 bg-gradient-to-br from-red-50 to-red-100' : ''}
+          ${isBottleneck && !isHighRisk ? 'ring-2 ring-orange-400 bg-gradient-to-br from-orange-50 to-orange-100' : ''}
+          ${dayTasks.length > 0 ? 'hover:shadow-lg hover:scale-[1.02]' : 'hover:bg-gray-50'}
+          ${avgWorkload > 100 ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-300' : ''}
+        `}
+        onClick={() => {
+          setSelectedDate(date)
+          if (dayTasks.length > 0) {
+            handleDayClick(date)
+          }
+        }}
+        title={dayTasks.length > 0 ? `${dayTasks.length} görev - Detayları görüntülemek için tıklayın` : ''}
+      >
+        {/* Date Header */}
+        <div className="flex justify-between items-start mb-2 relative z-10">
+          <span className={`text-sm font-semibold ${
+            isToday ? 'text-blue-700' : 
+            isHighRisk ? 'text-red-700' :
+            isBottleneck ? 'text-orange-700' :
+            'text-gray-700'
+          }`}>
+            {date.getDate()}
+          </span>
+          
+          {/* Day Indicators */}
+          <div className="flex items-center gap-1">
+            {dayTasks.length > 0 && (
+              <span className={`text-xs px-2 py-1 rounded-full font-bold shadow-sm ${
+                isHighRisk ? 'bg-red-500 text-white' :
+                isBottleneck ? 'bg-orange-500 text-white' :
+                dayTasks.length > 5 ? 'bg-purple-500 text-white' :
+                'bg-blue-500 text-white'
+              }`}>
+                {dayTasks.length}
+              </span>
+            )}
+            
+            {/* Risk Indicators */}
+            {isHighRisk && (
+              <div className="flex items-center gap-1" title={`Yüksek Risk - Aşırı Yük: ${overloadedUsers} kişi`}>
+                <AlertTriangle className="w-3 h-3 text-red-600" />
+              </div>
+            )}
+            {isBottleneck && !isHighRisk && (
+              <div className="flex items-center gap-1" title={`Darboğaz Günü - İş Yükü: ${avgWorkload}%`}>
+                <TrendingDown className="w-3 h-3 text-orange-600" />
+              </div>
+            )}
+            {urgentTasks.length > 0 && (
+              <Zap className="w-3 h-3 text-red-500" />
+            )}
+          </div>
+        </div>
+
+        {/* Enhanced Workload Visualization */}
+        {workload.length > 0 && avgWorkload > 0 && calendarLayout !== 'compact' && (
+          <div className="mb-2 relative z-10">
+            <div className="flex items-center gap-1 mb-1">
+              <Users className="w-3 h-3 text-gray-500" />
+              <span className="text-xs text-gray-600 font-medium">
+                {avgWorkload}% doluluk
+              </span>
+              {overloadedUsers > 0 && (
+                <span className="text-xs bg-red-100 text-red-700 px-1 rounded font-bold">
+                  +{overloadedUsers}
+                </span>
+              )}
+            </div>
+            
+            {/* Multi-level workload bars */}
+            <div className="space-y-1">
+              {/* Average workload bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2 relative overflow-hidden">
+                <div
+                  className="h-2 rounded-full transition-all duration-300 relative"
+                  style={{
+                    width: `${Math.min(avgWorkload, 100)}%`,
+                    background: avgWorkload > 100 ? 
+                      'linear-gradient(90deg, #dc2626 0%, #ef4444 100%)' :
+                      avgWorkload > 85 ? 
+                      'linear-gradient(90deg, #ea580c 0%, #f97316 100%)' :
+                      avgWorkload > 70 ? 
+                      'linear-gradient(90deg, #d97706 0%, #f59e0b 100%)' :
+                      avgWorkload > 50 ? 
+                      'linear-gradient(90deg, #16a34a 0%, #22c55e 100%)' :
+                      'linear-gradient(90deg, #22c55e 0%, #4ade80 100%)'
+                  }}
+                />
+                {avgWorkload > 100 && (
+                  <div className="absolute right-0 top-0 h-2 w-1 bg-red-700 rounded-r-full animate-pulse"></div>
+                )}
+              </div>
+              
+              {/* Individual user indicators for detailed view */}
+              {calendarLayout === 'detailed' && workload.length > 0 && (
+                <div className="flex gap-1">
+                  {workload.slice(0, 4).map((user, idx) => (
+                    <div
+                      key={idx}
+                      className="flex-1 h-1 rounded-full transition-all duration-300"
+                      style={{
+                        backgroundColor: 
+                          user.workloadPercent > 100 ? '#dc2626' :
+                          user.workloadPercent > 85 ? '#ea580c' :
+                          user.workloadPercent > 70 ? '#d97706' :
+                          user.workloadPercent > 50 ? '#16a34a' :
+                          '#22c55e'
+                      }}
+                      title={`${user.userName}: ${user.workloadPercent}%`}
+                    />
+                  ))}
+                  {workload.length > 4 && (
+                    <div className="w-1 h-1 rounded-full bg-gray-400" title={`+${workload.length - 4} kişi daha`} />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Task Preview Cards */}
+        <div className="space-y-1 relative z-10">
+          {calendarLayout === 'detailed' ? (
+            // Detailed task cards
+            dayTasks.slice(0, 3).map(task => (
+              <div
+                key={task.id}
+                className={`task-card text-xs p-2 rounded-md border shadow-sm transition-all duration-200 hover:shadow-md ${
+                  task.status === 'COMPLETED' ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-green-200' :
+                  task.status === 'IN_PROGRESS' ? 'bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border-blue-200' :
+                  task.status === 'REVIEW' ? 'bg-gradient-to-r from-purple-100 to-purple-50 text-purple-800 border-purple-200' :
+                  task.status === 'BLOCKED' ? 'bg-gradient-to-r from-red-100 to-red-50 text-red-800 border-red-200' :
+                  'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-800 border-gray-200'
+                }`}
+                title={task.title}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1">
+                    {getStatusIcon(task.status)}
+                    {getPriorityIcon(task.priority)}
+                  </div>
+                  {task.estimatedHours && (
+                    <span className="text-xs opacity-75">
+                      {task.estimatedHours}h
+                    </span>
+                  )}
+                </div>
+                <div className="font-medium truncate">
+                  {task.title}
+                </div>
+                {task.assignedUsers && task.assignedUsers.length > 0 && (
+                  <div className="mt-1 flex -space-x-1">
+                    {task.assignedUsers.slice(0, 2).map((assignment, idx) => (
+                      <div
+                        key={idx}
+                        className="w-4 h-4 bg-gray-300 rounded-full border border-white text-xs flex items-center justify-center font-bold"
+                        title={assignment.user.name}
+                      >
+                        {assignment.user.name.charAt(0)}
+                      </div>
+                    ))}
+                    {task.assignedUsers.length > 2 && (
+                      <div className="w-4 h-4 bg-gray-400 rounded-full border border-white text-xs flex items-center justify-center font-bold">
+                        +
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            // Compact task indicators
+            dayTasks.slice(0, calendarLayout === 'compact' ? 2 : 4).map(task => (
+              <div
+                key={task.id}
+                className={`text-xs p-1 rounded truncate flex items-center gap-1 ${
+                  task.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                  task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
+                  task.status === 'REVIEW' ? 'bg-purple-100 text-purple-800' :
+                  task.status === 'BLOCKED' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}
+                title={task.title}
+              >
+                {getStatusIcon(task.status)}
+                <span className="truncate flex-1">{task.title}</span>
+                {task.priority === 'URGENT' && <Zap className="w-2 h-2 text-red-500" />}
+              </div>
+            ))
+          )}
+          
+          {dayTasks.length > (calendarLayout === 'compact' ? 2 : calendarLayout === 'standard' ? 4 : 3) && (
+            <div className="text-xs text-gray-600 font-medium bg-gray-100 rounded px-2 py-1 text-center">
+              +{dayTasks.length - (calendarLayout === 'compact' ? 2 : calendarLayout === 'standard' ? 4 : 3)} daha...
+            </div>
+          )}
+        </div>
+
+        {/* Background gradient for better visual separation */}
+        {dayTasks.length > 0 && (
+          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-white/20 pointer-events-none" />
+        )}
+      </div>
+    )
+  }
+
+  const renderCalendarGrid = () => {
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const startDate = new Date(firstDay)
+    startDate.setDate(startDate.getDate() - firstDay.getDay())
+    
+    const days = []
+    const currentDay = new Date(startDate)
+    
+    for (let i = 0; i < 42; i++) {
+      days.push(new Date(currentDay))
+      currentDay.setDate(currentDay.getDate() + 1)
+    }
+
+    return (
+      <div className="grid grid-cols-7 gap-2 bg-gray-50 p-4 rounded-xl">
+        {['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'].map(day => (
+          <div key={day} className="p-3 text-center font-bold text-gray-700 bg-white rounded-lg shadow-sm">
+            {day}
+          </div>
+        ))}
+        {days.map(day => renderCalendarDay(day))}
+      </div>
+    )
+  }
+
+  const renderTimelineView = () => {
+    // Get unique dates with tasks
+    const taskDates = new Map<string, Task[]>()
+    
+    tasks.forEach(task => {
+      if (task.startDate && task.endDate) {
+        const start = new Date(task.startDate)
+        const end = new Date(task.endDate)
+        const current = new Date(start)
+        
+        while (current <= end) {
+          const dateStr = current.toISOString().split('T')[0]
+          if (!taskDates.has(dateStr)) {
+            taskDates.set(dateStr, [])
+          }
+          taskDates.get(dateStr)!.push(task)
+          current.setDate(current.getDate() + 1)
+        }
+      }
+    })
+
+    const sortedDates = Array.from(taskDates.keys()).sort()
+    
+    return (
+      <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="flex items-center gap-4 mb-6 sticky top-0 bg-white z-10 py-2 border-b">
+          <h3 className="text-lg font-semibold text-gray-800">Zaman Çizelgesi Görünümü</h3>
+          <div className="flex gap-2">
+            <div className="flex items-center gap-1 text-xs">
+              <div className="w-3 h-3 bg-red-500 rounded"></div>
+              <span>Acil</span>
+            </div>
+            <div className="flex items-center gap-1 text-xs">
+              <div className="w-3 h-3 bg-orange-500 rounded"></div>
+              <span>Yüksek</span>
+            </div>
+            <div className="flex items-center gap-1 text-xs">
+              <div className="w-3 h-3 bg-blue-500 rounded"></div>
+              <span>Normal</span>
+            </div>
+          </div>
+        </div>
+        
+        {sortedDates.map(dateStr => {
+          const date = new Date(dateStr)
+          const dateTasks = taskDates.get(dateStr) || []
+          const uniqueTasks = Array.from(new Set(dateTasks.map(t => t.id))).map(id => 
+            dateTasks.find(t => t.id === id)!
+          )
+          
+          return (
+            <div key={dateStr} className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-gray-800">
+                    {date.toLocaleDateString('tr-TR', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </h4>
+                  <span className="text-sm text-gray-600">
+                    {uniqueTasks.length} görev
+                  </span>
+                </div>
+              </div>
+              
+              <div className="p-4 space-y-3">
+                {uniqueTasks.map(task => (
+                  <div 
+                    key={task.id}
+                    className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => {
+                      const taskDate = new Date(dateStr)
+                      setSelectedDate(taskDate)
+                      setDayTasks([task])
+                      setShowDayModal(true)
+                    }}
+                  >
+                    <div className="flex-shrink-0">
+                      {getStatusIcon(task.status)}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <h5 className="font-medium text-gray-900 truncate">{task.title}</h5>
+                      {task.description && (
+                        <p className="text-sm text-gray-600 truncate">{task.description}</p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {getPriorityIcon(task.priority)}
+                      
+                      {task.estimatedHours && (
+                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                          {task.estimatedHours}h
+                        </span>
+                      )}
+                      
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        task.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                        task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+                        task.status === 'REVIEW' ? 'bg-purple-100 text-purple-700' :
+                        task.status === 'BLOCKED' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {task.status === 'TODO' ? 'Yapılacak' :
+                         task.status === 'IN_PROGRESS' ? 'Devam Ediyor' :
+                         task.status === 'REVIEW' ? 'İncelemede' :
+                         task.status === 'BLOCKED' ? 'Engellenmiş' : 'Tamamlandı'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+        
+        {sortedDates.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p>Henüz tarihlendirilmiş görev bulunmuyor</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderWorkloadView = () => {
+    return (
+      <div className="space-y-6">
+        <ImprovedWorkloadViewer 
+          users={users}
+          tasks={tasks}
+          currentDate={selectedDate || currentDate}
+          onDateChange={(date) => {
+            setSelectedDate(date)
+            setCurrentDate(date)
+          }}
+        />
+      </div>
+    )
+  }
+
+  // Calculate monthly stats for enhanced analysis
+  const monthlyStats = React.useMemo(() => {
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+    
+    const uniqueTasksInMonth = new Set<string>()
+    let bottleneckDays = 0
+    let highRiskDays = 0
+    let totalWorkload = 0
+    let maxDailyTasks = 0
+    let urgentTaskDays = 0
+    const totalDays = endOfMonth.getDate()
+    
+    for (let date = new Date(startOfMonth); date <= endOfMonth; date.setDate(date.getDate() + 1)) {
+      const tasksForDay = getTasksForDate(new Date(date))
+      
+      tasksForDay.forEach(task => uniqueTasksInMonth.add(task.id))
+      maxDailyTasks = Math.max(maxDailyTasks, tasksForDay.length)
+      
+      const urgentTasks = tasksForDay.filter(t => t.priority === 'URGENT')
+      if (urgentTasks.length > 0) urgentTaskDays++
+      
+      const dayWorkload = workloadData.filter(w => {
+        const workloadDate = new Date(w.date)
+        return workloadDate.toDateString() === date.toDateString()
+      })
+      
+      if (dayWorkload.length > 0) {
+        const avgWorkload = dayWorkload.reduce((sum, w) => sum + w.workloadPercent, 0) / dayWorkload.length
+        const maxUserWorkload = Math.max(...dayWorkload.map(w => w.workloadPercent))
+        const overloadedUsers = dayWorkload.filter(w => w.workloadPercent > 100).length
+        
+        totalWorkload += avgWorkload
+        
+        if (maxUserWorkload > 120 || overloadedUsers > 1) {
+          highRiskDays++
+        } else if (avgWorkload > 80) {
+          bottleneckDays++
+        }
+      }
+    }
+    
+    return {
+      totalTasks: uniqueTasksInMonth.size,
+      bottleneckDays,
+      highRiskDays,
+      urgentTaskDays,
+      avgDailyTasks: uniqueTasksInMonth.size / totalDays,
+      maxDailyTasks,
+      avgWorkload: totalWorkload / totalDays
+    }
+  }, [currentDate, workloadData, tasks, statusFilter, priorityFilter])
+
+  return (
+    <div className="bg-white rounded-xl shadow-xl p-6">
+      {/* Enhanced Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Proje Takvimi
+          </h2>
+          <p className="text-gray-600 mt-1">{project.name}</p>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          {/* Layout Selector */}
+          {viewMode === 'calendar' && (
+            <div className="flex border rounded-lg overflow-hidden bg-gray-50">
+              {[
+                { key: 'compact', label: 'Kompakt', icon: Layers },
+                { key: 'standard', label: 'Standart', icon: Calendar },
+                { key: 'detailed', label: 'Detaylı', icon: Eye }
+              ].map(layout => {
+                const Icon = layout.icon
+                return (
+                  <button
+                    key={layout.key}
+                    onClick={() => setCalendarLayout(layout.key as any)}
+                    className={`px-3 py-2 text-sm font-medium flex items-center gap-2 transition-all duration-200 ${
+                      calendarLayout === layout.key
+                        ? 'bg-blue-500 text-white shadow-md'
+                        : 'bg-white text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {layout.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* View Mode Selector */}
+          <div className="flex border rounded-lg overflow-hidden bg-gray-50">
+            {[
+              { key: 'calendar', label: 'Takvim', icon: Calendar },
+              { key: 'workload', label: 'İş Yükü', icon: BarChart3 },
+              { key: 'timeline', label: 'Zaman Çizelgesi', icon: Clock }
+            ].map(mode => {
+              const Icon = mode.icon
+              return (
+                <button
+                  key={mode.key}
+                  onClick={() => {
+                    setViewMode(mode.key as any)
+                    if (mode.key === 'workload') {
+                      setSelectedDate(currentDate)
+                    }
+                  }}
+                  className={`px-4 py-2 text-sm font-medium flex items-center gap-2 transition-all duration-200 ${
+                    viewMode === mode.key
+                      ? 'bg-blue-500 text-white shadow-md'
+                      : 'bg-white text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {mode.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Auto-reschedule Button */}
+          <button
+            onClick={() => onProjectReschedule('auto')}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Yeniden Planla
+          </button>
+        </div>
+      </div>
+
+      {/* Project Status Bar */}
+      {project.delayDays > 0 && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-yellow-600" />
+            <span className="font-medium text-yellow-800">
+              Proje {project.delayDays} gün gecikmede
+            </span>
+            {project.originalEndDate && project.endDate && (
+              <span className="text-yellow-600">
+                (Orijinal: {new Date(project.originalEndDate).toLocaleDateString('tr-TR')} → 
+                Yeni: {new Date(project.endDate).toLocaleDateString('tr-TR')})
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Filters */}
+      {viewMode === 'calendar' && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Filtreler:</span>
+            </div>
+            
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-1 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">Tüm Durumlar</option>
+              <option value="TODO">Yapılacak</option>
+              <option value="IN_PROGRESS">Devam Ediyor</option>
+              <option value="REVIEW">İncelemede</option>
+              <option value="COMPLETED">Tamamlandı</option>
+              <option value="BLOCKED">Engellenmiş</option>
+            </select>
+
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="px-3 py-1 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">Tüm Öncelikler</option>
+              <option value="URGENT">Acil</option>
+              <option value="HIGH">Yüksek</option>
+              <option value="MEDIUM">Orta</option>
+              <option value="LOW">Düşük</option>
+            </select>
+
+            <button
+              onClick={() => {
+                setStatusFilter('all')
+                setPriorityFilter('all')
+              }}
+              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 underline"
+            >
+              Filtreleri Temizle
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Monthly Analysis */}
+      {viewMode === 'calendar' && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-800">Aylık Performans Analizi</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-blue-100">
+              <div className="text-sm text-gray-600">Toplam Görev</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {monthlyStats.totalTasks}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-red-100">
+              <div className="text-sm text-gray-600">Yüksek Risk</div>
+              <div className="text-2xl font-bold text-red-600">
+                {monthlyStats.highRiskDays}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-orange-100">
+              <div className="text-sm text-gray-600">Darboğaz</div>
+              <div className="text-2xl font-bold text-orange-600">
+                {monthlyStats.bottleneckDays}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-purple-100">
+              <div className="text-sm text-gray-600">Acil Görev</div>
+              <div className="text-2xl font-bold text-purple-600">
+                {monthlyStats.urgentTaskDays}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-green-100">
+              <div className="text-sm text-gray-600">Ortalama/Gün</div>
+              <div className="text-2xl font-bold text-green-600">
+                {monthlyStats.avgDailyTasks.toFixed(1)}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-yellow-100">
+              <div className="text-sm text-gray-600">En Yoğun</div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {monthlyStats.maxDailyTasks}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-indigo-100">
+              <div className="text-sm text-gray-600">Ort. Doluluk</div>
+              <div className="text-2xl font-bold text-indigo-600">
+                {monthlyStats.avgWorkload.toFixed(0)}%
+              </div>
+            </div>
+          </div>
+          
+          {/* Risk Assessment */}
+          <div className="mt-4 space-y-2">
+            {monthlyStats.highRiskDays > 0 && (
+              <div className="p-3 bg-red-100 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <span className="text-sm font-medium text-red-800">
+                    ⚠️ {monthlyStats.highRiskDays} yüksek riskli gün tespit edildi - Acil önlem gerekli
+                  </span>
+                </div>
+              </div>
+            )}
+            {monthlyStats.bottleneckDays > 0 && monthlyStats.highRiskDays === 0 && (
+              <div className="p-3 bg-orange-100 border border-orange-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-medium text-orange-800">
+                    ⚡ {monthlyStats.bottleneckDays} darboğaz günü - İş dağılımı optimizasyonu öneriliyor
+                  </span>
+                </div>
+              </div>
+            )}
+            {monthlyStats.highRiskDays === 0 && monthlyStats.bottleneckDays === 0 && (
+              <div className="p-3 bg-green-100 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">
+                    ✅ Optimum iş yükü dağılımı - Tebrikler!
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Navigation */}
+      {viewMode === 'calendar' && (
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+          >
+            ← Önceki Ay
+          </button>
+          
+          <h3 className="text-xl font-semibold bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
+            {currentDate.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })}
+          </h3>
+          
+          <button
+            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+          >
+            Sonraki Ay →
+          </button>
+        </div>
+      )}
+
+      {/* Content */}
+      {viewMode === 'calendar' && renderCalendarGrid()}
+      {viewMode === 'workload' && renderWorkloadView()}
+      {viewMode === 'timeline' && renderTimelineView()}
+
+      {/* Enhanced Day Details Modal */}
+      {showDayModal && selectedDate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">
+                    {selectedDate.toLocaleDateString('tr-TR', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </h2>
+                  <p className="text-blue-100 text-sm mt-1">
+                    {dayTasks.length} görev • {getWorkloadForDate(selectedDate).length} kişi aktif
+                  </p>
+                </div>
+                <button
+                  onClick={closeDayModal}
+                  className="text-white hover:text-blue-200 transition-colors p-2 hover:bg-white/20 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[75vh]">
+              {/* Enhanced Workload Summary */}
+              {(() => {
+                const selectedDateStr = selectedDate.toISOString().split('T')[0]
+                const activeWorkload = workloadData.filter(w => 
+                  w.date === selectedDateStr && w.workloadPercent > 0
+                )
+                
+                return activeWorkload.length > 0 && (
+                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Users className="w-5 h-5 text-blue-600" />
+                      Günün İş Yükü Dağılımı
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {activeWorkload.map((userWorkload: any, index: number) => (
+                        <div key={index} className="bg-white p-3 rounded-lg shadow-sm border">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-gray-800">
+                              {userWorkload.userName}
+                            </span>
+                            <span className={`text-sm font-bold px-2 py-1 rounded-full ${
+                              userWorkload.workloadPercent > 100 ? 'bg-red-100 text-red-700' :
+                              userWorkload.workloadPercent > 85 ? 'bg-orange-100 text-orange-700' :
+                              userWorkload.workloadPercent > 70 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-green-100 text-green-700'
+                            }`}>
+                              {userWorkload.workloadPercent}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                            <div
+                              className="h-3 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${Math.min(userWorkload.workloadPercent, 100)}%`,
+                                backgroundColor: 
+                                  userWorkload.workloadPercent > 100 ? '#dc2626' :
+                                  userWorkload.workloadPercent > 85 ? '#ea580c' :
+                                  userWorkload.workloadPercent > 70 ? '#d97706' :
+                                  userWorkload.workloadPercent > 50 ? '#16a34a' :
+                                  '#22c55e'
+                              }}
+                            />
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {userWorkload.hoursAllocated.toFixed(1)}h / {userWorkload.hoursAvailable}h
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Enhanced Tasks Section */}
+              <div className="space-y-6">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  Günün Görevleri ({dayTasks.length})
+                </h3>
+                
+                {/* Task Categories */}
+                {[
+                  { title: 'Acil Görevler', tasks: dayTasks.filter(t => t.priority === 'URGENT'), color: 'red' },
+                  { title: 'Yüksek Öncelikli', tasks: dayTasks.filter(t => t.priority === 'HIGH'), color: 'orange' },
+                  { title: 'Devam Eden', tasks: dayTasks.filter(t => t.status === 'IN_PROGRESS'), color: 'blue' },
+                  { title: 'İncelemede', tasks: dayTasks.filter(t => t.status === 'REVIEW'), color: 'purple' },
+                  { title: 'Engellenmiş', tasks: dayTasks.filter(t => t.status === 'BLOCKED'), color: 'red' },
+                  { title: 'Tamamlanmış', tasks: dayTasks.filter(t => t.status === 'COMPLETED'), color: 'green' }
+                ].map(category => 
+                  category.tasks.length > 0 && (
+                    <div key={category.title} className="space-y-3">
+                      <h4 className={`font-medium text-${category.color}-700 bg-${category.color}-50 px-3 py-1 rounded-lg inline-block`}>
+                        {category.title} ({category.tasks.length})
+                      </h4>
+                      {category.tasks.map((task) => (
+                        <div key={task.id} className="border rounded-xl p-4 hover:shadow-lg transition-all bg-white">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-900 text-lg flex items-center gap-2">
+                                {getStatusIcon(task.status)}
+                                {task.title}
+                                {getPriorityIcon(task.priority)}
+                              </h3>
+                              {task.description && (
+                                <p className="text-gray-600 text-sm mt-1">{task.description}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500 font-medium">Durum:</span>
+                              <div className="mt-1">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  task.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                  task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+                                  task.status === 'REVIEW' ? 'bg-purple-100 text-purple-700' :
+                                  task.status === 'BLOCKED' ? 'bg-red-100 text-red-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {task.status === 'TODO' ? 'Yapılacak' :
+                                   task.status === 'IN_PROGRESS' ? 'Devam Ediyor' :
+                                   task.status === 'REVIEW' ? 'İncelemede' :
+                                   task.status === 'BLOCKED' ? 'Engellenmiş' : 'Tamamlandı'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <span className="text-gray-500 font-medium">Öncelik:</span>
+                              <div className="mt-1">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  task.priority === 'URGENT' ? 'bg-red-100 text-red-700' :
+                                  task.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                                  task.priority === 'MEDIUM' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {task.priority === 'HIGH' ? 'Yüksek' :
+                                   task.priority === 'URGENT' ? 'Acil' :
+                                   task.priority === 'MEDIUM' ? 'Orta' : 'Düşük'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {task.estimatedHours && (
+                              <div>
+                                <span className="text-gray-500 font-medium">Tahmini:</span>
+                                <div className="mt-1 flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-gray-400" />
+                                  <span className="font-medium text-gray-900">
+                                    {task.estimatedHours} saat
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {(task as any).assignedUsers && (task as any).assignedUsers.length > 0 ? (
+                              <div>
+                                <span className="text-gray-500 font-medium">Takım:</span>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {(task as any).assignedUsers.map((assignment: any) => (
+                                    <span 
+                                      key={assignment.user.id}
+                                      className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium"
+                                    >
+                                      {assignment.user.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : task.assignedUser && (
+                              <div>
+                                <span className="text-gray-500 font-medium">Atanan:</span>
+                                <div className="mt-1">
+                                  <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-medium">
+                                    {task.assignedUser.name}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default ImprovedEnhancedCalendar

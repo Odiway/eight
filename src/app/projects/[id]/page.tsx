@@ -20,7 +20,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import type { Project, Task, User } from '@prisma/client'
-import EnhancedCalendar from '@/components/EnhancedCalendar'
+import ImprovedEnhancedCalendar from '@/components/ImprovedEnhancedCalendar'
 import TaskCreationModal from '@/components/TaskCreationModal'
 
 interface ExtendedProject extends Project {
@@ -873,7 +873,7 @@ export default function ProjectDetailsPage() {
 
             {/* Calendar Tab */}
             {activeTab === 'calendar' && (
-              <EnhancedCalendar
+              <ImprovedEnhancedCalendar
                 tasks={project.tasks.map(
                   (task) =>
                     ({
