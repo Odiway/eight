@@ -1,19 +1,9 @@
 import { NextResponse } from 'next/server'
 import jsPDF from 'jspdf'
-import { prisma } from '@/lib/prisma'
-import { 
-  setupTurkishPDF, 
-  addTurkishText, 
-  addProfessionalHeader, 
-  addProfessionalFooter, 
-  addSectionHeader, 
-  addSimpleTable, 
-  addStatsBox, 
-  checkPageBreak,
-  formatTurkishText,
-  getStatusText,
-  getPriorityText
-} from '@/lib/pdf-utils'
+import { PrismaClient } from '@prisma/client'
+import { formatTurkishText } from '@/lib/pdf-utils'
+
+const prisma = new PrismaClient()
 
 interface ProjectDetailsData {
   project: {
@@ -167,134 +157,101 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
 }
 
 function generateCleanProjectPDF(data: ProjectDetailsData): jsPDF {
-  const doc = new jsPDF()
-  setupTurkishPDF(doc)
-  
-  let yPosition = 0
+  const pdf = new jsPDF()
+  let yPosition = 20
 
-  // Professional Header
-  yPosition = addProfessionalHeader(doc, 'Proje Detay Raporu', `${formatTurkishText(data.project.name)}`)
+  // Header
+  pdf.setFontSize(20)
+  pdf.text(formatTurkishText('Proje Detay Raporu'), 20, yPosition)
+  yPosition += 15
 
-  // Project Overview Statistics
-  const projectStats = [
-    { 
-      label: 'Toplam Gorevler', 
-      value: data.totalTasks.toString()
-    },
-    { 
-      label: 'Tamamlanan', 
-      value: data.completedTasks.toString()
-    },
-    { 
-      label: 'Devam Eden', 
-      value: data.inProgressTasks.toString()
-    },
-    { 
-      label: 'Tamamlanma %', 
-      value: `${data.completionPercentage}%`
-    }
-  ]
+  pdf.setFontSize(12)
+  pdf.text(formatTurkishText(`Proje: ${data.project.name}`), 20, yPosition)
+  yPosition += 8
+  pdf.text(formatTurkishText(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`), 20, yPosition)
+  yPosition += 20
 
-  yPosition = addStatsBox(doc, projectStats, yPosition)
+  // Project Statistics
+  pdf.setFontSize(14)
+  pdf.text(formatTurkishText('Proje Istatistikleri'), 20, yPosition)
+  yPosition += 15
 
-  // Proje bilgileri bölümü
-  yPosition = addSectionHeader(doc, 'Proje Bilgileri', yPosition)
-  
-  // Proje detayları - basit metin olarak
-  doc.setTextColor(0, 0, 0)
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  
-  addTurkishText(doc, `Proje Adi: ${data.project.name}`, 20, yPosition)
-  yPosition += 12
+  pdf.setFontSize(10)
+  pdf.text(formatTurkishText(`Toplam Gorev: ${data.totalTasks}`), 25, yPosition)
+  yPosition += 8
+  pdf.text(formatTurkishText(`Tamamlanan: ${data.completedTasks}`), 25, yPosition)
+  yPosition += 8
+  pdf.text(formatTurkishText(`Devam Eden: ${data.inProgressTasks}`), 25, yPosition)
+  yPosition += 8
+  pdf.text(formatTurkishText(`Yapilacak: ${data.todoTasks}`), 25, yPosition)
+  yPosition += 8
+  pdf.text(formatTurkishText(`Tamamlanma Orani: %${data.completionPercentage}`), 25, yPosition)
+  yPosition += 20
+
+  // Project Details
+  pdf.setFontSize(14)
+  pdf.text(formatTurkishText('Proje Bilgileri'), 20, yPosition)
+  yPosition += 15
+
+  pdf.setFontSize(10)
+  pdf.text(formatTurkishText(`Durum: ${data.project.status}`), 25, yPosition)
+  yPosition += 8
   
   if (data.project.description) {
     const desc = data.project.description.length > 80 ? 
       data.project.description.substring(0, 80) + '...' : data.project.description
-    addTurkishText(doc, `Aciklama: ${desc}`, 20, yPosition)
-    yPosition += 12
+    pdf.text(formatTurkishText(`Aciklama: ${desc}`), 25, yPosition)
+    yPosition += 8
   }
   
-  addTurkishText(doc, `Durum: ${getStatusText(data.project.status)}`, 20, yPosition)
-  yPosition += 12
-  
   if (data.project.startDate) {
-    addTurkishText(doc, `Baslangic: ${data.project.startDate.toLocaleDateString('tr-TR')}`, 20, yPosition)
-    yPosition += 12
+    pdf.text(formatTurkishText(`Baslangic: ${data.project.startDate.toLocaleDateString('tr-TR')}`), 25, yPosition)
+    yPosition += 8
   }
   
   if (data.project.endDate) {
-    addTurkishText(doc, `Bitis: ${data.project.endDate.toLocaleDateString('tr-TR')}`, 20, yPosition)
-    yPosition += 12
+    pdf.text(formatTurkishText(`Bitis: ${data.project.endDate.toLocaleDateString('tr-TR')}`), 25, yPosition)
+    yPosition += 8
   }
-  
-  yPosition += 10
+  yPosition += 15
 
-  // Sayfa sonu kontrolü
-  yPosition = checkPageBreak(doc, yPosition, 80)
-
-  // Görev dağılımı tablosu
-  yPosition = addSectionHeader(doc, 'Gorev Dagilimi', yPosition)
-
-  const taskHeaders = ['Durum', 'Sayi', 'Yuzde']
-  const taskRows = [
-    [
-      'Yapilacak',
-      data.todoTasks.toString(),
-      `${data.totalTasks > 0 ? Math.round((data.todoTasks / data.totalTasks) * 100) : 0}%`
-    ],
-    [
-      'Devam Ediyor',
-      data.inProgressTasks.toString(),
-      `${data.totalTasks > 0 ? Math.round((data.inProgressTasks / data.totalTasks) * 100) : 0}%`
-    ],
-    [
-      'Tamamlandi',
-      data.completedTasks.toString(),
-      `${data.completionPercentage}%`
-    ],
-    [
-      'Engellenmis',
-      data.blockedTasks.toString(),
-      `${data.totalTasks > 0 ? Math.round((data.blockedTasks / data.totalTasks) * 100) : 0}%`
-    ]
-  ]
-
-  yPosition = addSimpleTable(doc, taskHeaders, taskRows, yPosition, {
-    columnWidths: [60, 30, 30]
-  })
-
-  // Sayfa sonu kontrolü
-  yPosition = checkPageBreak(doc, yPosition, 80)
-
-  // Görev detayları
+  // Task Details
   if (data.tasks.length > 0) {
-    yPosition = addSectionHeader(doc, 'Gorev Detaylari', yPosition)
+    if (yPosition > 250) {
+      pdf.addPage()
+      yPosition = 20
+    }
 
-    const taskDetailHeaders = ['Gorev Adi', 'Durum', 'Oncelik', 'Sorumlu']
-    const taskDetailRows = data.tasks.slice(0, 10).map(task => [
-      task.title.length > 25 ? task.title.substring(0, 25) + '...' : task.title,
-      getStatusText(task.status),
-      getPriorityText(task.priority),
-      task.assignedUser ? task.assignedUser.name : 'Atanmamis'
-    ])
+    pdf.setFontSize(14)
+    pdf.text(formatTurkishText('Gorev Detaylari'), 20, yPosition)
+    yPosition += 15
 
-    yPosition = addSimpleTable(doc, taskDetailHeaders, taskDetailRows, yPosition, {
-      columnWidths: [70, 30, 30, 50]
+    data.tasks.slice(0, 10).forEach((task, index) => {
+      if (yPosition > 270) {
+        pdf.addPage()
+        yPosition = 20
+      }
+
+      pdf.setFontSize(10)
+      const title = task.title.length > 40 ? task.title.substring(0, 40) + '...' : task.title
+      pdf.text(formatTurkishText(`${index + 1}. ${title}`), 25, yPosition)
+      yPosition += 8
+      pdf.text(formatTurkishText(`   Durum: ${task.status} | Oncelik: ${task.priority}`), 25, yPosition)
+      yPosition += 8
+      if (task.assignedUser) {
+        pdf.text(formatTurkishText(`   Sorumlu: ${task.assignedUser.name}`), 25, yPosition)
+        yPosition += 8
+      }
+      yPosition += 5
     })
 
     if (data.tasks.length > 10) {
-      doc.setTextColor(100, 100, 100)
-      doc.setFontSize(8)
-      addTurkishText(doc, `Not: Toplam ${data.tasks.length} gorevden ilk 10'u gosterilmektedir.`, 20, yPosition)
-      yPosition += 15
+      pdf.setFontSize(8)
+      pdf.text(formatTurkishText(`Not: Toplam ${data.tasks.length} gorevden ilk 10'u gosterilmektedir.`), 25, yPosition)
     }
   }
 
-  // Footer ekle - basit footer
-  addProfessionalFooter(doc, 1, 1)
-
-  return doc
+  return pdf
 }
 
 export async function GET(

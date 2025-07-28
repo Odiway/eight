@@ -76,14 +76,18 @@ async function generateRiskAnalysisPDF() {
         completionRate: Math.round(((p.tasks?.filter((t: any) => t.status === 'COMPLETED').length || 0) / (p.tasks?.length || 1)) * 100)
       })),
       riskFactors: [
-        'Tamamlanmamis gorev orani yuksek',
-        'Proje durumu belirsiz',
-        'Ekip uyesi atanmamis gorevler'
+        'Tamamlanmamis gorev orani %50 uzeri',
+        'Geciken proje teslim tarihleri',
+        'Atanmamis kritik gorevler',
+        'Kaynak yetersizligi ve darbogazlar',
+        'Ekip iletisim sorunlari'
       ],
       mitigationStrategies: [
-        'Duzenli ilerleme takibi',
-        'Ekip kaynaklarinin optimize edilmesi',
-        'Proaktif mudahale planlari'
+        'Haftalik ilerleme toplantilari ve takip',
+        'Otomatik gorev yeniden atama sistemi',
+        'Erken uyari ve bildirim mekanizmasi',
+        'Kaynak tahsisi optimizasyonu',
+        'Risk degerlendirme matrisi kullanimi'
       ]
     };
 
@@ -198,6 +202,52 @@ function generatePDF(riskData: any) {
   riskData.mitigationStrategies.forEach((strategy: string, index: number) => {
     pdf.setFontSize(10);
     pdf.text(formatTurkishText(`${index + 1}. ${strategy}`), 25, yPosition);
+    yPosition += 8;
+  });
+
+  yPosition += 15;
+
+  // Risk Assessment Summary
+  if (yPosition > 240) {
+    pdf.addPage();
+    yPosition = 20;
+  }
+
+  pdf.setFontSize(14);
+  pdf.text(formatTurkishText('Risk Degerlendirme Ozeti'), 20, yPosition);
+  yPosition += 15;
+
+  const totalProjects = riskData.highRiskProjects.length + riskData.mediumRiskProjects.length + riskData.lowRiskProjects.length;
+  if (totalProjects > 0) {
+    const highRiskPercentage = Math.round((riskData.highRiskProjects.length / totalProjects) * 100);
+    const mediumRiskPercentage = Math.round((riskData.mediumRiskProjects.length / totalProjects) * 100);
+    const lowRiskPercentage = Math.round((riskData.lowRiskProjects.length / totalProjects) * 100);
+
+    pdf.setFontSize(10);
+    pdf.text(formatTurkishText(`Toplam Proje Sayisi: ${totalProjects}`), 25, yPosition);
+    yPosition += 8;
+    pdf.text(formatTurkishText(`Yuksek Risk Orani: %${highRiskPercentage}`), 25, yPosition);
+    yPosition += 8;
+    pdf.text(formatTurkishText(`Orta Risk Orani: %${mediumRiskPercentage}`), 25, yPosition);
+    yPosition += 8;
+    pdf.text(formatTurkishText(`Dusuk Risk Orani: %${lowRiskPercentage}`), 25, yPosition);
+    yPosition += 15;
+  }
+
+  // Risk Level Recommendations
+  pdf.setFontSize(14);
+  pdf.text(formatTurkishText('Risk Seviyesi Onerileri'), 20, yPosition);
+  yPosition += 15;
+
+  const recommendations = [
+    'Yuksek Risk: Acil mudahale gerekli, gunluk takip',
+    'Orta Risk: Haftalik gozden gecirme, onlem al',
+    'Dusuk Risk: Aylik izleme, proaktif planlama'
+  ];
+
+  recommendations.forEach((rec, index) => {
+    pdf.setFontSize(10);
+    pdf.text(formatTurkishText(`${index + 1}. ${rec}`), 25, yPosition);
     yPosition += 8;
   });
 
