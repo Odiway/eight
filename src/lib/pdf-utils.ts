@@ -1,131 +1,141 @@
 import jsPDF from 'jspdf'
 
-// Turkish character mapping for fallback
+// Enhanced Turkish character mapping with proper Unicode support
 const turkishCharMap: { [key: string]: string } = {
-  'ç': 'c',
-  'Ç': 'C',
-  'ğ': 'g',
-  'Ğ': 'G',
-  'ı': 'i',
-  'İ': 'I',
-  'ö': 'o',
-  'Ö': 'O',
-  'ş': 's',
-  'Ş': 'S',
-  'ü': 'u',
-  'Ü': 'U'
+  'ç': '\u00E7',
+  'Ç': '\u00C7',
+  'ğ': '\u011F',
+  'Ğ': '\u011E',
+  'ı': '\u0131',
+  'İ': '\u0130',
+  'ö': '\u00F6',
+  'Ö': '\u00D6',
+  'ş': '\u015F',
+  'Ş': '\u015E',
+  'ü': '\u00FC',
+  'Ü': '\u00DC'
 }
 
-// Function to handle Turkish characters
+// Function to handle Turkish characters with proper encoding
 export function formatTurkishText(text: string): string {
-  // First try to preserve Turkish characters
-  return text
-}
-
-// Function to setup PDF with proper font and encoding
-export function setupTurkishPDF(doc: jsPDF) {
-  // Set default font that has better Unicode support
-  doc.setFont('helvetica')
+  if (!text) return ''
   
-  // Set proper language for Turkish
-  try {
-    // Modern jsPDF handles UTF-8 well by default
-    doc.setProperties({
-      title: 'Proje Raporu',
-      subject: 'Temsa Proje Yönetim Sistemi',
-      creator: 'Temsa',
-      language: 'tr-TR'
-    })
-  } catch (e) {
-    // Fallback to default
-    console.warn('Could not set Turkish properties:', e)
-  }
+  // Ensure proper UTF-8 encoding for Turkish characters
+  return text.normalize('NFC')
 }
 
-// Professional PDF header
+// Professional PDF setup with Turkish language support
+export function setupTurkishPDF(doc: jsPDF) {
+  // Use standard fonts with UTF-8 support
+  doc.setFont('helvetica', 'normal')
+  
+  // Set document properties for Turkish content
+  doc.setProperties({
+    title: 'Proje Raporu',
+    subject: 'TEMSA Proje Yönetim Sistemi',
+    creator: 'TEMSA',
+    author: 'TEMSA Proje Yönetim Sistemi',
+    keywords: 'proje, rapor, TEMSA',
+    language: 'tr-TR'
+  })
+  
+  // Set initial document settings
+  doc.setFontSize(10)
+  doc.setTextColor(33, 37, 41) // Professional dark gray
+}
+
+// Modern professional PDF header with clean design
 export function addProfessionalHeader(doc: jsPDF, title: string, subtitle?: string) {
   const pageWidth = doc.internal.pageSize.getWidth()
   
-  // Clean header background
-  doc.setFillColor(248, 250, 252)
-  doc.rect(0, 0, pageWidth, 45, 'F')
+  // Clean minimal header background
+  doc.setFillColor(248, 249, 250)
+  doc.rect(0, 0, pageWidth, 50, 'F')
   
-  // Header border
-  doc.setDrawColor(226, 232, 240)
-  doc.setLineWidth(1)
-  doc.line(0, 45, pageWidth, 45)
+  // Subtle bottom border
+  doc.setDrawColor(220, 225, 230)
+  doc.setLineWidth(0.5)
+  doc.line(0, 50, pageWidth, 50)
   
-  // Company name/logo area
-  doc.setTextColor(67, 56, 202)
-  doc.setFontSize(14)
+  // Company branding - minimal and elegant
+  doc.setTextColor(13, 110, 253) // Professional blue
+  doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  addTurkishText(doc, 'TEMSA', 20, 20)
+  addTurkishText(doc, 'TEMSA', 25, 22)
   
-  // Report title
-  doc.setTextColor(31, 41, 55)
-  doc.setFontSize(18)
+  // Report title - centered and prominent
+  doc.setTextColor(33, 37, 41) // Professional dark
+  doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
-  addTurkishText(doc, title, pageWidth / 2, 20, { align: 'center' })
+  addTurkishText(doc, formatTurkishText(title), pageWidth / 2, 25, { align: 'center' })
   
-  // Subtitle if provided
+  // Subtitle - lighter and smaller
   if (subtitle) {
-    doc.setTextColor(107, 114, 128)
+    doc.setTextColor(108, 117, 125) // Muted gray
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    addTurkishText(doc, subtitle, pageWidth / 2, 32, { align: 'center' })
+    addTurkishText(doc, formatTurkishText(subtitle), pageWidth / 2, 37, { align: 'center' })
   }
   
-  // Date
-  doc.setTextColor(107, 114, 128)
+  // Date stamp - right aligned
+  doc.setTextColor(108, 117, 125)
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
   const currentDate = new Date().toLocaleDateString('tr-TR', { 
     year: 'numeric', 
     month: 'long', 
-    day: 'numeric' 
+    day: 'numeric',
+    timeZone: 'Europe/Istanbul'
   })
-  addTurkishText(doc, currentDate, pageWidth - 20, 20, { align: 'right' })
+  addTurkishText(doc, formatTurkishText(currentDate), pageWidth - 25, 22, { align: 'right' })
   
-  return 55 // Return Y position for content start
+  return 65 // Return Y position for content start
 }
 
-// Professional footer
+// Clean professional footer
 export function addProfessionalFooter(doc: jsPDF, pageNumber?: number, totalPages?: number) {
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   
-  // Footer line
-  doc.setDrawColor(226, 232, 240)
-  doc.setLineWidth(0.5)
-  doc.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20)
+  // Subtle footer separator
+  doc.setDrawColor(220, 225, 230)
+  doc.setLineWidth(0.3)
+  doc.line(25, pageHeight - 25, pageWidth - 25, pageHeight - 25)
   
-  // Footer text
-  doc.setTextColor(107, 114, 128)
+  // Footer content
+  doc.setTextColor(108, 117, 125)
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  addTurkishText(doc, 'Temsa Proje Yönetim Sistemi', 20, pageHeight - 10)
+  addTurkishText(doc, 'TEMSA Proje Yönetim Sistemi', 25, pageHeight - 15)
   
-  // Page number
+  // Page number - right aligned
   if (pageNumber) {
     const pageText = totalPages ? `${pageNumber} / ${totalPages}` : pageNumber.toString()
-    addTurkishText(doc, `Sayfa ${pageText}`, pageWidth - 20, pageHeight - 10, { align: 'right' })
+    addTurkishText(doc, `Sayfa ${pageText}`, pageWidth - 25, pageHeight - 15, { align: 'right' })
   }
 }
 
-// Simple section header
+// Clean section headers with consistent styling
 export function addSectionHeader(doc: jsPDF, title: string, y: number): number {
-  doc.setFillColor(248, 250, 252)
-  doc.rect(20, y - 2, doc.internal.pageSize.getWidth() - 40, 20, 'F')
+  // Light background for section
+  doc.setFillColor(248, 249, 250)
+  doc.rect(25, y - 3, doc.internal.pageSize.getWidth() - 50, 22, 'F')
   
-  doc.setTextColor(31, 41, 55)
-  doc.setFontSize(14)
+  // Section title
+  doc.setTextColor(33, 37, 41)
+  doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  addTurkishText(doc, title, 25, y + 10)
+  addTurkishText(doc, formatTurkishText(title), 30, y + 11)
   
-  return y + 25
+  // Accent line under title
+  doc.setDrawColor(13, 110, 253)
+  doc.setLineWidth(2)
+  doc.line(30, y + 16, 80, y + 16)
+  
+  return y + 30
 }
 
-// Simple table with clean design
+// Modern table design with proper Turkish text support
 export function addSimpleTable(
   doc: jsPDF, 
   headers: string[], 
@@ -138,91 +148,112 @@ export function addSimpleTable(
     fontSize?: number
   }
 ): number {
-  const { columnWidths, headerBg = [248, 250, 252], rowHeight = 12, fontSize = 9 } = options || {}
+  const { columnWidths, headerBg = [248, 249, 250], rowHeight = 14, fontSize = 9 } = options || {}
   const pageWidth = doc.internal.pageSize.getWidth()
-  const tableWidth = pageWidth - 40
+  const tableWidth = pageWidth - 50
   const colCount = headers.length
   const defaultColWidth = tableWidth / colCount
   const widths = columnWidths || new Array(colCount).fill(defaultColWidth)
   
   let currentY = startY
   
-  // Table headers
+  // Table headers with clean styling
   doc.setFillColor(headerBg[0], headerBg[1], headerBg[2])
-  doc.rect(20, currentY, tableWidth, rowHeight + 4, 'F')
+  doc.rect(25, currentY, tableWidth, rowHeight + 6, 'F')
   
-  doc.setTextColor(31, 41, 55)
+  // Header border
+  doc.setDrawColor(220, 225, 230)
+  doc.setLineWidth(0.5)
+  doc.rect(25, currentY, tableWidth, rowHeight + 6, 'D')
+  
+  doc.setTextColor(33, 37, 41)
   doc.setFontSize(fontSize)
   doc.setFont('helvetica', 'bold')
   
-  let currentX = 20
+  let currentX = 25
   headers.forEach((header, index) => {
-    addTurkishText(doc, header, currentX + 5, currentY + 8)
+    addTurkishText(doc, formatTurkishText(header), currentX + 8, currentY + 10)
     currentX += widths[index]
   })
   
-  currentY += rowHeight + 4
+  currentY += rowHeight + 6
   
-  // Table rows
+  // Table rows with alternating backgrounds
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(55, 65, 81)
+  doc.setTextColor(33, 37, 41)
   
   rows.forEach((row, rowIndex) => {
-    // Alternate row background
+    // Subtle alternating row background
     if (rowIndex % 2 === 1) {
-      doc.setFillColor(249, 250, 251)
-      doc.rect(20, currentY, tableWidth, rowHeight + 2, 'F')
+      doc.setFillColor(252, 253, 253)
+      doc.rect(25, currentY, tableWidth, rowHeight + 4, 'F')
     }
     
-    currentX = 20
+    currentX = 25
     row.forEach((cell, colIndex) => {
-      addTurkishText(doc, cell, currentX + 5, currentY + 8)
+      const cellText = formatTurkishText(cell || '')
+      addTurkishText(doc, cellText, currentX + 8, currentY + 10, { 
+        maxWidth: widths[colIndex] - 16 
+      })
       currentX += widths[colIndex]
     })
     
-    currentY += rowHeight + 2
+    // Row separator
+    doc.setDrawColor(245, 245, 245)
+    doc.setLineWidth(0.3)
+    doc.line(25, currentY + rowHeight + 4, 25 + tableWidth, currentY + rowHeight + 4)
+    
+    currentY += rowHeight + 4
   })
   
-  // Table border
-  doc.setDrawColor(226, 232, 240)
+  // Final table border
+  doc.setDrawColor(220, 225, 230)
   doc.setLineWidth(0.5)
-  doc.rect(20, startY, tableWidth, currentY - startY, 'D')
+  doc.rect(25, startY, tableWidth, currentY - startY, 'D')
   
-  return currentY + 10
+  return currentY + 15
 }
 
-// Simple statistics box
+// Modern statistics display with card-like design
 export function addStatsBox(
   doc: jsPDF, 
   stats: Array<{ label: string; value: string; color?: [number, number, number] }>, 
   startY: number
 ): number {
   const pageWidth = doc.internal.pageSize.getWidth()
-  const boxWidth = (pageWidth - 60) / stats.length
-  let currentX = 20
+  const boxWidth = (pageWidth - 80) / stats.length
+  let currentX = 25
   
-  stats.forEach((stat) => {
-    // Box background
-    doc.setFillColor(249, 250, 251)
-    doc.setDrawColor(226, 232, 240)
-    doc.rect(currentX, startY, boxWidth, 40, 'FD')
+  stats.forEach((stat, index) => {
+    // Modern card background with subtle shadow effect
+    doc.setFillColor(255, 255, 255)
+    doc.rect(currentX, startY, boxWidth, 45, 'F')
     
-    // Value
-    doc.setTextColor(stat.color?.[0] || 67, stat.color?.[1] || 56, stat.color?.[2] || 202)
-    doc.setFontSize(16)
+    // Card border
+    doc.setDrawColor(220, 225, 230)
+    doc.setLineWidth(0.5)
+    doc.rect(currentX, startY, boxWidth, 45, 'D')
+    
+    // Value with colored accent
+    const color = stat.color || [13, 110, 253]
+    doc.setTextColor(color[0], color[1], color[2])
+    doc.setFontSize(18)
     doc.setFont('helvetica', 'bold')
-    addTurkishText(doc, stat.value, currentX + boxWidth / 2, startY + 18, { align: 'center' })
+    addTurkishText(doc, formatTurkishText(stat.value), currentX + boxWidth / 2, startY + 20, { align: 'center' })
     
-    // Label
-    doc.setTextColor(107, 114, 128)
+    // Label with proper Turkish support
+    doc.setTextColor(108, 117, 125)
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
-    addTurkishText(doc, stat.label, currentX + boxWidth / 2, startY + 30, { align: 'center' })
+    addTurkishText(doc, formatTurkishText(stat.label), currentX + boxWidth / 2, startY + 35, { 
+      align: 'center',
+      maxWidth: boxWidth - 10
+    })
     
-    currentX += boxWidth + 10
+    currentX += boxWidth + 15
   })
   
-  return startY + 50
+  return startY + 60
 }
 
 // Check if new page is needed
@@ -235,7 +266,7 @@ export function checkPageBreak(doc: jsPDF, currentY: number, requiredHeight: num
   return currentY
 }
 
-// Enhanced text function that handles Turkish characters
+// Enhanced Turkish text rendering with proper Unicode support
 export function addTurkishText(
   doc: jsPDF, 
   text: string, 
@@ -250,39 +281,57 @@ export function addTurkishText(
 ) {
   const { align = 'left', maxWidth, fontSize, fontStyle = 'normal' } = options || {}
   
+  if (!text) return
+  
   if (fontSize) {
     doc.setFontSize(fontSize)
   }
   
   doc.setFont('helvetica', fontStyle)
   
-  // For jsPDF 3.x, we can use the text directly with proper encoding
+  // Ensure proper text formatting
+  const formattedText = formatTurkishText(text)
+  
   try {
     if (maxWidth) {
-      // Split text if it exceeds maxWidth
-      const lines = doc.splitTextToSize(text, maxWidth)
+      // Handle text wrapping with proper line height
+      const lines = doc.splitTextToSize(formattedText, maxWidth)
+      const lineHeight = fontSize ? fontSize * 1.2 : 12
+      
       if (Array.isArray(lines)) {
         lines.forEach((line: string, index: number) => {
-          doc.text(line, x, y + (index * (fontSize || 12) * 0.4), { align })
+          doc.text(line, x, y + (index * lineHeight), { align })
         })
       } else {
         doc.text(lines, x, y, { align })
       }
     } else {
-      doc.text(text, x, y, { align })
+      // Direct text rendering
+      doc.text(formattedText, x, y, { align })
     }
   } catch (error) {
-    console.warn('Error rendering Turkish text, using fallback:', error)
-    // Fallback: replace Turkish characters
-    const fallbackText = text.replace(/[çÇğĞıİöÖşŞüÜ]/g, (match) => {
-      return turkishCharMap[match] || match
+    console.warn('Turkish text rendering error, using ASCII fallback:', error)
+    
+    // Enhanced fallback with better character replacement
+    const fallbackText = formattedText.replace(/[çÇğĞıİöÖşŞüÜ]/g, (match) => {
+      const replacements: { [key: string]: string } = {
+        'ç': 'c', 'Ç': 'C',
+        'ğ': 'g', 'Ğ': 'G', 
+        'ı': 'i', 'İ': 'I',
+        'ö': 'o', 'Ö': 'O',
+        'ş': 's', 'Ş': 'S',
+        'ü': 'u', 'Ü': 'U'
+      }
+      return replacements[match] || match
     })
     
     if (maxWidth) {
       const lines = doc.splitTextToSize(fallbackText, maxWidth)
+      const lineHeight = fontSize ? fontSize * 1.2 : 12
+      
       if (Array.isArray(lines)) {
         lines.forEach((line: string, index: number) => {
-          doc.text(line, x, y + (index * (fontSize || 12) * 0.4), { align })
+          doc.text(line, x, y + (index * lineHeight), { align })
         })
       } else {
         doc.text(lines, x, y, { align })
@@ -293,35 +342,37 @@ export function addTurkishText(
   }
 }
 
-// Color constants for consistent theming
+// Professional color palette for modern design
 export const PDF_COLORS = {
-  primary: [67, 56, 202] as const,
-  secondary: [59, 130, 246] as const,
-  success: [34, 197, 94] as const,
-  warning: [245, 158, 11] as const,
-  danger: [239, 68, 68] as const,
-  text: [31, 41, 55] as const,
-  textLight: [107, 114, 128] as const,
-  background: [248, 250, 252] as const,
+  primary: [13, 110, 253] as const,      // Bootstrap blue
+  secondary: [108, 117, 125] as const,   // Muted gray
+  success: [25, 135, 84] as const,       // Success green
+  warning: [255, 193, 7] as const,       // Warning yellow
+  danger: [220, 53, 69] as const,        // Danger red
+  info: [13, 202, 240] as const,         // Info cyan
+  text: [33, 37, 41] as const,           // Dark text
+  textMuted: [108, 117, 125] as const,   // Muted text
+  background: [248, 249, 250] as const,  // Light background
   white: [255, 255, 255] as const,
-  black: [0, 0, 0] as const
+  border: [220, 225, 230] as const       // Border gray
 }
 
-// Status color mapping
+// Enhanced status color mapping with modern colors
 export function getStatusColor(status: string): [number, number, number] {
   const statusColors: { [key: string]: [number, number, number] } = {
-    'PLANNING': [146, 64, 14],
-    'IN_PROGRESS': [30, 64, 175],
-    'COMPLETED': [6, 95, 70],
-    'ON_HOLD': [55, 65, 81],
-    'TODO': [107, 114, 128],
-    'REVIEW': [168, 85, 247],
-    'BLOCKED': [239, 68, 68]
+    'PLANNING': [255, 193, 7],       // Warning yellow
+    'IN_PROGRESS': [13, 110, 253],   // Primary blue
+    'COMPLETED': [25, 135, 84],      // Success green
+    'ON_HOLD': [108, 117, 125],      // Muted gray
+    'TODO': [108, 117, 125],         // Muted gray
+    'REVIEW': [102, 16, 242],        // Purple
+    'BLOCKED': [220, 53, 69],        // Danger red
+    'CANCELLED': [220, 53, 69]       // Danger red
   }
-  return statusColors[status] || PDF_COLORS.textLight
+  return statusColors[status.toUpperCase()] || PDF_COLORS.textMuted
 }
 
-// Status text mapping
+// Comprehensive Turkish status text mapping
 export function getStatusText(status: string): string {
   const statusTexts: { [key: string]: string } = {
     'PLANNING': 'Planlanıyor',
@@ -330,29 +381,121 @@ export function getStatusText(status: string): string {
     'ON_HOLD': 'Beklemede',
     'TODO': 'Yapılacak',
     'REVIEW': 'İncelemede',
-    'BLOCKED': 'Engellenmiş'
+    'BLOCKED': 'Engellenmiş',
+    'CANCELLED': 'İptal Edilmiş',
+    'ACTIVE': 'Aktif',
+    'INACTIVE': 'Pasif'
   }
-  return statusTexts[status] || status
+  return statusTexts[status.toUpperCase()] || formatTurkishText(status)
 }
 
-// Priority color mapping
+// Enhanced priority color mapping
 export function getPriorityColor(priority: string): [number, number, number] {
   const priorityColors: { [key: string]: [number, number, number] } = {
-    'URGENT': [239, 68, 68],
-    'HIGH': [245, 158, 11],
-    'MEDIUM': [59, 130, 246],
-    'LOW': [34, 197, 94]
+    'URGENT': [220, 53, 69],     // Red
+    'HIGH': [255, 193, 7],       // Orange/Yellow
+    'MEDIUM': [13, 110, 253],    // Blue
+    'LOW': [25, 135, 84],        // Green
+    'CRITICAL': [220, 53, 69]    // Red
   }
-  return priorityColors[priority] || PDF_COLORS.textLight
+  return priorityColors[priority.toUpperCase()] || PDF_COLORS.textMuted
 }
 
-// Priority text mapping
+// Comprehensive Turkish priority text mapping
 export function getPriorityText(priority: string): string {
   const priorityTexts: { [key: string]: string } = {
     'URGENT': 'Acil',
     'HIGH': 'Yüksek',
-    'MEDIUM': 'Orta',
-    'LOW': 'Düşük'
+    'MEDIUM': 'Orta', 
+    'LOW': 'Düşük',
+    'CRITICAL': 'Kritik'
   }
-  return priorityTexts[priority] || priority
+  return priorityTexts[priority.toUpperCase()] || formatTurkishText(priority)
+}
+
+// Add a professional information box
+export function addInfoBox(
+  doc: jsPDF,
+  title: string,
+  content: string,
+  x: number,
+  y: number,
+  width: number,
+  color: readonly [number, number, number] = PDF_COLORS.primary
+): number {
+  const boxHeight = 60
+  
+  // Box background
+  doc.setFillColor(255, 255, 255)
+  doc.rect(x, y, width, boxHeight, 'F')
+  
+  // Colored left border
+  doc.setFillColor(color[0], color[1], color[2])
+  doc.rect(x, y, 4, boxHeight, 'F')
+  
+  // Box border
+  doc.setDrawColor(220, 225, 230)
+  doc.setLineWidth(0.5)
+  doc.rect(x, y, width, boxHeight, 'D')
+  
+  // Title
+  doc.setTextColor(33, 37, 41)
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  addTurkishText(doc, formatTurkishText(title), x + 15, y + 18)
+  
+  // Content
+  doc.setTextColor(108, 117, 125)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  addTurkishText(doc, formatTurkishText(content), x + 15, y + 35, {
+    maxWidth: width - 25
+  })
+  
+  return y + boxHeight + 10
+}
+
+// Add a modern progress bar
+export function addProgressBar(
+  doc: jsPDF,
+  label: string,
+  percentage: number,
+  x: number,
+  y: number,
+  width: number
+): number {
+  const barHeight = 8
+  const labelHeight = 15
+  
+  // Label
+  doc.setTextColor(33, 37, 41)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  addTurkishText(doc, formatTurkishText(label), x, y + 10)
+  
+  // Percentage text
+  doc.setTextColor(108, 117, 125)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  addTurkishText(doc, `%${percentage}`, x + width, y + 10, { align: 'right' })
+  
+  // Progress bar background
+  doc.setFillColor(233, 236, 239)
+  doc.rect(x, y + labelHeight, width, barHeight, 'F')
+  
+  // Progress bar fill
+  const fillWidth = (width * percentage) / 100
+  let barColor: readonly [number, number, number] = PDF_COLORS.success
+  if (percentage < 30) barColor = PDF_COLORS.danger
+  else if (percentage < 70) barColor = PDF_COLORS.warning
+  
+  doc.setFillColor(barColor[0], barColor[1], barColor[2])
+  doc.rect(x, y + labelHeight, fillWidth, barHeight, 'F')
+  
+  // Progress bar border
+  doc.setDrawColor(220, 225, 230)
+  doc.setLineWidth(0.5)
+  doc.rect(x, y + labelHeight, width, barHeight, 'D')
+  
+  return y + labelHeight + barHeight + 15
 }

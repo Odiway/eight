@@ -9,7 +9,14 @@ import {
   addSectionHeader, 
   addSimpleTable, 
   addStatsBox, 
-  checkPageBreak 
+  addInfoBox,
+  addProgressBar,
+  checkPageBreak,
+  formatTurkishText,
+  getStatusText,
+  getPriorityText,
+  getStatusColor,
+  PDF_COLORS
 } from '@/lib/pdf-utils'
 
 interface ProjectDetailsData {
@@ -167,186 +174,167 @@ function generateCleanProjectPDF(data: ProjectDetailsData): jsPDF {
   const doc = new jsPDF()
   setupTurkishPDF(doc)
   
-  let yPosition = 30
+  let yPosition = 0
 
   // Professional Header
-  addProfessionalHeader(doc, 'Proje Detay Raporu')
-  yPosition = 50
+  yPosition = addProfessionalHeader(doc, 'Proje Detay Raporu', `${formatTurkishText(data.project.name)}`)
 
-  // Project Basic Information
-  addSectionHeader(doc, 'Proje Bilgileri', yPosition)
-  yPosition += 20
-
-  addTurkishText(doc, `Proje Adı: ${data.project.name}`, 20, yPosition, { fontSize: 14, fontStyle: 'bold' })
-  yPosition += 10
-
-  if (data.project.description) {
-    const description = data.project.description.length > 80 
-      ? data.project.description.substring(0, 80) + '...' 
-      : data.project.description
-    addTurkishText(doc, `Açıklama: ${description}`, 20, yPosition, { fontSize: 10 })
-    yPosition += 10
-  }
-
-  addTurkishText(doc, `Durum: ${data.project.status}`, 20, yPosition, { fontSize: 10 })
-  yPosition += 8
-
-  if (data.project.startDate) {
-    addTurkishText(doc, `Başlangıç: ${data.project.startDate.toLocaleDateString('tr-TR')}`, 20, yPosition, { fontSize: 10 })
-    yPosition += 8
-  }
-
-  if (data.project.endDate) {
-    addTurkishText(doc, `Bitiş: ${data.project.endDate.toLocaleDateString('tr-TR')}`, 20, yPosition, { fontSize: 10 })
-    yPosition += 8
-  }
-
-  yPosition += 10
-
-  // Project Statistics
-  addSectionHeader(doc, 'Proje İstatistikleri', yPosition)
-  yPosition += 20
-
-  // Stats boxes
-  const statsData = [
-    { label: 'Toplam Görev', value: data.totalTasks.toString(), x: 20 },
-    { label: 'Tamamlanan', value: data.completedTasks.toString(), x: 70 },
-    { label: 'Devam Eden', value: data.inProgressTasks.toString(), x: 120 },
-    { label: 'Tamamlanma', value: `%${data.completionPercentage}`, x: 170 }
+  // Project Overview Statistics
+  const projectStats = [
+    { 
+      label: 'Toplam Görevler', 
+      value: data.totalTasks.toString(),
+      color: [13, 110, 253] as [number, number, number]
+    },
+    { 
+      label: 'Tamamlanan', 
+      value: data.completedTasks.toString(),
+      color: [25, 135, 84] as [number, number, number]
+    },
+    { 
+      label: 'Devam Eden', 
+      value: data.inProgressTasks.toString(),
+      color: [255, 193, 7] as [number, number, number]
+    },
+    { 
+      label: 'Tamamlanma Oranı', 
+      value: `%${data.completionPercentage}`,
+      color: data.completionPercentage >= 70 ? [25, 135, 84] as [number, number, number] : 
+             data.completionPercentage >= 30 ? [255, 193, 7] as [number, number, number] : [220, 53, 69] as [number, number, number]
+    }
   ]
 
-  // Stats boxes - using simple text instead of complex addStatsBox
-  statsData.forEach((stat, index) => {
-    const x = stat.x
-    const y = yPosition
-    
-    // Simple box with border
-    doc.setDrawColor(200, 200, 200)
-    doc.rect(x, y, 40, 25)
-    
-    addTurkishText(doc, stat.value, x + 20, y + 10, { fontSize: 14, fontStyle: 'bold', align: 'center' })
-    addTurkishText(doc, stat.label, x + 20, y + 20, { fontSize: 8, align: 'center' })
-  })
+  yPosition = addStatsBox(doc, projectStats, yPosition)
 
-  yPosition += 35
+  // Project Information Section
+  yPosition = addSectionHeader(doc, 'Proje Bilgileri', yPosition)
+  
+  // Project details in info boxes
+  const projectInfo = `Durum: ${getStatusText(data.project.status)}
+Başlangıç: ${data.project.startDate ? data.project.startDate.toLocaleDateString('tr-TR') : 'Belirtilmemiş'}
+Bitiş: ${data.project.endDate ? data.project.endDate.toLocaleDateString('tr-TR') : 'Belirtilmemiş'}`
 
-  yPosition = checkPageBreak(doc, yPosition, 60)
+  yPosition = addInfoBox(
+    doc,
+    formatTurkishText(data.project.name),
+    data.project.description ? formatTurkishText(data.project.description) : 'Açıklama bulunmamaktadır.',
+    25,
+    yPosition,
+    doc.internal.pageSize.getWidth() - 50
+  )
+
+  yPosition = addInfoBox(
+    doc,
+    'Proje Durumu',
+    projectInfo,
+    25,
+    yPosition,
+    doc.internal.pageSize.getWidth() - 50,
+    getStatusColor(data.project.status)
+  )
+
+  // Progress Overview
+  yPosition = addSectionHeader(doc, 'İlerleme Durumu', yPosition)
+  
+  yPosition = addProgressBar(
+    doc,
+    'Genel Tamamlanma',
+    data.completionPercentage,
+    25,
+    yPosition,
+    doc.internal.pageSize.getWidth() - 50
+  )
+
+  if (data.totalEstimatedHours > 0) {
+    const hourProgress = data.totalEstimatedHours > 0 ? 
+      Math.min(100, Math.round((data.totalActualHours / data.totalEstimatedHours) * 100)) : 0
+    
+    yPosition = addProgressBar(
+      doc,
+      `Saat Kullanımı (${data.totalActualHours}/${data.totalEstimatedHours} saat)`,
+      hourProgress,
+      25,
+      yPosition,
+      doc.internal.pageSize.getWidth() - 50
+    )
+  }
+
+  // Check if we need a new page
+  yPosition = checkPageBreak(doc, yPosition, 100)
 
   // Task Summary Table
-  addSectionHeader(doc, 'Görev Özeti', yPosition)
-  yPosition += 20
+  yPosition = addSectionHeader(doc, 'Görev Dağılımı', yPosition)
 
-  const taskSummaryData = [
-    ['Durum', 'Görev Sayısı', 'Yüzde'],
-    ['Yapılacak', data.todoTasks.toString(), `%${data.totalTasks > 0 ? Math.round((data.todoTasks / data.totalTasks) * 100) : 0}`],
-    ['Devam Eden', data.inProgressTasks.toString(), `%${data.totalTasks > 0 ? Math.round((data.inProgressTasks / data.totalTasks) * 100) : 0}`],
-    ['Tamamlanan', data.completedTasks.toString(), `%${data.completionPercentage}`],
-    ['Engellenen', data.blockedTasks.toString(), `%${data.totalTasks > 0 ? Math.round((data.blockedTasks / data.totalTasks) * 100) : 0}`]
+  const taskHeaders = ['Durum', 'Görev Sayısı', 'Yüzde', 'Açıklama']
+  const taskRows = [
+    [
+      'Yapılacak',
+      data.todoTasks.toString(),
+      `%${data.totalTasks > 0 ? Math.round((data.todoTasks / data.totalTasks) * 100) : 0}`,
+      'Henüz başlanmamış görevler'
+    ],
+    [
+      'Devam Ediyor',
+      data.inProgressTasks.toString(),
+      `%${data.totalTasks > 0 ? Math.round((data.inProgressTasks / data.totalTasks) * 100) : 0}`,
+      'Aktif olarak çalışılan görevler'
+    ],
+    [
+      'Tamamlandı',
+      data.completedTasks.toString(),
+      `%${data.completionPercentage}`,
+      'Başarıyla tamamlanan görevler'
+    ],
+    [
+      'Engellenmiş',
+      data.blockedTasks.toString(),
+      `%${data.totalTasks > 0 ? Math.round((data.blockedTasks / data.totalTasks) * 100) : 0}`,
+      'Engellerle karşılaşan görevler'
+    ]
   ]
 
-  // Task Summary Table - using simple manual table instead of addSimpleTable
-  taskSummaryData.forEach((row, rowIndex) => {
-    const y = yPosition + (rowIndex * 8)
-    row.forEach((cell, cellIndex) => {
-      const x = 20 + (cellIndex * 50)
-      const isHeader = rowIndex === 0
-      addTurkishText(doc, cell, x, y, { 
-        fontSize: isHeader ? 10 : 9, 
-        fontStyle: isHeader ? 'bold' : 'normal' 
-      })
-    })
+  yPosition = addSimpleTable(doc, taskHeaders, taskRows, yPosition, {
+    columnWidths: [40, 30, 25, 70],
+    fontSize: 9
   })
-  yPosition += (taskSummaryData.length * 8) + 20
 
-  yPosition = checkPageBreak(doc, yPosition, 60)
+  // Check if we need a new page for task details
+  yPosition = checkPageBreak(doc, yPosition, 100)
 
-  // Work Hours Summary
-  if (data.totalEstimatedHours > 0 || data.totalActualHours > 0) {
-    addSectionHeader(doc, 'Çalışma Saatleri', yPosition)
-    yPosition += 20
+  // Task Details Section
+  if (data.tasks.length > 0) {
+    yPosition = addSectionHeader(doc, 'Görev Detayları', yPosition)
 
-    addTurkishText(doc, `Tahmini Toplam Saat: ${data.totalEstimatedHours}`, 20, yPosition, { fontSize: 12 })
-    yPosition += 10
+    const taskHeaders = ['Görev Adı', 'Durum', 'Öncelik', 'Sorumlu', 'Süre']
+    const taskRows = data.tasks.slice(0, 15).map(task => [
+      task.title.length > 30 ? task.title.substring(0, 30) + '...' : task.title,
+      getStatusText(task.status),
+      getPriorityText(task.priority),
+      task.assignedUser ? task.assignedUser.name : 'Atanmamış',
+      task.estimatedHours ? `${task.estimatedHours}h` : '-'
+    ])
 
-    addTurkishText(doc, `Gerçekleşen Toplam Saat: ${data.totalActualHours}`, 20, yPosition, { fontSize: 12 })
-    yPosition += 10
+    yPosition = addSimpleTable(doc, taskHeaders, taskRows, yPosition, {
+      columnWidths: [60, 30, 25, 40, 20],
+      fontSize: 8
+    })
 
-    if (data.totalEstimatedHours > 0) {
-      const efficiencyPercentage = Math.round((data.totalActualHours / data.totalEstimatedHours) * 100)
-      addTurkishText(doc, `Verimlilik Oranı: %${efficiencyPercentage}`, 20, yPosition, { fontSize: 12, fontStyle: 'bold' })
+    if (data.tasks.length > 15) {
+      doc.setTextColor(108, 117, 125)
+      doc.setFontSize(8)
+      addTurkishText(doc, `Not: Toplam ${data.tasks.length} görevden ilk 15'i gösterilmektedir.`, 25, yPosition)
       yPosition += 15
     }
   }
 
-  yPosition = checkPageBreak(doc, yPosition, 80)
-
-  // Task Details (limited to first 10 tasks for space)
-  if (data.tasks.length > 0) {
-    addSectionHeader(doc, 'Görev Detayları', yPosition)
-    yPosition += 20
-
-    const tasksToShow = data.tasks.slice(0, 10)
-    
-    tasksToShow.forEach((task, index) => {
-      yPosition = checkPageBreak(doc, yPosition, 40)
-
-      addTurkishText(doc, `${index + 1}. ${task.title}`, 20, yPosition, { fontSize: 11, fontStyle: 'bold' })
-      yPosition += 8
-
-      addTurkishText(doc, `Durum: ${getStatusText(task.status)}  |  Öncelik: ${getPriorityText(task.priority)}`, 25, yPosition, { fontSize: 9 })
-      yPosition += 6
-
-      if (task.assignedUser) {
-        addTurkishText(doc, `Sorumlu: ${task.assignedUser.name}`, 25, yPosition, { fontSize: 9 })
-        yPosition += 6
-      }
-
-      if (task.estimatedHours) {
-        addTurkishText(doc, `Tahmini Süre: ${task.estimatedHours} saat`, 25, yPosition, { fontSize: 9 })
-        yPosition += 6
-      }
-
-      if (task.endDate) {
-        addTurkishText(doc, `Bitiş Tarihi: ${task.endDate.toLocaleDateString('tr-TR')}`, 25, yPosition, { fontSize: 9 })
-        yPosition += 6
-      }
-
-      yPosition += 8
-    })
-
-    if (data.tasks.length > 10) {
-      yPosition += 10
-      addTurkishText(doc, `... ve ${data.tasks.length - 10} görev daha`, 20, yPosition, { fontSize: 10, fontStyle: 'italic' })
-    }
+  // Add footer to all pages
+  const totalPages = (doc as any).internal.getNumberOfPages()
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i)
+    addProfessionalFooter(doc, i, totalPages)
   }
-
-  // Professional Footer - using simple footer
-  const pageHeight = doc.internal.pageSize.height
-  addTurkishText(doc, `Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 20, pageHeight - 20, { fontSize: 8 })
-  addTurkishText(doc, 'Sayfa 1', 170, pageHeight - 20, { fontSize: 8 })
 
   return doc
-}
-
-function getStatusText(status: string): string {
-  const statusMap: { [key: string]: string } = {
-    'TODO': 'Yapılacak',
-    'IN_PROGRESS': 'Devam Ediyor',
-    'REVIEW': 'İncelemede',
-    'COMPLETED': 'Tamamlandı',
-    'BLOCKED': 'Engellenmiş'
-  }
-  return statusMap[status] || status
-}
-
-function getPriorityText(priority: string): string {
-  const priorityMap: { [key: string]: string } = {
-    'LOW': 'Düşük',
-    'MEDIUM': 'Orta',
-    'HIGH': 'Yüksek',
-    'URGENT': 'Acil'
-  }
-  return priorityMap[priority] || priority
 }
 
 export async function GET(
