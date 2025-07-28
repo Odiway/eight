@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { Plus, Users, Calendar, CheckSquare, Folder, List, Search, X, User, Building, Trash2 } from 'lucide-react'
 import UserWorkloadDisplay from './UserWorkloadDisplay'
 
@@ -276,6 +276,22 @@ export default function TaskCreationModal({
       }
     ]
   })
+
+  // Refs for auto-scrolling
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const workloadSectionRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to workload section when users are selected
+  useEffect(() => {
+    if (taskData.assignedUserIds.length > 0 && workloadSectionRef.current && scrollContainerRef.current) {
+      setTimeout(() => {
+        workloadSectionRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'nearest' 
+        })
+      }, 300)
+    }
+  }, [taskData.assignedUserIds.length])
 
   if (!isOpen) return null
 
@@ -553,54 +569,54 @@ export default function TaskCreationModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Plus className="w-5 h-5" />
-                Yeni Görev Oluştur
-              </h2>
-              <button
-                onClick={onClose}
-                className="text-white hover:text-gray-200 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Yeni Görev Oluştur
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-white hover:text-gray-200 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
+        </div>
 
-          {/* Creation Type Toggle */}
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <div className="flex space-x-1 bg-white rounded-lg p-1 border border-gray-200">
-              <button
-                onClick={() => setCreationType('individual')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  creationType === 'individual'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <CheckSquare className="w-4 h-4" />
-                Tekil Görev
-              </button>
-              <button
-                onClick={() => setCreationType('group')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  creationType === 'group'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <List className="w-4 h-4" />
-                Görev Grubu
-              </button>
-            </div>
+        {/* Creation Type Toggle */}
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+          <div className="flex space-x-1 bg-white rounded-lg p-1 border border-gray-200">
+            <button
+              onClick={() => setCreationType('individual')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                creationType === 'individual'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <CheckSquare className="w-4 h-4" />
+              Tekil Görev
+            </button>
+            <button
+              onClick={() => setCreationType('group')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                creationType === 'group'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <List className="w-4 h-4" />
+              Görev Grubu
+            </button>
           </div>
+        </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+        {/* Content Area - Make scrollable */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+          <div className="p-6">
             {creationType === 'individual' ? (
               // Individual Task Form
               <div className="space-y-6">
@@ -734,12 +750,52 @@ export default function TaskCreationModal({
                   </div>
                 </div>
 
-                {/* Show workload information for selected users */}
+                {/* Floating indicator for selected users */}
                 {taskData.assignedUserIds.length > 0 && (
-                  <UserWorkloadDisplay 
-                    selectedUserIds={taskData.assignedUserIds} 
-                    users={users}
-                  />
+                  <div className="sticky top-0 z-10 bg-blue-600 text-white px-4 py-2 rounded-lg mb-4 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span className="text-sm font-medium">
+                          {taskData.assignedUserIds.length} kişi seçildi
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          workloadSectionRef.current?.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                          })
+                        }}
+                        className="text-xs bg-blue-500 hover:bg-blue-400 px-2 py-1 rounded transition-colors"
+                      >
+                        İş Yükünü Gör
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show workload information for selected users - Enhanced visibility */}
+                {taskData.assignedUserIds.length > 0 && (
+                  <div 
+                    ref={workloadSectionRef}
+                    className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200 shadow-sm"
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <Users className="w-5 h-5 text-blue-600" />
+                      <h3 className="text-lg font-semibold text-blue-900">
+                        Seçilen Kullanıcıların İş Yükü
+                      </h3>
+                      <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                        {taskData.assignedUserIds.length} kişi seçili
+                      </div>
+                    </div>
+                    <UserWorkloadDisplay 
+                      selectedUserIds={taskData.assignedUserIds} 
+                      users={users}
+                    />
+                  </div>
                 )}
               </div>
             ) : (
@@ -921,24 +977,27 @@ export default function TaskCreationModal({
                 </div>
               </div>
             )}
+            
+            {/* Add extra padding at bottom to ensure content is not hidden by footer */}
+            <div className="h-20"></div>
           </div>
+        </div>
 
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
-            >
-              İptal
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <CheckSquare className="w-4 h-4" />
-              {creationType === 'individual' ? 'Görev Oluştur' : 'Grup Oluştur'}
-            </button>
-          </div>
+        {/* Fixed Footer */}
+        <div className="border-t border-gray-200 bg-white px-6 py-4 flex justify-end space-x-3 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+          >
+            İptal
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <CheckSquare className="w-4 h-4" />
+            {creationType === 'individual' ? 'Görev Oluştur' : 'Grup Oluştur'}
+          </button>
         </div>
       </div>
     </div>

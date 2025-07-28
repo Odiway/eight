@@ -9,7 +9,6 @@ import {
   Users,
   Target,
   TrendingUp,
-  AlertTriangle,
   Award,
   Calendar,
 } from 'lucide-react'
@@ -100,10 +99,6 @@ export default function ReportsPage() {
     window.open('/api/reports/performance/pdf', '_blank')
   }
 
-  const handleDownloadRiskAnalysis = () => {
-    window.open('/api/reports/risk-analysis/pdf', '_blank')
-  }
-
   if (loading) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'>
@@ -168,7 +163,7 @@ export default function ReportsPage() {
                 İş Zekası ve Analitik Raporlar
               </h1>
               <p className='text-gray-600 mt-1'>
-                Proje performansı, risk analizi ve kurumsal raporlama çözümleri
+                Proje performansı ve kurumsal raporlama çözümleri
               </p>
             </div>
             <div className='text-sm text-gray-500 bg-white px-4 py-2 rounded-lg shadow border border-gray-200'>
@@ -263,204 +258,6 @@ export default function ReportsPage() {
                           : 0}
                       </dd>
                     </dl>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Risk Analysis */}
-          <div className='bg-white shadow-xl rounded-2xl border border-gray-100 mb-8'>
-            <div className='px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-600 to-orange-600'>
-              <h3 className='text-lg font-semibold text-white flex items-center'>
-                <AlertTriangle className='w-5 h-5 mr-2' />
-                Risk Analizi
-              </h3>
-            </div>
-            <div className='p-6'>
-              <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-                {/* High Risk Projects */}
-                <div className='border border-red-200 rounded-xl p-5 bg-red-50 relative overflow-hidden'>
-                  <div className='absolute top-0 right-0 w-16 h-16 bg-red-100 rounded-bl-full opacity-50'></div>
-                  <div className='flex items-center justify-between mb-4'>
-                    <h4 className='text-lg font-semibold text-red-800'>
-                      Yüksek Risk
-                    </h4>
-                    <div className='flex items-center bg-red-100 px-2 py-1 rounded-full'>
-                      <AlertTriangle className='w-4 h-4 text-red-600 mr-1' />
-                      <span className='text-xs font-medium text-red-700'>ACIL</span>
-                    </div>
-                  </div>
-                  <div className='text-3xl font-bold text-red-600 mb-2'>
-                    {projects.filter(p => {
-                      const overdueTasks = p.tasks?.filter(t => t.status !== 'COMPLETED').length || 0;
-                      const totalTasks = p.tasks?.length || 0;
-                      return totalTasks > 0 && (overdueTasks / totalTasks) > 0.5;
-                    }).length}
-                  </div>
-                  <p className='text-sm text-red-700'>
-                    %50+ tamamlanmamış görevli projeler
-                  </p>
-                  <div className='mt-3 flex items-center text-xs text-red-600'>
-                    <div className='w-full bg-red-200 rounded-full h-1.5'>
-                      <div 
-                        className='bg-red-500 h-1.5 rounded-full transition-all duration-300'
-                        style={{ width: `${Math.min(100, (projects.filter(p => {
-                          const overdueTasks = p.tasks?.filter(t => t.status !== 'COMPLETED').length || 0;
-                          const totalTasks = p.tasks?.length || 0;
-                          return totalTasks > 0 && (overdueTasks / totalTasks) > 0.5;
-                        }).length / Math.max(1, projects.length)) * 100)}%` }}
-                      ></div>
-                    </div>
-                    <span className='ml-2'>Risk Oranı</span>
-                  </div>
-                </div>
-
-                {/* Medium Risk Projects */}
-                <div className='border border-yellow-200 rounded-xl p-5 bg-yellow-50 relative overflow-hidden'>
-                  <div className='absolute top-0 right-0 w-16 h-16 bg-yellow-100 rounded-bl-full opacity-50'></div>
-                  <div className='flex items-center justify-between mb-4'>
-                    <h4 className='text-lg font-semibold text-yellow-800'>
-                      Orta Risk
-                    </h4>
-                    <div className='flex items-center bg-yellow-100 px-2 py-1 rounded-full'>
-                      <AlertTriangle className='w-4 h-4 text-yellow-600 mr-1' />
-                      <span className='text-xs font-medium text-yellow-700'>DİKKAT</span>
-                    </div>
-                  </div>
-                  <div className='text-3xl font-bold text-yellow-600 mb-2'>
-                    {projects.filter(p => {
-                      const overdueTasks = p.tasks?.filter(t => t.status !== 'COMPLETED').length || 0;
-                      const totalTasks = p.tasks?.length || 0;
-                      return totalTasks > 0 && (overdueTasks / totalTasks) >= 0.25 && (overdueTasks / totalTasks) <= 0.5;
-                    }).length}
-                  </div>
-                  <p className='text-sm text-yellow-700'>
-                    %25-50 arası tamamlanmamış görevli projeler
-                  </p>
-                  <div className='mt-3 flex items-center text-xs text-yellow-600'>
-                    <div className='w-full bg-yellow-200 rounded-full h-1.5'>
-                      <div 
-                        className='bg-yellow-500 h-1.5 rounded-full transition-all duration-300'
-                        style={{ width: `${Math.min(100, (projects.filter(p => {
-                          const overdueTasks = p.tasks?.filter(t => t.status !== 'COMPLETED').length || 0;
-                          const totalTasks = p.tasks?.length || 0;
-                          return totalTasks > 0 && (overdueTasks / totalTasks) >= 0.25 && (overdueTasks / totalTasks) <= 0.5;
-                        }).length / Math.max(1, projects.length)) * 100)}%` }}
-                      ></div>
-                    </div>
-                    <span className='ml-2'>Risk Oranı</span>
-                  </div>
-                </div>
-
-                {/* Low Risk Projects */}
-                <div className='border border-green-200 rounded-xl p-5 bg-green-50 relative overflow-hidden'>
-                  <div className='absolute top-0 right-0 w-16 h-16 bg-green-100 rounded-bl-full opacity-50'></div>
-                  <div className='flex items-center justify-between mb-4'>
-                    <h4 className='text-lg font-semibold text-green-800'>
-                      Düşük Risk
-                    </h4>
-                    <div className='flex items-center bg-green-100 px-2 py-1 rounded-full'>
-                      <Award className='w-4 h-4 text-green-600 mr-1' />
-                      <span className='text-xs font-medium text-green-700'>GÜVENLİ</span>
-                    </div>
-                  </div>
-                  <div className='text-3xl font-bold text-green-600 mb-2'>
-                    {projects.filter(p => {
-                      const completedTasks = p.tasks?.filter(t => t.status === 'COMPLETED').length || 0;
-                      const totalTasks = p.tasks?.length || 0;
-                      return totalTasks > 0 && (completedTasks / totalTasks) >= 0.75;
-                    }).length}
-                  </div>
-                  <p className='text-sm text-green-700'>
-                    %75+ tamamlanmış görevli projeler
-                  </p>
-                  <div className='mt-3 flex items-center text-xs text-green-600'>
-                    <div className='w-full bg-green-200 rounded-full h-1.5'>
-                      <div 
-                        className='bg-green-500 h-1.5 rounded-full transition-all duration-300'
-                        style={{ width: `${Math.min(100, (projects.filter(p => {
-                          const completedTasks = p.tasks?.filter(t => t.status === 'COMPLETED').length || 0;
-                          const totalTasks = p.tasks?.length || 0;
-                          return totalTasks > 0 && (completedTasks / totalTasks) >= 0.75;
-                        }).length / Math.max(1, projects.length)) * 100)}%` }}
-                      ></div>
-                    </div>
-                    <span className='ml-2'>Başarı Oranı</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Risk Details */}
-              <div className='mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6'>
-                <div className='bg-gray-50 rounded-lg p-4'>
-                  <h5 className='font-semibold text-gray-800 mb-3 flex items-center'>
-                    <AlertTriangle className='w-4 h-4 mr-2 text-red-500' />
-                    Risk Faktörleri
-                  </h5>
-                  <ul className='space-y-2 text-sm text-gray-600'>
-                    <li className='flex items-center'>
-                      <span className='w-2 h-2 bg-red-500 rounded-full mr-2'></span>
-                      Tamamlanmamış görev oranı %50+
-                    </li>
-                    <li className='flex items-center'>
-                      <span className='w-2 h-2 bg-yellow-500 rounded-full mr-2'></span>
-                      Geciken proje teslim tarihleri
-                    </li>
-                    <li className='flex items-center'>
-                      <span className='w-2 h-2 bg-orange-500 rounded-full mr-2'></span>
-                      Atanmamış kritik görevler
-                    </li>
-                    <li className='flex items-center'>
-                      <span className='w-2 h-2 bg-red-400 rounded-full mr-2'></span>
-                      Kaynak yetersizliği
-                    </li>
-                  </ul>
-                </div>
-                
-                <div className='bg-gray-50 rounded-lg p-4'>
-                  <h5 className='font-semibold text-gray-800 mb-3 flex items-center'>
-                    <Target className='w-4 h-4 mr-2 text-blue-500' />
-                    Önleme Stratejileri
-                  </h5>
-                  <ul className='space-y-2 text-sm text-gray-600'>
-                    <li className='flex items-center'>
-                      <span className='w-2 h-2 bg-blue-500 rounded-full mr-2'></span>
-                      Haftalık ilerleme toplantıları
-                    </li>
-                    <li className='flex items-center'>
-                      <span className='w-2 h-2 bg-purple-500 rounded-full mr-2'></span>
-                      Otomatik görev yeniden atama
-                    </li>
-                    <li className='flex items-center'>
-                      <span className='w-2 h-2 bg-green-500 rounded-full mr-2'></span>
-                      Erken uyarı sistemi
-                    </li>
-                    <li className='flex items-center'>
-                      <span className='w-2 h-2 bg-indigo-500 rounded-full mr-2'></span>
-                      Kaynak tahsisi optimizasyonu
-                    </li>
-                  </ul>
-                </div>
-
-                <div className='bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200'>
-                  <h5 className='font-semibold text-blue-800 mb-3 flex items-center'>
-                    <TrendingUp className='w-4 h-4 mr-2 text-blue-600' />
-                    Aksiyon Planı
-                  </h5>
-                  <div className='space-y-3'>
-                    <div className='bg-white rounded-md p-3 border border-blue-100'>
-                      <div className='text-xs font-medium text-blue-600 mb-1'>ACIL</div>
-                      <div className='text-sm text-gray-700'>Yüksek riskli projeleri önceliklendir</div>
-                    </div>
-                    <div className='bg-white rounded-md p-3 border border-blue-100'>
-                      <div className='text-xs font-medium text-yellow-600 mb-1'>KISA VADELİ</div>
-                      <div className='text-sm text-gray-700'>Ekip kaynaklarını yeniden dağıt</div>
-                    </div>
-                    <div className='bg-white rounded-md p-3 border border-blue-100'>
-                      <div className='text-xs font-medium text-green-600 mb-1'>UZUN VADELİ</div>
-                      <div className='text-sm text-gray-700'>Risk izleme sistemini güçlendir</div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -590,7 +387,7 @@ export default function ReportsPage() {
               </p>
             </div>
             <div className='p-6'>
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                 <div
                   className='bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-6 border border-blue-200 hover:shadow-lg transition-shadow cursor-pointer'
                   onClick={handleDownloadGeneral}
@@ -636,22 +433,6 @@ export default function ReportsPage() {
                   </h4>
                   <p className='text-sm text-purple-700'>
                     Kullanıcı verimliliği ve proje başarı oranları
-                  </p>
-                </div>
-
-                <div 
-                  className='bg-gradient-to-br from-orange-50 to-red-100 rounded-xl p-6 border border-orange-200 hover:shadow-lg transition-shadow cursor-pointer'
-                  onClick={handleDownloadRiskAnalysis}
-                >
-                  <div className='flex items-center justify-between mb-4'>
-                    <AlertTriangle className='w-8 h-8 text-orange-600' />
-                    <Download className='w-5 h-5 text-orange-500' />
-                  </div>
-                  <h4 className='text-lg font-semibold text-orange-900 mb-2'>
-                    Risk Analizi Raporu
-                  </h4>
-                  <p className='text-sm text-orange-700'>
-                    Proje riskleri, tehdit analizi ve önleme stratejileri
                   </p>
                 </div>
               </div>
