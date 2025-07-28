@@ -28,6 +28,7 @@ import {
 import type { Project, Task, User } from '@prisma/client'
 import ImprovedEnhancedCalendar from '@/components/ImprovedEnhancedCalendar'
 import TaskCreationModal from '@/components/TaskCreationModal'
+import '@/styles/kanban-board.css'
 
 interface ExtendedProject extends Project {
   tasks: ExtendedTask[]
@@ -632,20 +633,81 @@ export default function ProjectDetailsPage() {
     )
   }
 
-  // Task Card Component
+  // Enhanced Task Card Component
   function TaskCard({ task }: { task: ExtendedTask }) {
     const isEditing = editingTask === task.id
+    const isOverdue = task.endDate && new Date(task.endDate) < new Date() && task.status !== 'COMPLETED'
+
+    // Get status-specific styling
+    const getStatusStyling = (status: string) => {
+      switch (status) {
+        case 'COMPLETED':
+          return {
+            bgColor: 'bg-gradient-to-r from-emerald-50 to-emerald-100',
+            borderColor: 'border-emerald-200',
+            textColor: 'text-emerald-800',
+            statusIcon: <CheckCircle className="w-4 h-4 text-emerald-600" />,
+            shadowColor: 'shadow-emerald-100'
+          }
+        case 'IN_PROGRESS':
+          return {
+            bgColor: 'bg-gradient-to-r from-blue-50 to-blue-100',
+            borderColor: 'border-blue-200',
+            textColor: 'text-blue-800',
+            statusIcon: <AlertCircle className="w-4 h-4 text-blue-600" />,
+            shadowColor: 'shadow-blue-100'
+          }
+        case 'REVIEW':
+          return {
+            bgColor: 'bg-gradient-to-r from-purple-50 to-purple-100',
+            borderColor: 'border-purple-200',
+            textColor: 'text-purple-800',
+            statusIcon: <Eye className="w-4 h-4 text-purple-600" />,
+            shadowColor: 'shadow-purple-100'
+          }
+        case 'BLOCKED':
+          return {
+            bgColor: 'bg-gradient-to-r from-red-50 to-red-100',
+            borderColor: 'border-red-200',
+            textColor: 'text-red-800',
+            statusIcon: <X className="w-4 h-4 text-red-600" />,
+            shadowColor: 'shadow-red-100'
+          }
+        default:
+          return {
+            bgColor: 'bg-gradient-to-r from-slate-50 to-slate-100',
+            borderColor: 'border-slate-200',
+            textColor: 'text-slate-800',
+            statusIcon: <Circle className="w-4 h-4 text-slate-600" />,
+            shadowColor: 'shadow-slate-100'
+          }
+      }
+    }
+
+    const statusStyling = getStatusStyling(task.status)
 
     return (
       <div
-        className={`p-4 bg-white border rounded-lg cursor-move transition-all hover:shadow-md ${
-          draggedTask === task.id ? 'opacity-50' : ''
-        }`}
+        className={`
+          kanban-task-card
+          ${statusStyling.bgColor} 
+          ${statusStyling.borderColor} 
+          ${statusStyling.shadowColor}
+          border-l-4 rounded-xl p-5 cursor-move transition-all duration-300 
+          hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1
+          ${draggedTask === task.id ? 'opacity-50 scale-95 dragging' : ''}
+          ${isOverdue ? 'ring-2 ring-red-400 animate-pulse' : ''}
+          ${task.priority === 'URGENT' ? 'priority-urgent' : ''}
+          backdrop-blur-sm relative overflow-hidden group
+        `}
         draggable
         onDragStart={(e) => handleDragStart(e, task.id)}
       >
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.02] bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Cg fill-rule=%22evenodd%22%3E%3Cg fill=%22%23000%22 fill-opacity=%220.4%22 fill-rule=%22nonzero%22%3E%3Cpath d=%22m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
+
         {isEditing ? (
-          <div className="space-y-3">
+          <div className="space-y-4 relative z-10">
             <input
               type="text"
               value={editForm.title}
@@ -659,61 +721,61 @@ export default function ProjectDetailsPage() {
                   setEditForm({})
                 }
               }}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all"
               placeholder="Görev başlığı"
               autoFocus
             />
             <textarea
               value={editForm.description}
               onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all resize-none"
               placeholder="Açıklama"
-              rows={2}
+              rows={3}
             />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <select
                 value={editForm.priority}
                 onChange={(e) => setEditForm({...editForm, priority: e.target.value})}
-                className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all"
               >
-                <option value="LOW">Düşük</option>
-                <option value="MEDIUM">Orta</option>
-                <option value="HIGH">Yüksek</option>
-                <option value="URGENT">Acil</option>
+                <option value="LOW">🟢 Düşük</option>
+                <option value="MEDIUM">🟡 Orta</option>
+                <option value="HIGH">🟠 Yüksek</option>
+                <option value="URGENT">🔴 Acil</option>
               </select>
               <input
                 type="number"
                 value={editForm.estimatedHours}
                 onChange={(e) => setEditForm({...editForm, estimatedHours: parseInt(e.target.value) || 0})}
-                className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Saat"
+                className="p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all"
+                placeholder="⏱️ Saat"
                 min="0"
               />
             </div>
             <select
               value={editForm.assignedToId}
               onChange={(e) => setEditForm({...editForm, assignedToId: e.target.value})}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all"
             >
-              <option value="">Atanmamış</option>
+              <option value="">👤 Atanmamış</option>
               {users.map(user => (
-                <option key={user.id} value={user.id}>{user.name}</option>
+                <option key={user.id} value={user.id}>👨‍💼 {user.name}</option>
               ))}
             </select>
-            <div className="flex space-x-2">
+            <div className="flex gap-3">
               <button
                 onClick={() => handleTaskSave(task.id)}
                 disabled={savingTask === task.id}
-                className="flex-1 bg-green-600 text-white p-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-3 rounded-lg hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium shadow-lg hover:shadow-xl"
               >
                 {savingTask === task.id ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                     Kaydediliyor...
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4 mr-1" />
+                    <Save className="w-5 h-5 mr-2" />
                     Kaydet
                   </>
                 )}
@@ -724,88 +786,112 @@ export default function ProjectDetailsPage() {
                   setEditForm({})
                 }}
                 disabled={savingTask === task.id}
-                className="flex-1 bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                className="flex-1 bg-gradient-to-r from-slate-500 to-slate-600 text-white p-3 rounded-lg hover:from-slate-600 hover:to-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium shadow-lg hover:shadow-xl"
               >
-                <X className="w-4 h-4 mr-1" />
+                <X className="w-5 h-5 mr-2" />
                 İptal
               </button>
             </div>
           </div>
         ) : (
-          <div>
-            <div className="flex items-start justify-between mb-2">
-              <h4 className="font-medium text-gray-900 flex items-center">
-                {task.status === 'COMPLETED' ? <CheckCircle className="w-4 h-4 text-green-600 mr-2" /> :
-                 task.status === 'IN_PROGRESS' ? <AlertCircle className="w-4 h-4 text-blue-600 mr-2" /> :
-                 <Circle className="w-4 h-4 text-gray-400 mr-2" />}
-                <span className="text-sm">{task.title}</span>
-              </h4>
-              <div className="flex space-x-1">
+          <div className="relative z-10">
+            {/* Header with status and actions */}
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="p-2 bg-white/80 rounded-lg shadow-sm">
+                  {statusStyling.statusIcon}
+                </div>
+                <h4 className={`font-bold text-base ${statusStyling.textColor} leading-tight`}>
+                  {task.title}
+                </h4>
+                {isOverdue && (
+                  <div className="flex items-center bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold animate-bounce">
+                    ⚠️ GECİKMİŞ
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => handleTaskEdit(task.id)}
-                  className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                  className="p-2 text-slate-500 hover:text-blue-600 hover:bg-white/80 rounded-lg transition-all duration-200"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleTaskDelete(task.id)}
-                  className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                  className="p-2 text-slate-500 hover:text-red-600 hover:bg-white/80 rounded-lg transition-all duration-200"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
             
+            {/* Description */}
             {task.description && (
-              <p className="text-xs text-gray-600 mb-2">{task.description}</p>
+              <p className="text-sm text-slate-600 mb-4 bg-white/50 p-3 rounded-lg leading-relaxed">
+                {task.description}
+              </p>
             )}
             
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                task.priority === 'URGENT' ? 'bg-red-100 text-red-700' :
-                task.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
-                task.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
-                'bg-green-100 text-green-700'
-              }`}>
-                {task.priority === 'URGENT' ? 'Acil' :
-                 task.priority === 'HIGH' ? 'Yüksek' :
-                 task.priority === 'MEDIUM' ? 'Orta' : 'Düşük'}
-              </span>
-              <div className="flex items-center space-x-2">
+            {/* Priority and metadata */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 shadow-sm ${
+                  task.priority === 'URGENT' ? 'bg-red-100 text-red-700 border-red-200' :
+                  task.priority === 'HIGH' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                  task.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                  'bg-emerald-100 text-emerald-700 border-emerald-200'
+                }`}>
+                  {task.priority === 'URGENT' ? '🔴 Acil' :
+                   task.priority === 'HIGH' ? '🟠 Yüksek' :
+                   task.priority === 'MEDIUM' ? '🟡 Orta' : '🟢 Düşük'}
+                </span>
                 {task.estimatedHours && (
-                  <span className="flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
+                  <div className="flex items-center bg-white/80 px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 shadow-sm border">
+                    <Clock className="w-3 h-3 mr-1.5" />
                     {task.estimatedHours}h
-                  </span>
-                )}
-                {task.assignedUser && (
-                  <span className="text-blue-600 font-medium">{task.assignedUser.name}</span>
+                  </div>
                 )}
               </div>
             </div>
+
+            {/* Assigned user */}
+            {task.assignedUser && (
+              <div className="flex items-center bg-white/80 p-3 rounded-lg mb-4 border shadow-sm">
+                <div className="kanban-user-avatar w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+                  {task.assignedUser.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-medium text-slate-800 text-sm">{task.assignedUser.name}</p>
+                  <p className="text-xs text-slate-500">Sorumlu</p>
+                </div>
+              </div>
+            )}
             
-            {/* Start and End Date Display */}
+            {/* Dates */}
             {(task.startDate || task.endDate) && (
-              <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500">
-                <div className="flex items-center justify-between">
+              <div className="bg-white/80 p-3 rounded-lg border shadow-sm">
+                <div className="flex items-center justify-between text-xs">
                   {task.startDate && (
-                    <div className="flex items-center">
-                      <span className="text-green-600 mr-1">🚀</span>
-                      <span>{new Date(task.startDate).toLocaleDateString('tr-TR', { 
-                        day: '2-digit', 
-                        month: '2-digit' 
-                      })}</span>
+                    <div className="flex items-center text-emerald-600">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
+                      <span className="font-medium">
+                        🚀 {new Date(task.startDate).toLocaleDateString('tr-TR', { 
+                          day: '2-digit', 
+                          month: '2-digit' 
+                        })}
+                      </span>
                     </div>
                   )}
                   {task.endDate && (
-                    <div className="flex items-center">
-                      <span className="text-red-600 mr-1">🏁</span>
-                      <span className={`${
-                        new Date(task.endDate) < new Date() && task.status !== 'COMPLETED' 
-                          ? 'text-red-600 font-semibold' 
-                          : ''
-                      }`}>
-                        {new Date(task.endDate).toLocaleDateString('tr-TR', { 
+                    <div className={`flex items-center ${
+                      isOverdue ? 'text-red-600 font-bold' : 'text-red-500'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${
+                        isOverdue ? 'bg-red-600 animate-pulse' : 'bg-red-500'
+                      }`}></div>
+                      <span className="font-medium">
+                        🏁 {new Date(task.endDate).toLocaleDateString('tr-TR', { 
                           day: '2-digit', 
                           month: '2-digit' 
                         })}
@@ -815,6 +901,18 @@ export default function ProjectDetailsPage() {
                 </div>
               </div>
             )}
+
+            {/* Progress indicator for status */}
+            <div className="mt-4 w-full bg-slate-200 rounded-full h-2 overflow-hidden kanban-progress-bar">
+              <div 
+                className={`h-full transition-all duration-500 ${
+                  task.status === 'COMPLETED' ? 'w-full bg-gradient-to-r from-emerald-500 to-emerald-600' :
+                  task.status === 'REVIEW' ? 'w-4/5 bg-gradient-to-r from-purple-500 to-purple-600' :
+                  task.status === 'IN_PROGRESS' ? 'w-1/2 bg-gradient-to-r from-blue-500 to-blue-600' :
+                  'w-1/4 bg-gradient-to-r from-slate-400 to-slate-500'
+                }`}
+              ></div>
+            </div>
           </div>
         )}
       </div>
@@ -967,100 +1065,136 @@ export default function ProjectDetailsPage() {
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className='space-y-6'>
-                {/* Interactive Kanban Board */}
+                {/* Enhanced Interactive Kanban Board */}
                 <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
                   {/* TODO Column */}
                   <div 
-                    className={`bg-gray-50 rounded-lg p-4 transition-all ${
-                      draggedTask && 'ring-2 ring-blue-300 bg-blue-50'
+                    className={`kanban-column bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 transition-all duration-300 border border-slate-200 shadow-sm ${
+                      draggedTask && 'ring-2 ring-blue-400 bg-gradient-to-br from-blue-50 to-blue-100 scale-105 shadow-lg drag-over'
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'TODO')}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900 flex items-center">
-                        <Circle className="w-5 h-5 mr-2 text-gray-400" />
-                        Yapılacak ({project.tasks.filter(t => t.status === 'TODO').length})
-                      </h3>
+                    <div className="kanban-column-header flex items-center justify-between mb-6">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-white rounded-lg shadow-sm mr-3">
+                          <Circle className="w-5 h-5 text-slate-500" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-800 text-lg">Yapılacak</h3>
+                          <p className="text-slate-500 text-sm">{project.tasks.filter(t => t.status === 'TODO').length} görev</p>
+                        </div>
+                      </div>
+                      <div className="w-3 h-3 bg-slate-400 rounded-full"></div>
                     </div>
-                    <div className="space-y-3 min-h-[400px]">
+                    <div className="space-y-3 min-h-[450px] overflow-y-auto">
                       {project.tasks.filter(t => t.status === 'TODO').map((task) => (
                         <TaskCard key={task.id} task={task} />
                       ))}
                       {project.tasks.filter(t => t.status === 'TODO').length === 0 && (
-                        <p className="text-gray-500 text-center py-8">Henüz yapılacak görev yok</p>
+                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                          <Circle className="w-12 h-12 mb-3 opacity-40" />
+                          <p className="text-center">Henüz yapılacak görev yok</p>
+                        </div>
                       )}
                     </div>
                   </div>
 
                   {/* IN_PROGRESS Column */}
                   <div 
-                    className={`bg-blue-50 rounded-lg p-4 transition-all ${
-                      draggedTask && 'ring-2 ring-blue-300 bg-blue-100'
+                    className={`kanban-column bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 transition-all duration-300 border border-blue-200 shadow-sm ${
+                      draggedTask && 'ring-2 ring-blue-400 bg-gradient-to-br from-blue-100 to-blue-200 scale-105 shadow-lg drag-over'
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'IN_PROGRESS')}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900 flex items-center">
-                        <AlertCircle className="w-5 h-5 mr-2 text-blue-600" />
-                        Devam Eden ({project.tasks.filter(t => t.status === 'IN_PROGRESS').length})
-                      </h3>
+                    <div className="kanban-column-header flex items-center justify-between mb-6">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-white rounded-lg shadow-sm mr-3">
+                          <AlertCircle className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-blue-800 text-lg">Devam Eden</h3>
+                          <p className="text-blue-600 text-sm">{project.tasks.filter(t => t.status === 'IN_PROGRESS').length} görev</p>
+                        </div>
+                      </div>
+                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
                     </div>
-                    <div className="space-y-3 min-h-[400px]">
+                    <div className="space-y-3 min-h-[450px] overflow-y-auto">
                       {project.tasks.filter(t => t.status === 'IN_PROGRESS').map((task) => (
                         <TaskCard key={task.id} task={task} />
                       ))}
                       {project.tasks.filter(t => t.status === 'IN_PROGRESS').length === 0 && (
-                        <p className="text-gray-500 text-center py-8">Devam eden görev yok</p>
+                        <div className="flex flex-col items-center justify-center py-12 text-blue-400">
+                          <AlertCircle className="w-12 h-12 mb-3 opacity-40" />
+                          <p className="text-center">Devam eden görev yok</p>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* BLOCKED Column */}
+                  {/* REVIEW Column - Added between IN_PROGRESS and COMPLETED */}
                   <div 
-                    className={`bg-red-50 rounded-lg p-4 transition-all ${
-                      draggedTask && 'ring-2 ring-blue-300 bg-red-100'
+                    className={`kanban-column bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 transition-all duration-300 border border-purple-200 shadow-sm ${
+                      draggedTask && 'ring-2 ring-blue-400 bg-gradient-to-br from-purple-100 to-purple-200 scale-105 shadow-lg drag-over'
                     }`}
                     onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, 'BLOCKED')}
+                    onDrop={(e) => handleDrop(e, 'REVIEW')}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900 flex items-center">
-                        <X className="w-5 h-5 mr-2 text-red-600" />
-                        Engellenen ({project.tasks.filter(t => t.status === 'BLOCKED').length})
-                      </h3>
+                    <div className="kanban-column-header flex items-center justify-between mb-6">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-white rounded-lg shadow-sm mr-3">
+                          <Eye className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-purple-800 text-lg">İncelemede</h3>
+                          <p className="text-purple-600 text-sm">{project.tasks.filter(t => t.status === 'REVIEW').length} görev</p>
+                        </div>
+                      </div>
+                      <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
                     </div>
-                    <div className="space-y-3 min-h-[400px]">
-                      {project.tasks.filter(t => t.status === 'BLOCKED').map((task) => (
+                    <div className="space-y-3 min-h-[450px] overflow-y-auto">
+                      {project.tasks.filter(t => t.status === 'REVIEW').map((task) => (
                         <TaskCard key={task.id} task={task} />
                       ))}
-                      {project.tasks.filter(t => t.status === 'BLOCKED').length === 0 && (
-                        <p className="text-gray-500 text-center py-8">Engellenen görev yok</p>
+                      {project.tasks.filter(t => t.status === 'REVIEW').length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-12 text-purple-400">
+                          <Eye className="w-12 h-12 mb-3 opacity-40" />
+                          <p className="text-center">İncelenen görev yok</p>
+                        </div>
                       )}
                     </div>
                   </div>
 
                   {/* COMPLETED Column */}
                   <div 
-                    className={`bg-green-50 rounded-lg p-4 transition-all ${
-                      draggedTask && 'ring-2 ring-blue-300 bg-green-100'
+                    className={`kanban-column bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-5 transition-all duration-300 border border-emerald-200 shadow-sm ${
+                      draggedTask && 'ring-2 ring-blue-400 bg-gradient-to-br from-emerald-100 to-emerald-200 scale-105 shadow-lg drag-over'
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'COMPLETED')}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900 flex items-center">
-                        <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
-                        Tamamlanan ({project.tasks.filter(t => t.status === 'COMPLETED').length})
-                      </h3>
+                    <div className="kanban-column-header flex items-center justify-between mb-6">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-white rounded-lg shadow-sm mr-3">
+                          <CheckCircle className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-emerald-800 text-lg">Tamamlanan</h3>
+                          <p className="text-emerald-600 text-sm">{project.tasks.filter(t => t.status === 'COMPLETED').length} görev</p>
+                        </div>
+                      </div>
+                      <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
                     </div>
-                    <div className="space-y-3 min-h-[400px]">
+                    <div className="space-y-3 min-h-[450px] overflow-y-auto">
                       {project.tasks.filter(t => t.status === 'COMPLETED').map((task) => (
                         <TaskCard key={task.id} task={task} />
                       ))}
                       {project.tasks.filter(t => t.status === 'COMPLETED').length === 0 && (
-                        <p className="text-gray-500 text-center py-8">Tamamlanan görev yok</p>
+                        <div className="flex flex-col items-center justify-center py-12 text-emerald-400">
+                          <CheckCircle className="w-12 h-12 mb-3 opacity-40" />
+                          <p className="text-center">Tamamlanan görev yok</p>
+                        </div>
                       )}
                     </div>
                   </div>
