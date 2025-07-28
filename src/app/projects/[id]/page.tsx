@@ -27,7 +27,7 @@ import {
 } from 'lucide-react'
 import type { Project, Task, User } from '@prisma/client'
 import ImprovedEnhancedCalendar from '@/components/ImprovedEnhancedCalendar'
-import TaskCreationModal from '@/components/TaskCreationModal'
+import EnhancedTaskCreationModal from '@/components/EnhancedTaskCreationModal'
 import '@/styles/kanban-board.css'
 
 interface ExtendedProject extends Project {
@@ -1680,8 +1680,8 @@ export default function ProjectDetailsPage() {
         </div>
       )}
 
-      {/* Task Creation Modal */}
-      <TaskCreationModal
+      {/* Enhanced Task Creation Modal */}
+      <EnhancedTaskCreationModal
         isOpen={showTaskModal}
         onClose={() => setShowTaskModal(false)}
         onCreateTask={handleCreateTask}
