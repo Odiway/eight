@@ -269,29 +269,36 @@ function generateCorporateProjectPDF(data: ProjectDetailsData): jsPDF {
     // Card border
     drawBorder(x, y, width, height, [255, 255, 255])
     
-    // Value (large number)
+    // Value (large number) - centered properly
     pdf.setTextColor(255, 255, 255)
     pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(24)
+    pdf.setFontSize(22)
     const valueWidth = pdf.getTextWidth(value)
-    pdf.text(value, x + (width - valueWidth) / 2, y + height / 2)
+    pdf.text(value, x + (width - valueWidth) / 2, y + height / 2 - 2)
     
-    // Label (smaller text)
-    pdf.setFontSize(8)
-    const labelWidth = pdf.getTextWidth(formatTurkishText(label))
-    pdf.text(formatTurkishText(label), x + (width - labelWidth) / 2, y + height - 5)
+    // Label (smaller text) - centered and positioned properly
+    pdf.setFontSize(7)
+    const labelText = formatTurkishText(label)
+    const labelWidth = pdf.getTextWidth(labelText)
+    pdf.text(labelText, x + (width - labelWidth) / 2, y + height - 4)
     
     pdf.setTextColor(darkText[0], darkText[1], darkText[2])
   }
 
   const addInfoRow = (label: string, value: string, y: number, isBold: boolean = false): number => {
     pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(10)
+    pdf.setFontSize(9)
     pdf.text(formatTurkishText(label + ':'), 15, y)
     
     pdf.setFont('helvetica', isBold ? 'bold' : 'normal')
-    pdf.text(formatTurkishText(value), 60, y)
-    return y + 7
+    pdf.setFontSize(9)
+    // Ensure proper text wrapping for long values
+    const maxWidth = 120
+    const wrappedText = pdf.splitTextToSize(formatTurkishText(value), maxWidth)
+    pdf.text(wrappedText, 70, y)
+    
+    // Return proper spacing based on wrapped text
+    return y + (wrappedText.length * 6) + 2
   }
 
   // DOCUMENT HEADER - PROFESSIONAL LETTERHEAD
@@ -349,76 +356,86 @@ function generateCorporateProjectPDF(data: ProjectDetailsData): jsPDF {
   pdf.setTextColor(darkText[0], darkText[1], darkText[2])
   yPosition += 35
 
-  // EXECUTIVE SUMMARY - KEY METRICS
+  // EXECUTIVE SUMMARY - KEY METRICS - FIXED LAYOUT
   yPosition = addSection('YONETICI OZETI', yPosition)
   
-  // Metric Cards Row
-  const cardY = yPosition
-  const cardWidth = 45
-  const cardHeight = 30
-  const cardSpacing = 2.5
+  // Metric Cards Row with proper spacing
+  const cardY = yPosition + 5
+  const cardWidth = 42
+  const cardHeight = 28
+  const cardSpacing = 4
   
-  // Total Tasks
-  addMetricCard(10, cardY, cardWidth, cardHeight, 
+  // Total Tasks Card
+  addMetricCard(15, cardY, cardWidth, cardHeight, 
                data.totalTasks.toString(), 'TOPLAM GOREV', corporateGray)
   
-  // Completed Tasks
-  addMetricCard(10 + cardWidth + cardSpacing, cardY, cardWidth, cardHeight,
+  // Completed Tasks Card
+  addMetricCard(15 + cardWidth + cardSpacing, cardY, cardWidth, cardHeight,
                data.completedTasks.toString(), 'TAMAMLANAN', successGreen)
   
-  // In Progress Tasks  
-  addMetricCard(10 + 2 * (cardWidth + cardSpacing), cardY, cardWidth, cardHeight,
+  // In Progress Tasks Card
+  addMetricCard(15 + 2 * (cardWidth + cardSpacing), cardY, cardWidth, cardHeight,
                data.inProgressTasks.toString(), 'DEVAM EDEN', warningOrange)
   
-  // Pending Tasks
-  addMetricCard(10 + 3 * (cardWidth + cardSpacing), cardY, cardWidth, cardHeight,
+  // Pending Tasks Card
+  addMetricCard(15 + 3 * (cardWidth + cardSpacing), cardY, cardWidth, cardHeight,
                data.todoTasks.toString(), 'BEKLEYEN', dangerRed)
   
-  yPosition += cardHeight + 15
+  yPosition += cardHeight + 20
 
-  // Progress Bar with Professional Styling
+  // Progress Bar with Professional Styling - FIXED LAYOUT
   const progressBarY = yPosition
   const progressBarWidth = 150
   const progressBarHeight = 12
   const progressFill = (data.completionPercentage / 100) * progressBarWidth
   
-  // Progress bar label
+  // Progress bar label with proper spacing
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(11)
-  pdf.text(formatTurkishText('PROJE TAMAMLANMA ORANI'), 15, progressBarY - 3)
+  pdf.text(formatTurkishText('PROJE TAMAMLANMA ORANI'), 15, progressBarY - 5)
   
   // Progress bar background
   pdf.setFillColor(borderGray[0], borderGray[1], borderGray[2])
-  pdf.rect(15, progressBarY, progressBarWidth, progressBarHeight, 'F')
-  drawBorder(15, progressBarY, progressBarWidth, progressBarHeight)
+  pdf.rect(15, progressBarY + 3, progressBarWidth, progressBarHeight, 'F')
+  drawBorder(15, progressBarY + 3, progressBarWidth, progressBarHeight)
   
   // Progress bar fill
   const progressColor = data.completionPercentage >= 80 ? successGreen :
                        data.completionPercentage >= 50 ? warningOrange : dangerRed
   pdf.setFillColor(progressColor[0], progressColor[1], progressColor[2])
-  pdf.rect(15, progressBarY, progressFill, progressBarHeight, 'F')
+  pdf.rect(15, progressBarY + 3, progressFill, progressBarHeight, 'F')
   
-  // Progress percentage
+  // Progress percentage with correct positioning
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(14)
   pdf.setTextColor(progressColor[0], progressColor[1], progressColor[2])
-  pdf.text(`%${data.completionPercentage}`, 175, progressBarY + 8)
+  pdf.text(`%${data.completionPercentage}`, 175, progressBarY + 11)
   pdf.setTextColor(darkText[0], darkText[1], darkText[2])
-  yPosition += 25
+  yPosition += 35
 
-  // PROJECT INFORMATION TABLE
+  // PROJECT INFORMATION TABLE - FIXED LAYOUT
   yPosition = addSection('PROJE BILGILERI', yPosition)
   
-  // Information box
-  pdf.setFillColor(lightGray[0], lightGray[1], lightGray[2])
-  pdf.rect(10, yPosition - 5, 190, 45, 'F')
-  drawBorder(10, yPosition - 5, 190, 45)
+  // Calculate proper box height based on content
+  let estimatedHeight = 55
+  if (data.project.description && data.project.description.length > 60) {
+    estimatedHeight += 10
+  }
   
-  let infoY = yPosition
+  // Information box with dynamic height
+  pdf.setFillColor(lightGray[0], lightGray[1], lightGray[2])
+  pdf.rect(10, yPosition - 5, 190, estimatedHeight, 'F')
+  drawBorder(10, yPosition - 5, 190, estimatedHeight)
+  
+  let infoY = yPosition + 3
   
   if (data.project.description) {
-    infoY = addInfoRow('PROJE ACIKLAMASI', data.project.description, infoY)
-    infoY += 3
+    // Truncate long descriptions to prevent overflow
+    const shortDesc = data.project.description.length > 80 ? 
+                     data.project.description.substring(0, 77) + '...' : 
+                     data.project.description
+    infoY = addInfoRow('PROJE ACIKLAMASI', shortDesc, infoY)
+    infoY += 2
   }
   
   if (data.project.startDate) {
@@ -434,7 +451,7 @@ function generateCorporateProjectPDF(data: ProjectDetailsData): jsPDF {
   infoY = addInfoRow('TOPLAM TAHMINI SURE', `${data.totalEstimatedHours} saat`, infoY)
   infoY = addInfoRow('TOPLAM HARCANAN SURE', `${data.totalActualHours} saat`, infoY)
   
-  // Efficiency calculation
+  // Efficiency calculation with better positioning
   const efficiency = data.totalEstimatedHours > 0 ? 
                     Math.round((data.totalActualHours / data.totalEstimatedHours) * 100) : 0
   const efficiencyText = efficiency <= 100 ? 'HEDEF DAHILINDE' : 'HEDEF ASIMI'
@@ -443,7 +460,7 @@ function generateCorporateProjectPDF(data: ProjectDetailsData): jsPDF {
   infoY = addInfoRow('VERIMLILIK DURUMU', `%${efficiency} - ${efficiencyText}`, infoY, true)
   pdf.setTextColor(darkText[0], darkText[1], darkText[2])
   
-  yPosition = infoY + 10
+  yPosition += estimatedHeight + 15
 
   // TASK BREAKDOWN SECTION
   if (data.tasks.length > 0) {
