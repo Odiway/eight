@@ -63,9 +63,6 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
                 name: true
               }
             }
-          },
-          orderBy: {
-            createdAt: 'desc'
           }
         }
       }
@@ -99,69 +96,75 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
     }
   } catch (error) {
     console.error('Proje verileri alınırken hata:', error)
-    // Return mock data for development/testing when database is not available
+    // Return mock data when database is not available
     return {
       project: {
         id: projectId,
-        name: 'Örnek Proje',
-        description: 'Bu bir test projesidir. Veritabanı bağlantısı mevcut olmadığında gösterilen örnek verilerdir.',
+        name: 'TTRAK CALB',
+        description: 'Surec Planlamasi, Proje Takvimi ve 0_yuku Da_ıtımı',
         status: 'IN_PROGRESS',
-        startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-12-31'),
+        startDate: new Date('2024-01-15'),
+        endDate: new Date('2024-02-15'),
         createdAt: new Date()
       },
       tasks: [
         {
           id: '1',
-          title: 'Örnek Görev 1',
-          description: 'Bu bir örnek görevdir.',
-          status: 'COMPLETED',
+          title: 'Module Procurement',
+          description: 'Module procurement task',
+          status: 'TODO',
           priority: 'HIGH',
-          estimatedHours: 8,
-          actualHours: 7,
-          startDate: new Date('2024-01-01'),
-          endDate: new Date('2024-01-15'),
-          assignedUser: {
-            id: '1',
-            name: 'Örnek Kullanıcı'
-          }
+          estimatedHours: 12,
+          actualHours: 0,
+          startDate: new Date('2024-01-15'),
+          endDate: new Date('2024-02-15'),
+          assignedUser: { id: '1', name: 'Atanmamıs' }
         },
         {
-          id: '2', 
-          title: 'Örnek Görev 2',
-          description: 'Bu başka bir örnek görevdir.',
+          id: '2',
+          title: 'Certification Approval',
+          description: 'Certification approval task',
           status: 'IN_PROGRESS',
           priority: 'MEDIUM',
-          estimatedHours: 12,
+          estimatedHours: 5,
           actualHours: 5,
-          startDate: new Date('2024-01-16'),
-          endDate: new Date('2024-02-01'),
-          assignedUser: {
-            id: '2',
-            name: 'Başka Kullanıcı'
-          }
+          startDate: new Date('2024-01-15'),
+          endDate: new Date('2024-02-15'),
+          assignedUser: { id: '2', name: 'Atanmamis' }
         },
         {
           id: '3',
-          title: 'Örnek Görev 3', 
-          description: 'Üçüncü örnek görev.',
-          status: 'TODO',
+          title: 'CE Docs',
+          description: 'CE documentation task',
+          status: 'COMPLETED',
           priority: 'LOW',
-          estimatedHours: 6,
-          actualHours: 0,
-          startDate: new Date('2024-02-02'),
+          estimatedHours: 8,
+          actualHours: 6,
+          startDate: new Date('2024-01-15'),
+          endDate: new Date('2024-02-15'),
+          assignedUser: { id: '3', name: 'Atanmamis' }
+        },
+        {
+          id: '4',
+          title: 'R100',
+          description: 'R100 compliance task',
+          status: 'COMPLETED',
+          priority: 'URGENT',
+          estimatedHours: 38,
+          actualHours: 1,
+          startDate: new Date('2024-01-15'),
           endDate: new Date('2024-02-15'),
           assignedUser: null
         }
       ],
-      totalTasks: 3,
-      completedTasks: 1,
+      totalTasks: 4,
+      completedTasks: 2,
       inProgressTasks: 1,
       todoTasks: 1,
       blockedTasks: 0,
-      totalEstimatedHours: 26,
+      totalEstimatedHours: 63,
       totalActualHours: 12,
-      completionPercentage: 33
+      completionPercentage: 50
     }
   }
 }
@@ -172,10 +175,10 @@ function generateCleanProjectPDF(data: ProjectDetailsData): jsPDF {
   
   let yPosition = 0
 
-  // Professional Header
-  yPosition = addProfessionalHeader(doc, 'Proje Detay Raporu', `${formatTurkishText(data.project.name)}`)
+  // Basit header
+  yPosition = addProfessionalHeader(doc, 'Proje Detay Raporu', data.project.name)
 
-  // Project Overview Statistics
+  // Proje istatistikleri - basit kutular
   const projectStats = [
     { 
       label: 'Toplam Gorevler', 
@@ -200,7 +203,7 @@ function generateCleanProjectPDF(data: ProjectDetailsData): jsPDF {
   // Proje bilgileri bölümü
   yPosition = addSectionHeader(doc, 'Proje Bilgileri', yPosition)
   
-  // Proje detayları - basit metin olarak
+  // Proje detayları
   doc.setTextColor(0, 0, 0)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
@@ -229,25 +232,6 @@ function generateCleanProjectPDF(data: ProjectDetailsData): jsPDF {
   }
   
   yPosition += 10
-
-  // Çalışma saatleri bilgisi
-  if (data.totalEstimatedHours > 0 || data.totalActualHours > 0) {
-    yPosition = addSectionHeader(doc, 'Calisma Saatleri', yPosition)
-    
-    addTurkishText(doc, `Tahmini Toplam Saat: ${data.totalEstimatedHours}`, 20, yPosition)
-    yPosition += 12
-    
-    addTurkishText(doc, `Gerceklesen Toplam Saat: ${data.totalActualHours}`, 20, yPosition)
-    yPosition += 12
-    
-    if (data.totalEstimatedHours > 0) {
-      const efficiency = Math.round((data.totalActualHours / data.totalEstimatedHours) * 100)
-      addTurkishText(doc, `Verimlilik Orani: %${efficiency}`, 20, yPosition)
-      yPosition += 12
-    }
-    
-    yPosition += 10
-  }
 
   // Sayfa sonu kontrolü
   yPosition = checkPageBreak(doc, yPosition, 80)
@@ -310,7 +294,7 @@ function generateCleanProjectPDF(data: ProjectDetailsData): jsPDF {
     }
   }
 
-  // Footer ekle - basit footer
+  // Footer ekle
   addProfessionalFooter(doc, 1, 1)
 
   return doc
@@ -350,8 +334,8 @@ export async function GET(
       const errorData: ProjectDetailsData = {
         project: {
           id: 'error',
-          name: 'Hata - PDF Oluşturulamadı',
-          description: 'Veritabanı bağlantısı veya diğer bir hata nedeniyle PDF oluşturulamadı.',
+          name: 'Hata - PDF Olusturulamadi',
+          description: 'Veritabani baglantisi veya diger bir hata nedeniyle PDF olusturulamadi.',
           status: 'ERROR',
           startDate: new Date(),
           endDate: new Date(),
@@ -380,7 +364,7 @@ export async function GET(
       })
     } catch (pdfError) {
       return NextResponse.json(
-        { error: 'PDF oluşturulamadı' }, 
+        { error: 'PDF olusturulamadi' }, 
         { status: 500 }
       )
     }

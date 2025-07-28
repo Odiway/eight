@@ -1,141 +1,126 @@
 import jsPDF from 'jspdf'
 
-// Enhanced Turkish character mapping with proper Unicode support
+// Türkçe karakter desteği için gelişmiş mapping
 const turkishCharMap: { [key: string]: string } = {
-  'ç': '\u00E7',
-  'Ç': '\u00C7',
-  'ğ': '\u011F',
-  'Ğ': '\u011E',
-  'ı': '\u0131',
-  'İ': '\u0130',
-  'ö': '\u00F6',
-  'Ö': '\u00D6',
-  'ş': '\u015F',
-  'Ş': '\u015E',
-  'ü': '\u00FC',
-  'Ü': '\u00DC'
+  'ç': 'c', 'Ç': 'C',
+  'ğ': 'g', 'Ğ': 'G',
+  'ı': 'i', 'İ': 'I',
+  'ö': 'o', 'Ö': 'O',
+  'ş': 's', 'Ş': 'S',
+  'ü': 'u', 'Ü': 'U'
 }
 
-// Function to handle Turkish characters with proper encoding
+// Türkçe metinleri ASCII'ye güvenli şekilde dönüştür
 export function formatTurkishText(text: string): string {
   if (!text) return ''
   
-  // Ensure proper UTF-8 encoding for Turkish characters
-  return text.normalize('NFC')
+  // Türkçe karakterleri değiştir
+  return text.replace(/[çÇğĞıİöÖşŞüÜ]/g, (match) => {
+    return turkishCharMap[match] || match
+  })
 }
 
-// Professional PDF setup with Turkish language support
+// PDF'yi Türkçe içerik için ayarla
 export function setupTurkishPDF(doc: jsPDF) {
-  // Use standard fonts with UTF-8 support
   doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(0, 0, 0)
   
-  // Set document properties for Turkish content
+  // PDF özelliklerini ayarla
   doc.setProperties({
     title: 'Proje Raporu',
-    subject: 'TEMSA Proje Yönetim Sistemi',
+    subject: 'TEMSA Proje Yonetim Sistemi',
     creator: 'TEMSA',
-    author: 'TEMSA Proje Yönetim Sistemi',
-    keywords: 'proje, rapor, TEMSA',
-    language: 'tr-TR'
+    author: 'TEMSA',
+    keywords: 'proje, rapor, TEMSA'
   })
-  
-  // Set initial document settings
-  doc.setFontSize(10)
-  doc.setTextColor(33, 37, 41) // Professional dark gray
 }
 
-// Modern professional PDF header with clean design
+// Basit ve temiz header tasarımı
 export function addProfessionalHeader(doc: jsPDF, title: string, subtitle?: string) {
   const pageWidth = doc.internal.pageSize.getWidth()
   
-  // Clean minimal header background
-  doc.setFillColor(248, 249, 250)
-  doc.rect(0, 0, pageWidth, 50, 'F')
+  // Üst kısım arka plan
+  doc.setFillColor(245, 245, 245)
+  doc.rect(0, 0, pageWidth, 40, 'F')
   
-  // Subtle bottom border
-  doc.setDrawColor(220, 225, 230)
+  // Alt çizgi
+  doc.setDrawColor(200, 200, 200)
   doc.setLineWidth(0.5)
-  doc.line(0, 50, pageWidth, 50)
+  doc.line(0, 40, pageWidth, 40)
   
-  // Company branding - minimal and elegant
-  doc.setTextColor(13, 110, 253) // Professional blue
+  // TEMSA logosu/ismi
+  doc.setTextColor(0, 100, 200)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  addTurkishText(doc, 'TEMSA', 25, 22)
+  doc.text('TEMSA', 15, 20)
   
-  // Report title - centered and prominent
-  doc.setTextColor(33, 37, 41) // Professional dark
-  doc.setFontSize(16)
+  // Başlık - ortalanmış
+  doc.setTextColor(0, 0, 0)
+  doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
-  addTurkishText(doc, formatTurkishText(title), pageWidth / 2, 25, { align: 'center' })
+  const titleText = formatTurkishText(title)
+  doc.text(titleText, pageWidth / 2, 20, { align: 'center' })
   
-  // Subtitle - lighter and smaller
+  // Alt başlık varsa
   if (subtitle) {
-    doc.setTextColor(108, 117, 125) // Muted gray
+    doc.setTextColor(100, 100, 100)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    addTurkishText(doc, formatTurkishText(subtitle), pageWidth / 2, 37, { align: 'center' })
+    const subtitleText = formatTurkishText(subtitle)
+    doc.text(subtitleText, pageWidth / 2, 30, { align: 'center' })
   }
   
-  // Date stamp - right aligned
-  doc.setTextColor(108, 117, 125)
+  // Tarih - sağ üst
+  doc.setTextColor(100, 100, 100)
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  const currentDate = new Date().toLocaleDateString('tr-TR', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric',
-    timeZone: 'Europe/Istanbul'
-  })
-  addTurkishText(doc, formatTurkishText(currentDate), pageWidth - 25, 22, { align: 'right' })
+  const currentDate = new Date().toLocaleDateString('tr-TR')
+  doc.text(currentDate, pageWidth - 15, 20, { align: 'right' })
   
-  return 65 // Return Y position for content start
+  return 50 // Content başlangıç pozisyonu
 }
 
-// Clean professional footer
+// Basit footer
 export function addProfessionalFooter(doc: jsPDF, pageNumber?: number, totalPages?: number) {
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   
-  // Subtle footer separator
-  doc.setDrawColor(220, 225, 230)
+  // Alt çizgi
+  doc.setDrawColor(200, 200, 200)
   doc.setLineWidth(0.3)
-  doc.line(25, pageHeight - 25, pageWidth - 25, pageHeight - 25)
+  doc.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20)
   
-  // Footer content
-  doc.setTextColor(108, 117, 125)
+  // Footer yazısı
+  doc.setTextColor(100, 100, 100)
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  addTurkishText(doc, 'TEMSA Proje Yönetim Sistemi', 25, pageHeight - 15)
+  doc.text('TEMSA Proje Yonetim Sistemi', 15, pageHeight - 10)
   
-  // Page number - right aligned
+  // Sayfa numarası
   if (pageNumber) {
     const pageText = totalPages ? `${pageNumber} / ${totalPages}` : pageNumber.toString()
-    addTurkishText(doc, `Sayfa ${pageText}`, pageWidth - 25, pageHeight - 15, { align: 'right' })
+    doc.text(`Sayfa ${pageText}`, pageWidth - 15, pageHeight - 10, { align: 'right' })
   }
 }
 
-// Clean section headers with consistent styling
+// Basit bölüm başlığı
 export function addSectionHeader(doc: jsPDF, title: string, y: number): number {
-  // Light background for section
-  doc.setFillColor(248, 249, 250)
-  doc.rect(25, y - 3, doc.internal.pageSize.getWidth() - 50, 22, 'F')
+  // Arka plan
+  doc.setFillColor(240, 240, 240)
+  doc.rect(15, y - 2, doc.internal.pageSize.getWidth() - 30, 18, 'F')
   
-  // Section title
-  doc.setTextColor(33, 37, 41)
+  // Başlık
+  doc.setTextColor(0, 0, 0)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  addTurkishText(doc, formatTurkishText(title), 30, y + 11)
+  const titleText = formatTurkishText(title)
+  doc.text(titleText, 20, y + 10)
   
-  // Accent line under title
-  doc.setDrawColor(13, 110, 253)
-  doc.setLineWidth(2)
-  doc.line(30, y + 16, 80, y + 16)
-  
-  return y + 30
+  return y + 25
 }
 
-// Modern table design with proper Turkish text support
+// Basit tablo tasarımı
 export function addSimpleTable(
   doc: jsPDF, 
   headers: string[], 
@@ -143,130 +128,117 @@ export function addSimpleTable(
   startY: number,
   options?: {
     columnWidths?: number[]
-    headerBg?: [number, number, number]
-    rowHeight?: number
     fontSize?: number
   }
 ): number {
-  const { columnWidths, headerBg = [248, 249, 250], rowHeight = 14, fontSize = 9 } = options || {}
+  const { columnWidths, fontSize = 9 } = options || {}
   const pageWidth = doc.internal.pageSize.getWidth()
-  const tableWidth = pageWidth - 50
+  const tableWidth = pageWidth - 30
   const colCount = headers.length
   const defaultColWidth = tableWidth / colCount
   const widths = columnWidths || new Array(colCount).fill(defaultColWidth)
+  const rowHeight = 12
   
   let currentY = startY
   
-  // Table headers with clean styling
-  doc.setFillColor(headerBg[0], headerBg[1], headerBg[2])
-  doc.rect(25, currentY, tableWidth, rowHeight + 6, 'F')
+  // Tablo başlıkları
+  doc.setFillColor(230, 230, 230)
+  doc.rect(15, currentY, tableWidth, rowHeight + 4, 'F')
   
-  // Header border
-  doc.setDrawColor(220, 225, 230)
-  doc.setLineWidth(0.5)
-  doc.rect(25, currentY, tableWidth, rowHeight + 6, 'D')
-  
-  doc.setTextColor(33, 37, 41)
+  doc.setTextColor(0, 0, 0)
   doc.setFontSize(fontSize)
   doc.setFont('helvetica', 'bold')
   
-  let currentX = 25
+  let currentX = 15
   headers.forEach((header, index) => {
-    addTurkishText(doc, formatTurkishText(header), currentX + 8, currentY + 10)
+    const headerText = formatTurkishText(header)
+    doc.text(headerText, currentX + 5, currentY + 8)
     currentX += widths[index]
   })
   
-  currentY += rowHeight + 6
+  currentY += rowHeight + 4
   
-  // Table rows with alternating backgrounds
+  // Tablo satırları
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(33, 37, 41)
+  doc.setTextColor(0, 0, 0)
   
   rows.forEach((row, rowIndex) => {
-    // Subtle alternating row background
+    // Zebra şerit
     if (rowIndex % 2 === 1) {
-      doc.setFillColor(252, 253, 253)
-      doc.rect(25, currentY, tableWidth, rowHeight + 4, 'F')
+      doc.setFillColor(250, 250, 250)
+      doc.rect(15, currentY, tableWidth, rowHeight, 'F')
     }
     
-    currentX = 25
+    currentX = 15
     row.forEach((cell, colIndex) => {
       const cellText = formatTurkishText(cell || '')
-      addTurkishText(doc, cellText, currentX + 8, currentY + 10, { 
-        maxWidth: widths[colIndex] - 16 
-      })
+      // Uzun metinleri kırp
+      const maxChars = Math.floor(widths[colIndex] / 4)
+      const displayText = cellText.length > maxChars ? 
+        cellText.substring(0, maxChars - 3) + '...' : cellText
+      
+      doc.text(displayText, currentX + 5, currentY + 8)
       currentX += widths[colIndex]
     })
     
-    // Row separator
-    doc.setDrawColor(245, 245, 245)
-    doc.setLineWidth(0.3)
-    doc.line(25, currentY + rowHeight + 4, 25 + tableWidth, currentY + rowHeight + 4)
-    
-    currentY += rowHeight + 4
+    currentY += rowHeight
   })
   
-  // Final table border
-  doc.setDrawColor(220, 225, 230)
+  // Tablo çerçevesi
+  doc.setDrawColor(200, 200, 200)
   doc.setLineWidth(0.5)
-  doc.rect(25, startY, tableWidth, currentY - startY, 'D')
+  doc.rect(15, startY, tableWidth, currentY - startY, 'D')
   
-  return currentY + 15
+  return currentY + 10
 }
 
-// Modern statistics display with card-like design
+// Basit istatistik kutuları
 export function addStatsBox(
   doc: jsPDF, 
-  stats: Array<{ label: string; value: string; color?: [number, number, number] }>, 
+  stats: Array<{ label: string; value: string; color?: readonly [number, number, number] }>, 
   startY: number
 ): number {
   const pageWidth = doc.internal.pageSize.getWidth()
-  const boxWidth = (pageWidth - 80) / stats.length
-  let currentX = 25
+  const boxWidth = (pageWidth - 60) / stats.length
+  let currentX = 15
   
-  stats.forEach((stat, index) => {
-    // Modern card background with subtle shadow effect
-    doc.setFillColor(255, 255, 255)
-    doc.rect(currentX, startY, boxWidth, 45, 'F')
+  stats.forEach((stat) => {
+    // Kutu arka planı
+    doc.setFillColor(250, 250, 250)
+    doc.setDrawColor(200, 200, 200)
+    doc.rect(currentX, startY, boxWidth, 35, 'FD')
     
-    // Card border
-    doc.setDrawColor(220, 225, 230)
-    doc.setLineWidth(0.5)
-    doc.rect(currentX, startY, boxWidth, 45, 'D')
-    
-    // Value with colored accent
-    const color = stat.color || [13, 110, 253]
-    doc.setTextColor(color[0], color[1], color[2])
-    doc.setFontSize(18)
+    // Değer
+    doc.setTextColor(0, 100, 200)
+    doc.setFontSize(16)
     doc.setFont('helvetica', 'bold')
-    addTurkishText(doc, formatTurkishText(stat.value), currentX + boxWidth / 2, startY + 20, { align: 'center' })
+    const valueText = formatTurkishText(stat.value)
+    doc.text(valueText, currentX + boxWidth / 2, startY + 15, { align: 'center' })
     
-    // Label with proper Turkish support
-    doc.setTextColor(108, 117, 125)
+    // Etiket
+    doc.setTextColor(100, 100, 100)
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
-    addTurkishText(doc, formatTurkishText(stat.label), currentX + boxWidth / 2, startY + 35, { 
-      align: 'center',
-      maxWidth: boxWidth - 10
-    })
+    const labelText = formatTurkishText(stat.label)
+    doc.text(labelText, currentX + boxWidth / 2, startY + 28, { align: 'center' })
     
-    currentX += boxWidth + 15
+    currentX += boxWidth + 10
   })
   
-  return startY + 60
+  return startY + 45
 }
 
-// Check if new page is needed
+// Sayfa sonu kontrolü
 export function checkPageBreak(doc: jsPDF, currentY: number, requiredHeight: number): number {
   const pageHeight = doc.internal.pageSize.getHeight()
   if (currentY + requiredHeight > pageHeight - 30) {
     doc.addPage()
-    return 20 // Return to top of new page
+    return 50 // Yeni sayfanın başı
   }
   return currentY
 }
 
-// Enhanced Turkish text rendering with proper Unicode support
+// Basit metin ekleme fonksiyonu
 export function addTurkishText(
   doc: jsPDF, 
   text: string, 
@@ -289,56 +261,26 @@ export function addTurkishText(
   
   doc.setFont('helvetica', fontStyle)
   
-  // Ensure proper text formatting
+  // Türkçe karakterleri değiştir
   const formattedText = formatTurkishText(text)
   
   try {
     if (maxWidth) {
-      // Handle text wrapping with proper line height
       const lines = doc.splitTextToSize(formattedText, maxWidth)
-      const lineHeight = fontSize ? fontSize * 1.2 : 12
-      
       if (Array.isArray(lines)) {
         lines.forEach((line: string, index: number) => {
-          doc.text(line, x, y + (index * lineHeight), { align })
+          doc.text(line, x, y + (index * 12), { align })
         })
       } else {
         doc.text(lines, x, y, { align })
       }
     } else {
-      // Direct text rendering
       doc.text(formattedText, x, y, { align })
     }
   } catch (error) {
-    console.warn('Turkish text rendering error, using ASCII fallback:', error)
-    
-    // Enhanced fallback with better character replacement
-    const fallbackText = formattedText.replace(/[çÇğĞıİöÖşŞüÜ]/g, (match) => {
-      const replacements: { [key: string]: string } = {
-        'ç': 'c', 'Ç': 'C',
-        'ğ': 'g', 'Ğ': 'G', 
-        'ı': 'i', 'İ': 'I',
-        'ö': 'o', 'Ö': 'O',
-        'ş': 's', 'Ş': 'S',
-        'ü': 'u', 'Ü': 'U'
-      }
-      return replacements[match] || match
-    })
-    
-    if (maxWidth) {
-      const lines = doc.splitTextToSize(fallbackText, maxWidth)
-      const lineHeight = fontSize ? fontSize * 1.2 : 12
-      
-      if (Array.isArray(lines)) {
-        lines.forEach((line: string, index: number) => {
-          doc.text(line, x, y + (index * lineHeight), { align })
-        })
-      } else {
-        doc.text(lines, x, y, { align })
-      }
-    } else {
-      doc.text(fallbackText, x, y, { align })
-    }
+    console.warn('Text rendering error:', error)
+    // Basit fallback
+    doc.text(formattedText, x, y, { align })
   }
 }
 
