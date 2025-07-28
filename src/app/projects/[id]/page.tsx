@@ -24,6 +24,10 @@ import {
   Calendar as CalendarIcon,
   Target,
   Timer,
+  MessageSquare,
+  FileText,
+  History,
+  PenTool,
 } from 'lucide-react'
 import type { Project, Task, User } from '@prisma/client'
 import ImprovedEnhancedCalendar from '@/components/ImprovedEnhancedCalendar'
@@ -58,6 +62,18 @@ export default function ProjectDetailsPage() {
   const [savingTask, setSavingTask] = useState<string | null>(null)
   const [selectedTaskDetails, setSelectedTaskDetails] = useState<ExtendedTask | null>(null)
   const [showTaskDetailsModal, setShowTaskDetailsModal] = useState(false)
+  
+  // Status Notes state
+  const [showNotesModal, setShowNotesModal] = useState(false)
+  const [currentNote, setCurrentNote] = useState('')
+  const [notesHistory, setNotesHistory] = useState<Array<{
+    id: string
+    content: string
+    createdAt: string
+    createdBy: string
+  }>>([])
+  const [savingNote, setSavingNote] = useState(false)
+  const [editingNote, setEditingNote] = useState(false)
 
   // Task management handlers
   const handleTaskEdit = (taskId: string) => {
@@ -194,6 +210,7 @@ export default function ProjectDetailsPage() {
   useEffect(() => {
     if (projectId) {
       fetchProject()
+      fetchProjectNotes()
     }
   }, [projectId])
 
@@ -254,6 +271,48 @@ export default function ProjectDetailsPage() {
   const handleTaskClick = (task: ExtendedTask) => {
     setSelectedTaskDetails(task)
     setShowTaskDetailsModal(true)
+  }
+
+  // Status Notes handlers
+  const fetchProjectNotes = async () => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/notes`)
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentNote(data.currentNote || '')
+        setNotesHistory(data.history || [])
+      }
+    } catch (error) {
+      console.error('Error fetching project notes:', error)
+    }
+  }
+
+  const handleSaveNote = async () => {
+    if (!currentNote.trim()) return
+    
+    try {
+      setSavingNote(true)
+      const response = await fetch(`/api/projects/${projectId}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          content: currentNote.trim(),
+          createdBy: 'Current User' // You can replace this with actual user info
+        })
+      })
+      
+      if (response.ok) {
+        await fetchProjectNotes()
+        setEditingNote(false)
+      } else {
+        alert('Not kaydedilemedi')
+      }
+    } catch (error) {
+      console.error('Error saving note:', error)
+      alert('Not kaydedilirken bir hata oluştu')
+    } finally {
+      setSavingNote(false)
+    }
   }
 
   // Handle project reschedule
@@ -983,6 +1042,111 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
 
+        {/* Project Status Notes */}
+        <div className='bg-white rounded-lg shadow-sm p-6 mb-6 border-l-4 border-blue-500'>
+          <div className='flex items-center justify-between mb-4'>
+            <div className='flex items-center gap-3'>
+              <div className='p-2 bg-blue-100 rounded-lg'>
+                <MessageSquare className='w-6 h-6 text-blue-600' />
+              </div>
+              <div>
+                <h2 className='text-lg font-semibold text-gray-900'>Proje Durum Notları</h2>
+                <p className='text-sm text-gray-500'>Projenin güncel durumu ve notları</p>
+              </div>
+            </div>
+            <div className='flex items-center gap-2'>
+              {notesHistory.length > 0 && (
+                <button
+                  onClick={() => setShowNotesModal(true)}
+                  className='flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors'
+                  title='Geçmiş Notları Görüntüle'
+                >
+                  <History className='w-4 h-4' />
+                  <span className='text-sm'>Geçmiş ({notesHistory.length})</span>
+                </button>
+              )}
+              <button
+                onClick={() => setEditingNote(!editingNote)}
+                className='flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+              >
+                <PenTool className='w-4 h-4' />
+                {editingNote ? 'İptal' : 'Düzenle'}
+              </button>
+            </div>
+          </div>
+
+          {editingNote ? (
+            <div className='space-y-4'>
+              <textarea
+                value={currentNote}
+                onChange={(e) => setCurrentNote(e.target.value)}
+                placeholder='Proje durum notlarını buraya yazabilirsiniz...'
+                className='w-full p-4 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50/30 transition-all resize-none'
+                rows={4}
+              />
+              <div className='flex items-center gap-3'>
+                <button
+                  onClick={handleSaveNote}
+                  disabled={!currentNote.trim() || savingNote}
+                  className='flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+                >
+                  {savingNote ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Kaydediliyor...
+                    </>
+                  ) : (
+                    <>
+                      <Save className='w-4 h-4' />
+                      Kaydet
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingNote(false)
+                    // Reset to last saved note if user cancels
+                    fetchProjectNotes()
+                  }}
+                  disabled={savingNote}
+                  className='flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors'
+                >
+                  <X className='w-4 h-4' />
+                  İptal
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className='bg-gray-50 rounded-lg p-4'>
+              {currentNote ? (
+                <div className='flex items-start gap-3'>
+                  <FileText className='w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0' />
+                  <div className='flex-1'>
+                    <p className='text-gray-700 leading-relaxed whitespace-pre-wrap'>{currentNote}</p>
+                    {notesHistory.length > 0 && (
+                      <p className='text-xs text-gray-500 mt-2'>
+                        Son güncelleme: {new Date(notesHistory[0]?.createdAt || '').toLocaleDateString('tr-TR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className='text-center py-8'>
+                  <FileText className='w-12 h-12 text-gray-300 mx-auto mb-3' />
+                  <p className='text-gray-500'>Henüz proje durum notu eklenmemiş</p>
+                  <p className='text-sm text-gray-400 mt-1'>Proje durumunu kaydetmek için "Düzenle" butonuna tıklayın</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Progress Bar */}
         <div className='bg-white rounded-lg shadow-sm p-6 mb-6'>
           <div className='flex items-center justify-between mb-4'>
@@ -1670,6 +1834,113 @@ export default function ProjectDetailsPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notes History Modal */}
+      {showNotesModal && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden'>
+            <div className='px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700'>
+              <div className='flex items-center justify-between'>
+                <h3 className='text-xl font-semibold text-white flex items-center'>
+                  <History className='w-6 h-6 mr-2' />
+                  Proje Notları Geçmişi
+                </h3>
+                <button
+                  onClick={() => setShowNotesModal(false)}
+                  className='text-white hover:text-gray-200 transition-colors p-2 hover:bg-white/20 rounded-lg'
+                >
+                  <X className='w-6 h-6' />
+                </button>
+              </div>
+              <p className='text-blue-100 text-sm mt-1'>
+                Proje için kaydedilen tüm durum notları ({notesHistory.length} kayıt)
+              </p>
+            </div>
+            
+            <div className='p-6 overflow-y-auto max-h-[calc(80vh-120px)]'>
+              {notesHistory.length === 0 ? (
+                <div className='text-center py-12'>
+                  <History className='w-12 h-12 text-gray-300 mx-auto mb-3' />
+                  <p className='text-gray-500'>Henüz geçmiş not bulunamadı</p>
+                </div>
+              ) : (
+                <div className='space-y-6'>
+                  {/* Current Note */}
+                  {currentNote && (
+                    <div className='bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500 rounded-lg p-6'>
+                      <div className='flex items-center gap-3 mb-4'>
+                        <div className='p-2 bg-blue-600 text-white rounded-lg'>
+                          <MessageSquare className='w-5 h-5' />
+                        </div>
+                        <div>
+                          <h4 className='font-semibold text-blue-900'>Güncel Durum Notu</h4>
+                          <p className='text-sm text-blue-700'>Şu anda aktif olan not</p>
+                        </div>
+                      </div>
+                      <p className='text-gray-800 leading-relaxed whitespace-pre-wrap bg-white/60 p-4 rounded-lg'>
+                        {currentNote}
+                      </p>
+                      {notesHistory[0] && (
+                        <p className='text-xs text-blue-600 mt-3 flex items-center gap-1'>
+                          <Clock className='w-3 h-3' />
+                          {new Date(notesHistory[0].createdAt).toLocaleDateString('tr-TR', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })} - {notesHistory[0].createdBy}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Notes History */}
+                  {notesHistory.slice(1).map((note, index) => (
+                    <div key={note.id} className='bg-gray-50 border border-gray-200 rounded-lg p-6'>
+                      <div className='flex items-center gap-3 mb-4'>
+                        <div className='p-2 bg-gray-600 text-white rounded-lg'>
+                          <FileText className='w-5 h-5' />
+                        </div>
+                        <div>
+                          <h4 className='font-semibold text-gray-900'>Geçmiş Not #{notesHistory.length - index - 1}</h4>
+                          <p className='text-xs text-gray-600 flex items-center gap-1'>
+                            <Clock className='w-3 h-3' />
+                            {new Date(note.createdAt).toLocaleDateString('tr-TR', {
+                              day: '2-digit',
+                              month: 'long',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })} - {note.createdBy}
+                          </p>
+                        </div>
+                      </div>
+                      <p className='text-gray-700 leading-relaxed whitespace-pre-wrap bg-white p-4 rounded-lg border'>
+                        {note.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className='px-6 py-4 border-t border-gray-200 bg-gray-50'>
+              <div className='flex items-center justify-between'>
+                <p className='text-sm text-gray-600'>
+                  Toplam {notesHistory.length} not kaydedilmiş
+                </p>
+                <button
+                  onClick={() => setShowNotesModal(false)}
+                  className='px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors'
+                >
+                  Kapat
+                </button>
               </div>
             </div>
           </div>
