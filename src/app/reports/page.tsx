@@ -156,17 +156,6 @@ export default function ReportsPage() {
     activeDepartments: Object.keys(departments || {}).length,
   }
 
-  // Convert departments object to array format  
-  const departmentsArray = Object.values(departments || {}).map(
-    (dept: ReportsData['departments'][string]) => ({
-      name: dept.name,
-      users: dept.userCount,
-      projectCount: dept.activeProjects || 0,
-      taskCount: dept.totalTasks,
-      completedTasks: dept.completedTasks,
-    })
-  )
-
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'>
       <Navbar />

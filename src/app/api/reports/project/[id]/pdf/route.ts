@@ -29,6 +29,20 @@ interface ProjectDetailsData {
       id: string
       name: string
     } | null
+    assignedUsers: Array<{
+      user: {
+        id: string
+        name: string
+        department: string
+        position: string
+      }
+    }>
+  }>
+  allUsers: Array<{
+    id: string
+    name: string
+    department: string
+    position: string
   }>
   totalTasks: number
   completedTasks: number
@@ -42,6 +56,16 @@ interface ProjectDetailsData {
 
 async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
   try {
+    // Fetch all users first
+    const allUsers = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        department: true,
+        position: true
+      }
+    })
+
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -51,6 +75,18 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
               select: {
                 id: true,
                 name: true
+              }
+            },
+            assignedUsers: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    department: true,
+                    position: true
+                  }
+                }
               }
             }
           },
@@ -78,6 +114,7 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
     return {
       project,
       tasks,
+      allUsers,
       totalTasks,
       completedTasks,
       inProgressTasks,
@@ -90,6 +127,14 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
   } catch (error) {
     console.error('Proje verileri alınırken hata:', error)
     // Return mock data for development/testing when database is not available
+    const mockUsers = [
+      { id: '1', name: 'Ahmet Yılmaz', department: 'Yazılım', position: 'Senior Developer' },
+      { id: '2', name: 'Ayşe Kara', department: 'Tasarım', position: 'UI/UX Designer' },
+      { id: '3', name: 'Mehmet Demir', department: 'Yazılım', position: 'Frontend Developer' },
+      { id: '4', name: 'Fatma Öz', department: 'Test', position: 'QA Specialist' },
+      { id: '5', name: 'Ali Çelik', department: 'DevOps', position: 'System Administrator' }
+    ]
+
     return {
       project: {
         id: projectId,
@@ -114,7 +159,11 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
           assignedUser: {
             id: '1',
             name: 'Örnek Kullanıcı'
-          }
+          },
+          assignedUsers: [
+            { user: { id: '1', name: 'Ahmet Yılmaz', department: 'Yazılım', position: 'Senior Developer' } },
+            { user: { id: '3', name: 'Mehmet Demir', department: 'Yazılım', position: 'Frontend Developer' } }
+          ]
         },
         {
           id: '2', 
@@ -129,7 +178,11 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
           assignedUser: {
             id: '2',
             name: 'Başka Kullanıcı'
-          }
+          },
+          assignedUsers: [
+            { user: { id: '2', name: 'Ayşe Kara', department: 'Tasarım', position: 'UI/UX Designer' } },
+            { user: { id: '4', name: 'Fatma Öz', department: 'Test', position: 'QA Specialist' } }
+          ]
         },
         {
           id: '3',
@@ -141,9 +194,13 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
           actualHours: 0,
           startDate: new Date('2024-02-02'),
           endDate: new Date('2024-02-15'),
-          assignedUser: null
+          assignedUser: null,
+          assignedUsers: [
+            { user: { id: '5', name: 'Ali Çelik', department: 'DevOps', position: 'System Administrator' } }
+          ]
         }
       ],
+      allUsers: mockUsers,
       totalTasks: 3,
       completedTasks: 1,
       inProgressTasks: 1,
@@ -227,7 +284,7 @@ function generateCleanProjectPDF(data: ProjectDetailsData): jsPDF {
     yPosition += 15
 
     data.tasks.slice(0, 10).forEach((task, index) => {
-      if (yPosition > 270) {
+      if (yPosition > 260) {
         pdf.addPage()
         yPosition = 20
       }
@@ -238,17 +295,68 @@ function generateCleanProjectPDF(data: ProjectDetailsData): jsPDF {
       yPosition += 8
       pdf.text(formatTurkishText(`   Durum: ${task.status} | Oncelik: ${task.priority}`), 25, yPosition)
       yPosition += 8
-      if (task.assignedUser) {
+      
+      // Show all assigned users instead of just the primary one
+      if (task.assignedUsers && task.assignedUsers.length > 0) {
+        pdf.text(formatTurkishText(`   Atanan Kullanicilar:`), 25, yPosition)
+        yPosition += 6
+        task.assignedUsers.forEach((assignment, userIndex) => {
+          if (yPosition > 270) {
+            pdf.addPage()
+            yPosition = 20
+          }
+          const userInfo = `     ${userIndex + 1}. ${assignment.user.name} - ${assignment.user.department} (${assignment.user.position})`
+          pdf.text(formatTurkishText(userInfo), 25, yPosition)
+          yPosition += 6
+        })
+      } else if (task.assignedUser) {
         pdf.text(formatTurkishText(`   Sorumlu: ${task.assignedUser.name}`), 25, yPosition)
-        yPosition += 8
+        yPosition += 6
+      } else {
+        pdf.text(formatTurkishText(`   Sorumlu: Atanmamis`), 25, yPosition)
+        yPosition += 6
       }
-      yPosition += 5
+      
+      // Add estimated and actual hours if available
+      if (task.estimatedHours || task.actualHours) {
+        const hoursText = `   Tahmini: ${task.estimatedHours || 0}h | Gerceklesen: ${task.actualHours || 0}h`
+        pdf.text(formatTurkishText(hoursText), 25, yPosition)
+        yPosition += 6
+      }
+      
+      yPosition += 8
     })
 
     if (data.tasks.length > 10) {
       pdf.setFontSize(8)
       pdf.text(formatTurkishText(`Not: Toplam ${data.tasks.length} gorevden ilk 10'u gosterilmektedir.`), 25, yPosition)
     }
+  }
+
+  // Add a section showing all project users
+  if (data.allUsers && data.allUsers.length > 0) {
+    if (yPosition > 220) {
+      pdf.addPage()
+      yPosition = 20
+    }
+
+    pdf.setFontSize(14)
+    pdf.text(formatTurkishText('Proje Ekibi'), 20, yPosition)
+    yPosition += 15
+
+    pdf.setFontSize(10)
+    pdf.text(formatTurkishText(`Toplam ${data.allUsers.length} kullanici sistemde kayitli:`), 25, yPosition)
+    yPosition += 10
+
+    data.allUsers.forEach((user, index) => {
+      if (yPosition > 270) {
+        pdf.addPage()
+        yPosition = 20
+      }
+      const userInfo = `${index + 1}. ${user.name} - ${user.department} (${user.position})`
+      pdf.text(formatTurkishText(userInfo), 25, yPosition)
+      yPosition += 8
+    })
   }
 
   return pdf
@@ -296,6 +404,7 @@ export async function GET(
           createdAt: new Date()
         },
         tasks: [],
+        allUsers: [],
         totalTasks: 0,
         completedTasks: 0,
         inProgressTasks: 0,
