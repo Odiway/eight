@@ -214,273 +214,334 @@ async function getProjectData(projectId: string): Promise<ProjectDetailsData> {
 }
 
 function generateCorporateProjectPDF(data: ProjectDetailsData): jsPDF {
-  const pdf = new jsPDF()
+  const pdf = new jsPDF('p', 'mm', 'a4')
   let yPosition = 20
 
-  // Define colors and styling
-  const primaryColor = [13, 110, 253] // Bootstrap primary blue
-  const secondaryColor = [108, 117, 125] // Bootstrap secondary gray
-  const successColor = [25, 135, 84] // Bootstrap success green
-  const warningColor = [255, 193, 7] // Bootstrap warning yellow
-  const dangerColor = [220, 53, 69] // Bootstrap danger red
-  const lightGray = [248, 249, 250]
-
-  // Helper function to add colored background
-  const addColoredBackground = (x: number, y: number, width: number, height: number, color: number[]) => {
-    pdf.setFillColor(color[0], color[1], color[2])
-    pdf.rect(x, y - height + 2, width, height, 'F')
-  }
-
-  // Helper function for section headers
-  const addSectionHeader = (title: string, y: number): number => {
-    addColoredBackground(15, y + 8, 180, 12, primaryColor)
-    pdf.setTextColor(255, 255, 255)
-    pdf.setFontSize(14)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text(formatTurkishText(title), 20, y + 5)
-    pdf.setTextColor(0, 0, 0) // Reset to black
-    return y + 20
-  }
-
-  // Main Header with Company Branding
-  addColoredBackground(10, 25, 190, 25, primaryColor)
-  pdf.setTextColor(255, 255, 255)
-  pdf.setFontSize(22)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text(formatTurkishText('PROJE DETAY RAPORU'), 20, 20)
+  // Professional Corporate Colors
+  const corporateBlue = [0, 71, 171]      // Professional Navy Blue
+  const corporateGray = [64, 64, 64]      // Dark Gray
+  const accentBlue = [0, 123, 255]        // Accent Blue
+  const successGreen = [40, 167, 69]      // Success Green
+  const warningOrange = [255, 133, 27]    // Warning Orange
+  const dangerRed = [220, 53, 69]         // Danger Red
+  const lightGray = [248, 249, 250]       // Light Background
+  const darkText = [33, 37, 41]           // Dark Text
+  const borderGray = [222, 226, 230]      // Border Gray
   
-  pdf.setFontSize(12)
-  pdf.setFont('helvetica', 'normal')
-  pdf.text(formatTurkishText('Kurumsal Proje Yonetim Sistemi'), 20, 35)
-  pdf.text(formatTurkishText(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`), 140, 35)
-  pdf.setTextColor(0, 0, 0) // Reset to black
-  yPosition = 55
+  // Helper Functions for Professional Layout
+  const drawBorder = (x: number, y: number, width: number, height: number, color: number[] = borderGray) => {
+    pdf.setDrawColor(color[0], color[1], color[2])
+    pdf.setLineWidth(0.5)
+    pdf.rect(x, y, width, height)
+  }
 
-  // Project Title Box
-  addColoredBackground(15, yPosition + 15, 180, 20, lightGray)
+  const addSection = (title: string, y: number, withBackground: boolean = true): number => {
+    if (withBackground) {
+      // Section background
+      pdf.setFillColor(corporateBlue[0], corporateBlue[1], corporateBlue[2])
+      pdf.rect(10, y - 5, 190, 12, 'F')
+      
+      // Section border
+      drawBorder(10, y - 5, 190, 12, corporateBlue)
+      
+      // Section title
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(12)
+      pdf.text(formatTurkishText(title.toUpperCase()), 15, y + 2)
+      pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+    } else {
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(14)
+      pdf.setTextColor(corporateBlue[0], corporateBlue[1], corporateBlue[2])
+      pdf.text(formatTurkishText(title), 15, y)
+      pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+    }
+    return y + 15
+  }
+
+  const addMetricCard = (x: number, y: number, width: number, height: number, 
+                        value: string, label: string, color: number[]) => {
+    // Card background
+    pdf.setFillColor(color[0], color[1], color[2])
+    pdf.rect(x, y, width, height, 'F')
+    
+    // Card border
+    drawBorder(x, y, width, height, [255, 255, 255])
+    
+    // Value (large number)
+    pdf.setTextColor(255, 255, 255)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(24)
+    const valueWidth = pdf.getTextWidth(value)
+    pdf.text(value, x + (width - valueWidth) / 2, y + height / 2)
+    
+    // Label (smaller text)
+    pdf.setFontSize(8)
+    const labelWidth = pdf.getTextWidth(formatTurkishText(label))
+    pdf.text(formatTurkishText(label), x + (width - labelWidth) / 2, y + height - 5)
+    
+    pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+  }
+
+  const addInfoRow = (label: string, value: string, y: number, isBold: boolean = false): number => {
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(10)
+    pdf.text(formatTurkishText(label + ':'), 15, y)
+    
+    pdf.setFont('helvetica', isBold ? 'bold' : 'normal')
+    pdf.text(formatTurkishText(value), 60, y)
+    return y + 7
+  }
+
+  // DOCUMENT HEADER - PROFESSIONAL LETTERHEAD
+  pdf.setFillColor(corporateBlue[0], corporateBlue[1], corporateBlue[2])
+  pdf.rect(0, 0, 210, 35, 'F')
+  
+  // Company Logo Area (placeholder)
+  pdf.setFillColor(255, 255, 255)
+  pdf.rect(15, 8, 25, 20, 'F')
+  pdf.setTextColor(corporateBlue[0], corporateBlue[1], corporateBlue[2])
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(16)
-  pdf.text(formatTurkishText(`PROJE: ${data.project.name}`), 20, yPosition + 8)
-  yPosition += 35
-
-  // Project Statistics Dashboard
-  yPosition = addSectionHeader('PROJE ISTATISTIKLERI', yPosition)
-
-  // Statistics cards layout
-  const cardWidth = 42
-  const cardHeight = 25
-  const cardSpacing = 5
-  const startX = 15
-
-  // Total Tasks Card
-  addColoredBackground(startX, yPosition + cardHeight, cardWidth, cardHeight, [52, 58, 64])
+  pdf.setFontSize(8)
+  pdf.text('LOGO', 23, 19)
+  
+  // Document Title
   pdf.setTextColor(255, 255, 255)
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(20)
-  pdf.text(data.totalTasks.toString(), startX + 5, yPosition + 8)
-  pdf.setFontSize(8)
-  pdf.text(formatTurkishText('TOPLAM GOREV'), startX + 5, yPosition + 18)
-
-  // Completed Tasks Card
-  addColoredBackground(startX + cardWidth + cardSpacing, yPosition + cardHeight, cardWidth, cardHeight, successColor)
-  pdf.text(data.completedTasks.toString(), startX + cardWidth + cardSpacing + 5, yPosition + 8)
-  pdf.text(formatTurkishText('TAMAMLANAN'), startX + cardWidth + cardSpacing + 5, yPosition + 18)
-
-  // In Progress Card
-  addColoredBackground(startX + 2 * (cardWidth + cardSpacing), yPosition + cardHeight, cardWidth, cardHeight, warningColor)
-  pdf.setTextColor(0, 0, 0) // Black text for yellow background
-  pdf.text(data.inProgressTasks.toString(), startX + 2 * (cardWidth + cardSpacing) + 5, yPosition + 8)
-  pdf.text(formatTurkishText('DEVAM EDEN'), startX + 2 * (cardWidth + cardSpacing) + 5, yPosition + 18)
-
-  // Todo Tasks Card
-  addColoredBackground(startX + 3 * (cardWidth + cardSpacing), yPosition + cardHeight, cardWidth, cardHeight, dangerColor)
-  pdf.setTextColor(255, 255, 255)
-  pdf.text(data.todoTasks.toString(), startX + 3 * (cardWidth + cardSpacing) + 5, yPosition + 8)
-  pdf.text(formatTurkishText('YAPILACAK'), startX + 3 * (cardWidth + cardSpacing) + 5, yPosition + 18)
-
-  pdf.setTextColor(0, 0, 0) // Reset to black
-  yPosition += 40
-
-  // Progress Bar
-  const progressBarWidth = 160
-  const progressBarHeight = 8
-  const progressFill = (data.completionPercentage / 100) * progressBarWidth
-
-  // Progress bar background
-  pdf.setFillColor(233, 236, 239)
-  pdf.rect(20, yPosition, progressBarWidth, progressBarHeight, 'F')
+  pdf.text(formatTurkishText('PROJE YONETIM RAPORU'), 50, 18)
   
-  // Progress bar fill
-  pdf.setFillColor(successColor[0], successColor[1], successColor[2])
-  pdf.rect(20, yPosition, progressFill, progressBarHeight, 'F')
-  
-  // Progress percentage text
-  pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(12)
-  pdf.text(formatTurkishText(`TAMAMLANMA ORANI: %${data.completionPercentage}`), 20, yPosition + 18)
-  yPosition += 35
-
-  // Project Information Section
-  yPosition = addSectionHeader('PROJE BILGILERI', yPosition)
-
+  // Document Info
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
+  pdf.text(formatTurkishText('Kurumsal Proje Takip Sistemi'), 50, 26)
   
-  // Status with colored indicator
-  const statusColor = data.project.status === 'COMPLETED' ? successColor : 
-                     data.project.status === 'IN_PROGRESS' ? warningColor : 
-                     data.project.status === 'TODO' ? dangerColor : secondaryColor
+  // Date and Reference
+  const currentDate = new Date().toLocaleDateString('tr-TR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+  pdf.text(formatTurkishText(`Rapor Tarihi: ${currentDate}`), 140, 18)
+  pdf.text(formatTurkishText(`Referans: PRJ-${data.project.id.toUpperCase()}`), 140, 26)
   
-  pdf.setFillColor(statusColor[0], statusColor[1], statusColor[2])
-  pdf.circle(25, yPosition - 2, 2, 'F')
-  pdf.text(formatTurkishText(`Durum: ${data.project.status}`), 30, yPosition)
-  yPosition += 10
+  pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+  yPosition = 50
 
+  // PROJECT IDENTIFICATION SECTION
+  pdf.setFillColor(lightGray[0], lightGray[1], lightGray[2])
+  pdf.rect(10, yPosition - 5, 190, 25, 'F')
+  drawBorder(10, yPosition - 5, 190, 25)
+  
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(16)
+  pdf.setTextColor(corporateBlue[0], corporateBlue[1], corporateBlue[2])
+  pdf.text(formatTurkishText(`PROJE ADI: ${data.project.name.toUpperCase()}`), 15, yPosition + 5)
+  
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(10)
+  pdf.setTextColor(corporateGray[0], corporateGray[1], corporateGray[2])
+  const statusText = data.project.status === 'COMPLETED' ? 'TAMAMLANDI' :
+                     data.project.status === 'IN_PROGRESS' ? 'DEVAM EDIYOR' :
+                     data.project.status === 'TODO' ? 'BASLAMADI' : data.project.status
+  pdf.text(formatTurkishText(`DURUM: ${statusText}`), 15, yPosition + 15)
+  pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+  yPosition += 35
+
+  // EXECUTIVE SUMMARY - KEY METRICS
+  yPosition = addSection('YONETICI OZETI', yPosition)
+  
+  // Metric Cards Row
+  const cardY = yPosition
+  const cardWidth = 45
+  const cardHeight = 30
+  const cardSpacing = 2.5
+  
+  // Total Tasks
+  addMetricCard(10, cardY, cardWidth, cardHeight, 
+               data.totalTasks.toString(), 'TOPLAM GOREV', corporateGray)
+  
+  // Completed Tasks
+  addMetricCard(10 + cardWidth + cardSpacing, cardY, cardWidth, cardHeight,
+               data.completedTasks.toString(), 'TAMAMLANAN', successGreen)
+  
+  // In Progress Tasks  
+  addMetricCard(10 + 2 * (cardWidth + cardSpacing), cardY, cardWidth, cardHeight,
+               data.inProgressTasks.toString(), 'DEVAM EDEN', warningOrange)
+  
+  // Pending Tasks
+  addMetricCard(10 + 3 * (cardWidth + cardSpacing), cardY, cardWidth, cardHeight,
+               data.todoTasks.toString(), 'BEKLEYEN', dangerRed)
+  
+  yPosition += cardHeight + 15
+
+  // Progress Bar with Professional Styling
+  const progressBarY = yPosition
+  const progressBarWidth = 150
+  const progressBarHeight = 12
+  const progressFill = (data.completionPercentage / 100) * progressBarWidth
+  
+  // Progress bar label
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(11)
+  pdf.text(formatTurkishText('PROJE TAMAMLANMA ORANI'), 15, progressBarY - 3)
+  
+  // Progress bar background
+  pdf.setFillColor(borderGray[0], borderGray[1], borderGray[2])
+  pdf.rect(15, progressBarY, progressBarWidth, progressBarHeight, 'F')
+  drawBorder(15, progressBarY, progressBarWidth, progressBarHeight)
+  
+  // Progress bar fill
+  const progressColor = data.completionPercentage >= 80 ? successGreen :
+                       data.completionPercentage >= 50 ? warningOrange : dangerRed
+  pdf.setFillColor(progressColor[0], progressColor[1], progressColor[2])
+  pdf.rect(15, progressBarY, progressFill, progressBarHeight, 'F')
+  
+  // Progress percentage
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(14)
+  pdf.setTextColor(progressColor[0], progressColor[1], progressColor[2])
+  pdf.text(`%${data.completionPercentage}`, 175, progressBarY + 8)
+  pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+  yPosition += 25
+
+  // PROJECT INFORMATION TABLE
+  yPosition = addSection('PROJE BILGILERI', yPosition)
+  
+  // Information box
+  pdf.setFillColor(lightGray[0], lightGray[1], lightGray[2])
+  pdf.rect(10, yPosition - 5, 190, 45, 'F')
+  drawBorder(10, yPosition - 5, 190, 45)
+  
+  let infoY = yPosition
+  
   if (data.project.description) {
-    pdf.text(formatTurkishText('Aciklama:'), 20, yPosition)
-    yPosition += 8
-    const maxWidth = 170
-    const descLines = pdf.splitTextToSize(formatTurkishText(data.project.description), maxWidth)
-    pdf.text(descLines, 25, yPosition)
-    yPosition += descLines.length * 6 + 5
+    infoY = addInfoRow('PROJE ACIKLAMASI', data.project.description, infoY)
+    infoY += 3
   }
-
+  
   if (data.project.startDate) {
-    pdf.text(formatTurkishText(`Baslangic Tarihi: ${data.project.startDate.toLocaleDateString('tr-TR')}`), 20, yPosition)
-    yPosition += 8
+    infoY = addInfoRow('BASLANGIC TARIHI', 
+                      data.project.startDate.toLocaleDateString('tr-TR'), infoY)
   }
-
+  
   if (data.project.endDate) {
-    pdf.text(formatTurkishText(`Bitis Tarihi: ${data.project.endDate.toLocaleDateString('tr-TR')}`), 20, yPosition)
-    yPosition += 8
+    infoY = addInfoRow('HEDEFLENEN BITIS TARIHI', 
+                      data.project.endDate.toLocaleDateString('tr-TR'), infoY)
   }
-  yPosition += 15
+  
+  infoY = addInfoRow('TOPLAM TAHMINI SURE', `${data.totalEstimatedHours} saat`, infoY)
+  infoY = addInfoRow('TOPLAM HARCANAN SURE', `${data.totalActualHours} saat`, infoY)
+  
+  // Efficiency calculation
+  const efficiency = data.totalEstimatedHours > 0 ? 
+                    Math.round((data.totalActualHours / data.totalEstimatedHours) * 100) : 0
+  const efficiencyText = efficiency <= 100 ? 'HEDEF DAHILINDE' : 'HEDEF ASIMI'
+  const efficiencyColor = efficiency <= 100 ? successGreen : dangerRed
+  pdf.setTextColor(efficiencyColor[0], efficiencyColor[1], efficiencyColor[2])
+  infoY = addInfoRow('VERIMLILIK DURUMU', `%${efficiency} - ${efficiencyText}`, infoY, true)
+  pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+  
+  yPosition = infoY + 10
 
-  // Task Details Section
+  // TASK BREAKDOWN SECTION
   if (data.tasks.length > 0) {
-    if (yPosition > 230) {
-      pdf.addPage()
-      yPosition = 20
-    }
-
-    yPosition = addSectionHeader('GOREV DETAYLARI', yPosition)
-
-    data.tasks.slice(0, 10).forEach((task, index) => {
-      if (yPosition > 250) {
-        pdf.addPage()
-        yPosition = 20
-      }
-
-      // Task card background
-      addColoredBackground(15, yPosition + 35, 180, 35, [249, 250, 251])
-      
-      // Task number and title
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(11)
-      const title = task.title.length > 45 ? task.title.substring(0, 45) + '...' : task.title
-      pdf.text(formatTurkishText(`${index + 1}. ${title}`), 20, yPosition + 5)
-
-      // Status and priority badges
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(8)
-      
-      // Status badge
-      const taskStatusColor = task.status === 'COMPLETED' ? successColor :
-                             task.status === 'IN_PROGRESS' ? warningColor :
-                             task.status === 'TODO' ? dangerColor : secondaryColor
-      addColoredBackground(20, yPosition + 18, 25, 8, taskStatusColor)
-      pdf.setTextColor(255, 255, 255)
-      pdf.text(task.status, 22, yPosition + 16)
-
-      // Priority badge
-      const priorityColor = task.priority === 'URGENT' ? [220, 38, 127] :
-                           task.priority === 'HIGH' ? dangerColor :
-                           task.priority === 'MEDIUM' ? warningColor :
-                           task.priority === 'LOW' ? successColor : secondaryColor
-      addColoredBackground(50, yPosition + 18, 25, 8, priorityColor)
-      pdf.text(task.priority, 52, yPosition + 16)
-      
-      pdf.setTextColor(0, 0, 0) // Reset to black
-      yPosition += 25
-
-      // Assigned users
-      if (task.assignedUsers && task.assignedUsers.length > 0) {
-        pdf.setFont('helvetica', 'bold')
-        pdf.setFontSize(9)
-        pdf.text(formatTurkishText('Atanan Kullanicilar:'), 20, yPosition)
-        yPosition += 8
-
-        pdf.setFont('helvetica', 'normal')
-        pdf.setFontSize(8)
-        task.assignedUsers.slice(0, 3).forEach((assignment, userIndex) => {
-          if (yPosition > 270) {
-            pdf.addPage()
-            yPosition = 20
-          }
-          const userInfo = `• ${assignment.user.name} - ${assignment.user.department} (${assignment.user.position})`
-          pdf.text(formatTurkishText(userInfo), 25, yPosition)
-          yPosition += 6
-        })
-
-        if (task.assignedUsers.length > 3) {
-          pdf.setFontSize(8)
-          pdf.setTextColor(108, 117, 125)
-          pdf.text(formatTurkishText(`+ ${task.assignedUsers.length - 3} diger kullanici`), 25, yPosition)
-          pdf.setTextColor(0, 0, 0)
-          yPosition += 6
-        }
-      } else if (task.assignedUser) {
-        pdf.setFont('helvetica', 'normal')
-        pdf.setFontSize(9)
-        pdf.text(formatTurkishText(`Sorumlu: ${task.assignedUser.name}`), 20, yPosition)
-        yPosition += 8
-      } else {
-        pdf.setTextColor(220, 53, 69)
-        pdf.text(formatTurkishText('Sorumlu: Atanmamis'), 20, yPosition)
-        pdf.setTextColor(0, 0, 0)
-        yPosition += 8
-      }
-
-      // Hours information
-      if (task.estimatedHours || task.actualHours) {
-        pdf.setFont('helvetica', 'normal')
-        pdf.setFontSize(8)
-        const hoursText = `Tahmini: ${task.estimatedHours || 0}h | Gerceklesen: ${task.actualHours || 0}h`
-        pdf.text(formatTurkishText(hoursText), 20, yPosition)
-        yPosition += 8
-      }
-
-      yPosition += 15
-    })
-
-    if (data.tasks.length > 10) {
-      pdf.setFont('helvetica', 'italic')
-      pdf.setFontSize(8)
-      pdf.setTextColor(108, 117, 125)
-      pdf.text(formatTurkishText(`Not: Toplam ${data.tasks.length} gorevden ilk 10'u gosterilmektedir.`), 20, yPosition)
-      pdf.setTextColor(0, 0, 0)
-      yPosition += 15
-    }
-  }
-
-  // Project Team Section
-  if (data.allUsers && data.allUsers.length > 0) {
     if (yPosition > 200) {
       pdf.addPage()
       yPosition = 20
     }
 
-    yPosition = addSectionHeader('PROJE EKIBI', yPosition)
+    yPosition = addSection('GOREV DETAY ANALIZI', yPosition)
 
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(10)
-    pdf.text(formatTurkishText(`Toplam ${data.allUsers.length} kullanici sistemde kayitli:`), 20, yPosition)
-    yPosition += 15
-
-    pdf.setFont('helvetica', 'normal')
-    pdf.setFontSize(8)
+    // Task table header
+    const tableStartY = yPosition
+    const colWidths = [8, 65, 25, 20, 25, 25, 22]
+    const colX = [10, 18, 83, 108, 128, 153, 178]
+    const headers = ['#', 'GOREV ADI', 'DURUM', 'ONCELIK', 'SORUMLU', 'TAH.SURE', 'GER.SURE']
     
-    // Group users by department
+    // Table header background
+    pdf.setFillColor(corporateGray[0], corporateGray[1], corporateGray[2])
+    pdf.rect(10, tableStartY - 2, 190, 8, 'F')
+    
+    // Table headers
+    pdf.setTextColor(255, 255, 255)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(8)
+    headers.forEach((header, i) => {
+      pdf.text(formatTurkishText(header), colX[i], tableStartY + 3)
+    })
+    
+    pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+    let rowY = tableStartY + 10
+
+    // Task rows (limit to first 15 for space)
+    data.tasks.slice(0, 15).forEach((task, index) => {
+      if (rowY > 270) {
+        pdf.addPage()
+        rowY = 20
+      }
+
+      // Alternating row colors
+      if (index % 2 === 0) {
+        pdf.setFillColor(248, 249, 250)
+        pdf.rect(10, rowY - 3, 190, 7, 'F')
+      }
+
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(7)
+      
+      // Row data
+      const taskTitle = task.title.length > 35 ? task.title.substring(0, 32) + '...' : task.title
+      const assignedUser = task.assignedUsers.length > 0 ? 
+                          task.assignedUsers[0].user.name.split(' ')[0] : 
+                          (task.assignedUser ? task.assignedUser.name.split(' ')[0] : 'Yok')
+      
+      const rowData = [
+        (index + 1).toString(),
+        taskTitle,
+        task.status === 'COMPLETED' ? 'TAMAM' : 
+        task.status === 'IN_PROGRESS' ? 'DEVAM' : 
+        task.status === 'TODO' ? 'BEKLE' : task.status,
+        task.priority === 'HIGH' ? 'YUKSEK' : 
+        task.priority === 'MEDIUM' ? 'ORTA' : 
+        task.priority === 'LOW' ? 'DUSUK' : task.priority,
+        assignedUser,
+        `${task.estimatedHours || 0}h`,
+        `${task.actualHours || 0}h`
+      ]
+      
+      rowData.forEach((data, i) => {
+        pdf.text(formatTurkishText(data), colX[i], rowY)
+      })
+      
+      rowY += 7
+    })
+
+    // Table border
+    drawBorder(10, tableStartY - 2, 190, rowY - tableStartY + 2)
+    
+    if (data.tasks.length > 15) {
+      pdf.setFont('helvetica', 'italic')
+      pdf.setFontSize(8)
+      pdf.setTextColor(corporateGray[0], corporateGray[1], corporateGray[2])
+      pdf.text(formatTurkishText(`Not: ${data.tasks.length} gorevden ilk 15'i gosterilmektedir.`), 15, rowY + 8)
+      pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+    }
+
+    yPosition = rowY + 20
+  }
+
+  // TEAM COMPOSITION SECTION
+  if (data.allUsers && data.allUsers.length > 0) {
+    if (yPosition > 220) {
+      pdf.addPage()
+      yPosition = 20
+    }
+
+    yPosition = addSection('EKIP KOMPOZISYONU', yPosition)
+
+    // Department breakdown
     const usersByDept = data.allUsers.reduce((acc, user) => {
       if (!acc[user.department]) {
         acc[user.department] = []
@@ -489,42 +550,101 @@ function generateCorporateProjectPDF(data: ProjectDetailsData): jsPDF {
       return acc
     }, {} as Record<string, typeof data.allUsers>)
 
-    Object.entries(usersByDept).forEach(([department, users]) => {
-      if (yPosition > 260) {
+    Object.entries(usersByDept).forEach(([department, users], deptIndex) => {
+      if (yPosition > 250) {
         pdf.addPage()
         yPosition = 20
       }
 
-      // Department header
-      addColoredBackground(15, yPosition + 8, 180, 10, [233, 236, 239])
+      // Department header with count
+      const deptColor = [
+        corporateBlue, accentBlue, successGreen, warningOrange, 
+        dangerRed, corporateGray
+      ][deptIndex % 6]
+      
+      pdf.setFillColor(deptColor[0], deptColor[1], deptColor[2])
+      pdf.rect(15, yPosition - 2, 180, 8, 'F')
+      
+      pdf.setTextColor(255, 255, 255)
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(9)
-      pdf.text(formatTurkishText(`${department} (${users.length} kisi)`), 20, yPosition + 5)
-      yPosition += 15
+      pdf.text(formatTurkishText(`${department.toUpperCase()} (${users.length} KISI)`), 20, yPosition + 3)
+      
+      pdf.setTextColor(darkText[0], darkText[1], darkText[2])
+      yPosition += 12
 
+      // Team members in columns
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(8)
+      const membersPerRow = 2
+      
       users.forEach((user, index) => {
         if (yPosition > 270) {
           pdf.addPage()
           yPosition = 20
         }
-        pdf.text(formatTurkishText(`  ${index + 1}. ${user.name} - ${user.position}`), 25, yPosition)
-        yPosition += 6
+        
+        const col = index % membersPerRow
+        const xPos = 25 + (col * 85)
+        
+        if (col === 0 && index > 0) {
+          yPosition += 5
+        }
+        
+        pdf.text(formatTurkishText(`• ${user.name} - ${user.position}`), xPos, yPosition)
+        
+        if (col === membersPerRow - 1 || index === users.length - 1) {
+          yPosition += 5
+        }
       })
-      yPosition += 5
+      
+      yPosition += 8
     })
   }
 
-  // Footer with generation info
-  const pageCount = pdf.internal.getNumberOfPages()
-  for (let i = 1; i <= pageCount; i++) {
+  // DOCUMENT FOOTER WITH SIGNATURES
+  const finalPageCount = pdf.internal.getNumberOfPages()
+  
+  // Add signature section on last page
+  pdf.setPage(finalPageCount)
+  const footerY = 250
+  
+  // Signature boxes
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(9)
+  pdf.text(formatTurkishText('HAZIRLAYAN'), 30, footerY)
+  pdf.text(formatTurkishText('ONAYLAYAN'), 130, footerY)
+  
+  // Signature lines
+  pdf.setLineWidth(0.5)
+  pdf.line(20, footerY + 15, 80, footerY + 15)
+  pdf.line(120, footerY + 15, 180, footerY + 15)
+  
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(8)
+  pdf.text(formatTurkishText('Proje Koordinatoru'), 35, footerY + 20)
+  pdf.text(formatTurkishText('Proje Muduru'), 140, footerY + 20)
+
+  // Document footer on all pages
+  for (let i = 1; i <= finalPageCount; i++) {
     pdf.setPage(i)
-    pdf.setFontSize(8)
-    pdf.setTextColor(108, 117, 125)
-    pdf.text(formatTurkishText(`Sayfa ${i}/${pageCount}`), 180, 285)
-    pdf.text(formatTurkishText(`Olusturulma: ${new Date().toLocaleString('tr-TR')}`), 20, 285)
-    pdf.setTextColor(0, 0, 0)
+    
+    // Footer line
+    pdf.setDrawColor(borderGray[0], borderGray[1], borderGray[2])
+    pdf.setLineWidth(0.5)
+    pdf.line(10, 280, 200, 280)
+    
+    // Footer text
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(7)
+    pdf.setTextColor(corporateGray[0], corporateGray[1], corporateGray[2])
+    
+    pdf.text(formatTurkishText('Kurumsal Proje Yonetim Sistemi'), 15, 285)
+    pdf.text(formatTurkishText(`Sayfa ${i} / ${finalPageCount}`), 95, 285)
+    pdf.text(formatTurkishText(`Olusturulma: ${new Date().toLocaleString('tr-TR')}`), 140, 285)
+    
+    // Confidentiality notice
+    pdf.text(formatTurkishText('GIZLI - Sadece yetkili personel icin'), 15, 290)
   }
 
   return pdf
