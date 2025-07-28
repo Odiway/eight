@@ -99,6 +99,10 @@ export default function ReportsPage() {
     window.open('/api/reports/performance/pdf', '_blank')
   }
 
+  const handleDownloadRiskAnalysis = () => {
+    window.open('/api/reports/risk-analysis/pdf', '_blank')
+  }
+
   if (loading) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'>
@@ -272,61 +276,114 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Department Performance */}
+          {/* Risk Analysis */}
           <div className='bg-white shadow-xl rounded-2xl border border-gray-100 mb-8'>
-            <div className='px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600'>
+            <div className='px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-600 to-orange-600'>
               <h3 className='text-lg font-semibold text-white flex items-center'>
-                <BarChart3 className='w-5 h-5 mr-2' />
-                Departman Performans Analizi
+                <AlertTriangle className='w-5 h-5 mr-2' />
+                Risk Analizi
               </h3>
             </div>
             <div className='p-6'>
-              <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-                {departmentsArray.map((dept) => (
-                  <div
-                    key={dept.name}
-                    className='border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-shadow'
-                  >
-                    <div className='flex justify-between items-start mb-4'>
-                      <div>
-                        <h4 className='text-lg font-semibold text-gray-900'>
-                          {dept.name}
-                        </h4>
-                        <p className='text-sm text-gray-500'>
-                          {dept.users} çalışan
-                        </p>
-                      </div>
-                      <div className='text-right'>
-                        <div className='text-2xl font-bold text-indigo-600'>
-                          {dept.projectCount || 0}
-                        </div>
-                        <div className='text-xs text-gray-500'>Proje</div>
-                      </div>
-                    </div>
-
-                    <div className='grid grid-cols-2 gap-3'>
-                      <div className='text-center p-3 bg-blue-50 rounded-lg'>
-                        <div className='text-xl font-bold text-blue-600'>
-                          {dept.taskCount}
-                        </div>
-                        <div className='text-xs text-gray-600'>
-                          Toplam Görev
-                        </div>
-                      </div>
-                      <div className='text-center p-3 bg-green-50 rounded-lg'>
-                        <div className='text-xl font-bold text-green-600'>
-                          %
-                          {dept.taskCount > 0
-                            ? Math.round(
-                                (dept.completedTasks / dept.taskCount) * 100
-                              )
-                            : 0}
-                        </div>
-                        <div className='text-xs text-gray-600'>Tamamlama</div>
-                      </div>
-                    </div>
+              <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+                {/* High Risk Projects */}
+                <div className='border border-red-200 rounded-xl p-5 bg-red-50'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <h4 className='text-lg font-semibold text-red-800'>
+                      Yüksek Risk
+                    </h4>
+                    <AlertTriangle className='w-6 h-6 text-red-600' />
                   </div>
-                ))}
+                  <div className='text-3xl font-bold text-red-600 mb-2'>
+                    {projects.filter(p => {
+                      const overdueTasks = p.tasks?.filter(t => t.status !== 'COMPLETED').length || 0;
+                      const totalTasks = p.tasks?.length || 0;
+                      return totalTasks > 0 && (overdueTasks / totalTasks) > 0.5;
+                    }).length}
+                  </div>
+                  <p className='text-sm text-red-700'>
+                    %50'den fazla tamamlanmamış görevli projeler
+                  </p>
+                </div>
+
+                {/* Medium Risk Projects */}
+                <div className='border border-yellow-200 rounded-xl p-5 bg-yellow-50'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <h4 className='text-lg font-semibold text-yellow-800'>
+                      Orta Risk
+                    </h4>
+                    <AlertTriangle className='w-6 h-6 text-yellow-600' />
+                  </div>
+                  <div className='text-3xl font-bold text-yellow-600 mb-2'>
+                    {projects.filter(p => {
+                      const overdueTasks = p.tasks?.filter(t => t.status !== 'COMPLETED').length || 0;
+                      const totalTasks = p.tasks?.length || 0;
+                      return totalTasks > 0 && (overdueTasks / totalTasks) >= 0.25 && (overdueTasks / totalTasks) <= 0.5;
+                    }).length}
+                  </div>
+                  <p className='text-sm text-yellow-700'>
+                    %25-50 arası tamamlanmamış görevli projeler
+                  </p>
+                </div>
+
+                {/* Low Risk Projects */}
+                <div className='border border-green-200 rounded-xl p-5 bg-green-50'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <h4 className='text-lg font-semibold text-green-800'>
+                      Düşük Risk
+                    </h4>
+                    <Award className='w-6 h-6 text-green-600' />
+                  </div>
+                  <div className='text-3xl font-bold text-green-600 mb-2'>
+                    {projects.filter(p => {
+                      const completedTasks = p.tasks?.filter(t => t.status === 'COMPLETED').length || 0;
+                      const totalTasks = p.tasks?.length || 0;
+                      return totalTasks > 0 && (completedTasks / totalTasks) >= 0.75;
+                    }).length}
+                  </div>
+                  <p className='text-sm text-green-700'>
+                    %75'ten fazla tamamlanmış görevli projeler
+                  </p>
+                </div>
+              </div>
+
+              {/* Risk Details */}
+              <div className='mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                <div className='bg-gray-50 rounded-lg p-4'>
+                  <h5 className='font-semibold text-gray-800 mb-3'>Risk Faktörleri</h5>
+                  <ul className='space-y-2 text-sm text-gray-600'>
+                    <li className='flex items-center'>
+                      <span className='w-2 h-2 bg-red-500 rounded-full mr-2'></span>
+                      Tamamlanmamış görev oranı yüksek
+                    </li>
+                    <li className='flex items-center'>
+                      <span className='w-2 h-2 bg-yellow-500 rounded-full mr-2'></span>
+                      Proje durumu belirsiz
+                    </li>
+                    <li className='flex items-center'>
+                      <span className='w-2 h-2 bg-orange-500 rounded-full mr-2'></span>
+                      Ekip üyesi atanmamış görevler
+                    </li>
+                  </ul>
+                </div>
+                
+                <div className='bg-gray-50 rounded-lg p-4'>
+                  <h5 className='font-semibold text-gray-800 mb-3'>Önlemler</h5>
+                  <ul className='space-y-2 text-sm text-gray-600'>
+                    <li className='flex items-center'>
+                      <span className='w-2 h-2 bg-blue-500 rounded-full mr-2'></span>
+                      Düzenli ilerleme takibi
+                    </li>
+                    <li className='flex items-center'>
+                      <span className='w-2 h-2 bg-purple-500 rounded-full mr-2'></span>
+                      Ekip kaynaklarının optimize edilmesi
+                    </li>
+                    <li className='flex items-center'>
+                      <span className='w-2 h-2 bg-green-500 rounded-full mr-2'></span>
+                      Proaktif müdahale planları
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -500,7 +557,10 @@ export default function ReportsPage() {
                   </p>
                 </div>
 
-                <div className='bg-gradient-to-br from-orange-50 to-red-100 rounded-xl p-6 border border-orange-200 hover:shadow-lg transition-shadow cursor-pointer'>
+                <div 
+                  className='bg-gradient-to-br from-orange-50 to-red-100 rounded-xl p-6 border border-orange-200 hover:shadow-lg transition-shadow cursor-pointer'
+                  onClick={handleDownloadRiskAnalysis}
+                >
                   <div className='flex items-center justify-between mb-4'>
                     <AlertTriangle className='w-8 h-8 text-orange-600' />
                     <Download className='w-5 h-5 text-orange-500' />

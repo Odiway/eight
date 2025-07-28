@@ -230,25 +230,6 @@ function generateCleanProjectPDF(data: ProjectDetailsData): jsPDF {
   
   yPosition += 10
 
-  // Çalışma saatleri bilgisi
-  if (data.totalEstimatedHours > 0 || data.totalActualHours > 0) {
-    yPosition = addSectionHeader(doc, 'Calisma Saatleri', yPosition)
-    
-    addTurkishText(doc, `Tahmini Toplam Saat: ${data.totalEstimatedHours}`, 20, yPosition)
-    yPosition += 12
-    
-    addTurkishText(doc, `Gerceklesen Toplam Saat: ${data.totalActualHours}`, 20, yPosition)
-    yPosition += 12
-    
-    if (data.totalEstimatedHours > 0) {
-      const efficiency = Math.round((data.totalActualHours / data.totalEstimatedHours) * 100)
-      addTurkishText(doc, `Verimlilik Orani: %${efficiency}`, 20, yPosition)
-      yPosition += 12
-    }
-    
-    yPosition += 10
-  }
-
   // Sayfa sonu kontrolü
   yPosition = checkPageBreak(doc, yPosition, 80)
 
