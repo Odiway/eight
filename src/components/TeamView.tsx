@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import TeamFilter from '@/components/TeamFilter'
+import UserDetailModal from '@/components/UserDetailModal'
 import { Users, Badge, Clock, Edit, Trash2, Eye } from 'lucide-react'
 import Link from 'next/link'
 
@@ -54,12 +55,24 @@ export default function TeamView({
     teams: initialTeams,
   })
   const [activeTab, setActiveTab] = useState<'users' | 'teams'>('users')
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleFilterChange = (newFilteredData: {
     users: any[]
     teams: any[]
   }) => {
     setFilteredData(newFilteredData)
+  }
+
+  const handleViewUserDetails = (userId: string) => {
+    setSelectedUserId(userId)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedUserId(null)
   }
 
   const handleDeleteUser = async (userId: string, userName: string) => {
@@ -204,6 +217,13 @@ export default function TeamView({
                         </div>
                         
                         <div className='flex space-x-1'>
+                          <button
+                            onClick={() => handleViewUserDetails(user.id)}
+                            className='p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors'
+                            title='Detayları Görüntüle'
+                          >
+                            <Eye className='w-4 h-4' />
+                          </button>
                           <Link
                             href={`/team/edit/${user.id}`}
                             className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
@@ -364,6 +384,15 @@ export default function TeamView({
           </div>
         )}
       </div>
+
+      {/* User Detail Modal */}
+      {selectedUserId && (
+        <UserDetailModal
+          userId={selectedUserId}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   )
 }
