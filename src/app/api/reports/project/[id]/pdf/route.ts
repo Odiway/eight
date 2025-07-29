@@ -43,31 +43,12 @@ function formatCompactName(fullName: string): string {
   return `${compactFirstName} ${lastNameInitial}.`
 }
 
-// Helper function to get Turkish position title
-function getTurkishPositionTitle(position: string): string {
-  if (!position) return 'Çalışan'
+// Helper function to get formatted position title
+function getFormattedPosition(position: string): string {
+  if (!position) return 'Belirtilmemiş'
   
-  const pos = position.toLowerCase()
-  
-  // Engineer variants
-  if (pos.includes('mühendis') || pos.includes('engineer') || 
-      pos.includes('developer') || pos.includes('yazılım') ||
-      pos.includes('tekniker') || pos.includes('uzman') ||
-      pos.includes('architect') || pos.includes('lead') ||
-      pos.includes('senior') || pos.includes('manager')) {
-    return 'Mühendis'
-  }
-  
-  // Worker variants  
-  if (pos.includes('işçi') || pos.includes('operator') ||
-      pos.includes('teknisyen') || pos.includes('assistant') ||
-      pos.includes('helper') || pos.includes('worker') ||
-      pos.includes('intern') || pos.includes('stajyer')) {
-    return 'İşçi'
-  }
-  
-  // Default to worker for unknown positions
-  return 'Çalışan'
+  // Simply return the position as-is, just formatted nicely
+  return formatTurkishText(position)
 }
 
 // Comprehensive Data Models
@@ -657,10 +638,10 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         .member-position {
             font-size: 13px;
             font-weight: 500;
-            color: var(--corporate-blue);
+            color: var(--executive-gray);
             margin-bottom: 2px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            text-transform: capitalize;
+            letter-spacing: 0.3px;
         }
         
         .member-department {
@@ -935,7 +916,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                 ${data.teamMembers
                   .map((member) => {
                     const compactName = formatCompactName(member.name)
-                    const positionTitle = getTurkishPositionTitle(member.position)
+                    const positionTitle = getFormattedPosition(member.position)
                     const department = formatTurkishText(member.department || 'Genel')
                     
                     return `
