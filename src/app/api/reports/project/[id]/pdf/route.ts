@@ -22,6 +22,54 @@ function formatTurkishText(text: string): string {
   return text // Keep original Turkish characters in HTML/CSS
 }
 
+// Helper function to format names for compact display
+function formatCompactName(fullName: string): string {
+  if (!fullName) return 'Bilinmiyor'
+  
+  const nameParts = fullName.trim().split(' ')
+  if (nameParts.length === 1) {
+    return nameParts[0].length > 12 ? nameParts[0].substring(0, 12) + '.' : nameParts[0]
+  }
+  
+  const firstName = nameParts[0]
+  const lastName = nameParts[nameParts.length - 1]
+  
+  // If first name is too long, truncate it
+  const compactFirstName = firstName.length > 10 ? firstName.substring(0, 10) : firstName
+  
+  // Take only first letter of last name
+  const lastNameInitial = lastName.charAt(0).toUpperCase()
+  
+  return `${compactFirstName} ${lastNameInitial}.`
+}
+
+// Helper function to get Turkish position title
+function getTurkishPositionTitle(position: string): string {
+  if (!position) return 'Çalışan'
+  
+  const pos = position.toLowerCase()
+  
+  // Engineer variants
+  if (pos.includes('mühendis') || pos.includes('engineer') || 
+      pos.includes('developer') || pos.includes('yazılım') ||
+      pos.includes('tekniker') || pos.includes('uzman') ||
+      pos.includes('architect') || pos.includes('lead') ||
+      pos.includes('senior') || pos.includes('manager')) {
+    return 'Mühendis'
+  }
+  
+  // Worker variants  
+  if (pos.includes('işçi') || pos.includes('operator') ||
+      pos.includes('teknisyen') || pos.includes('assistant') ||
+      pos.includes('helper') || pos.includes('worker') ||
+      pos.includes('intern') || pos.includes('stajyer')) {
+    return 'İşçi'
+  }
+  
+  // Default to worker for unknown positions
+  return 'Çalışan'
+}
+
 // Comprehensive Data Models
 interface ProjectReportData {
   project: {
@@ -53,6 +101,7 @@ interface ProjectReportData {
     id: string
     name: string
     department: string
+    position: string
   }>
   departments: Array<{
     name: string
@@ -567,12 +616,13 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         .team-member-card {
             background: white;
             border-radius: 12px;
-            padding: 20px;
+            padding: 18px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--light-silver);
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
+            min-height: 80px;
         }
         
         .member-avatar {
@@ -597,14 +647,24 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         }
         
         .member-name {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             color: var(--charcoal-black);
-            margin-bottom: 4px;
+            margin-bottom: 2px;
+            line-height: 1.2;
+        }
+        
+        .member-position {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--corporate-blue);
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .member-department {
-            font-size: 14px;
+            font-size: 12px;
             color: var(--corporate-gray);
             text-transform: capitalize;
         }
@@ -874,14 +934,19 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             <div class="team-members-grid">
                 ${data.teamMembers
                   .map((member) => {
+                    const compactName = formatCompactName(member.name)
+                    const positionTitle = getTurkishPositionTitle(member.position)
+                    const department = formatTurkishText(member.department || 'Genel')
+                    
                     return `
                     <div class="team-member-card">
                         <div class="member-avatar">
                             <span class="member-initial">${member.name.charAt(0).toUpperCase()}</span>
                         </div>
                         <div class="member-info">
-                            <div class="member-name">${formatTurkishText(member.name)}</div>
-                            <div class="member-department">${formatTurkishText(member.department || 'Genel')}</div>
+                            <div class="member-name">${compactName}</div>
+                            <div class="member-position">${positionTitle}</div>
+                            <div class="member-department">${department}</div>
                         </div>
                     </div>
                   `
@@ -1015,11 +1080,11 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                         <div>${
                           task.assignedUsers && task.assignedUsers.length > 0
                             ? task.assignedUsers
-                                .map(au => formatTurkishText(au.user.name))
+                                .map(au => formatCompactName(au.user.name))
                                 .join(', ')
-                                .substring(0, 20) + (task.assignedUsers.length > 1 ? '...' : '')
+                                .substring(0, 25) + (task.assignedUsers.length > 1 ? '...' : '')
                             : task.assignedUser
-                            ? formatTurkishText(task.assignedUser.name).substring(0, 15)
+                            ? formatCompactName(task.assignedUser.name)
                             : 'Atanmadı'
                         }</div>
                         <div>
@@ -1070,7 +1135,7 @@ async function buildReportData(
             assignedUsers: {
               include: {
                 user: {
-                  select: { id: true, name: true, department: true },
+                  select: { id: true, name: true, department: true, position: true },
                 },
               },
             },
@@ -1079,7 +1144,7 @@ async function buildReportData(
         members: {
           include: {
             user: {
-              select: { id: true, name: true, department: true },
+              select: { id: true, name: true, department: true, position: true },
             },
           },
         },
@@ -1093,6 +1158,7 @@ async function buildReportData(
       id: pm.user.id,
       name: pm.user.name,
       department: pm.user.department,
+      position: pm.user.position,
     }))
 
     // Calculate departments
