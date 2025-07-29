@@ -221,61 +221,76 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         
         .company-branding {
             background: rgba(255, 255, 255, 0.98);
-            padding: 40px 50px;
-            border-radius: 25px;
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            padding: 50px 60px;
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
             margin-bottom: 80px;
             z-index: 2;
             text-align: center;
+            position: relative;
+        }
+        
+        .company-branding::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--champagne-gold), var(--corporate-blue), var(--champagne-gold));
+            border-radius: 32px;
+            z-index: -1;
         }
         
         .company-logo {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         
         .logo-temsa {
-            font-size: 42px;
+            font-size: 52px;
             font-weight: 900;
             color: var(--corporate-blue);
-            letter-spacing: 3px;
-            margin-right: 15px;
+            letter-spacing: 4px;
+            margin-right: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
         }
         
         .logo-one {
-            font-size: 42px;
+            font-size: 52px;
             font-weight: 300;
             color: var(--champagne-gold);
-            letter-spacing: 3px;
+            letter-spacing: 4px;
             position: relative;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
         }
         
         .logo-one::after {
             content: '';
             position: absolute;
-            bottom: -5px;
+            bottom: -8px;
             left: 0;
             width: 100%;
-            height: 3px;
+            height: 4px;
             background: linear-gradient(90deg, var(--corporate-blue) 0%, var(--champagne-gold) 100%);
             border-radius: 2px;
         }
         
         .company-tagline {
-            font-size: 18px;
+            font-size: 22px;
             color: var(--executive-gray);
-            margin-bottom: 8px;
-            letter-spacing: 3px;
+            margin-bottom: 12px;
+            letter-spacing: 4px;
             text-transform: uppercase;
-            font-weight: 600;
+            font-weight: 700;
         }
         
         .company-subtitle {
-            font-size: 14px;
+            font-size: 16px;
             color: var(--corporate-gray);
             font-style: italic;
-            font-weight: 400;
+            font-weight: 500;
         }
         
         .decorative-line {
@@ -289,65 +304,85 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         
         .main-title {
             z-index: 2;
-            margin-bottom: 50px;
+            margin-bottom: 60px;
             text-align: center;
         }
         
         .main-title h1 {
-            font-size: 78px;
+            font-size: 88px;
             font-weight: 900;
             color: white;
-            text-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-            line-height: 1.1;
-            margin-bottom: 15px;
-            letter-spacing: -2px;
+            text-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            line-height: 1.0;
+            margin-bottom: 20px;
+            letter-spacing: -3px;
         }
         
         .main-title h2 {
-            font-size: 52px;
+            font-size: 62px;
             font-weight: 700;
             color: var(--champagne-gold);
-            text-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-            line-height: 1.2;
-            margin-bottom: 20px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            line-height: 1.1;
+            margin-bottom: 25px;
+            letter-spacing: -1px;
         }
         
         .title-accent {
-            font-size: 18px;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-            letter-spacing: 2px;
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 600;
+            letter-spacing: 3px;
             text-transform: uppercase;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            padding: 12px 30px;
-            border-radius: 25px;
-            backdrop-filter: blur(10px);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            padding: 15px 40px;
+            border-radius: 30px;
+            backdrop-filter: blur(15px);
             display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
         }
         
         .project-name {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
-            padding: 30px 40px;
-            border-radius: 20px;
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.9) 100%);
+            padding: 40px 50px;
+            border-radius: 25px;
+            backdrop-filter: blur(20px);
+            border: 3px solid rgba(255, 255, 255, 0.4);
             margin-bottom: 60px;
             z-index: 2;
             text-align: center;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+        
+        .project-name::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--corporate-blue), var(--champagne-gold), var(--corporate-blue));
+            border-radius: 27px;
+            z-index: -1;
         }
         
         .project-label {
-            font-size: 16px;
+            font-size: 18px;
             color: var(--corporate-blue);
-            font-weight: 700;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
         }
         
         .project-title {
-            font-size: 28px;
+            font-size: 32px;
             color: var(--charcoal-black);
+            font-weight: 800;
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
             font-weight: 800;
             letter-spacing: 1px;
         }
@@ -446,6 +481,33 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             box-shadow: 0 8px 20px rgba(211, 47, 47, 0.3);
         }
         
+        .footer-branding {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            text-align: center;
+        }
+        
+        .footer-brand {
+            color: white;
+            font-size: 16px;
+            font-weight: 900;
+            display: block;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .footer-system {
+            color: var(--champagne-gold);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-top: 2px;
+            display: block;
+        }
+        
         .classification-badge {
             color: white;
             font-size: 13px;
@@ -458,6 +520,34 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             padding: 60px;
             min-height: 100vh;
             page-break-before: always;
+            position: relative;
+        }
+        
+        .page-header {
+            position: absolute;
+            top: 20px;
+            left: 60px;
+            right: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--premium-blue) 100%);
+            border-radius: 10px;
+            z-index: 10;
+        }
+        
+        .page-header-brand {
+            color: white;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        
+        .page-header-title {
+            color: var(--champagne-gold);
+            font-size: 12px;
+            font-weight: 600;
         }
         
         /* ===== EXECUTIVE DASHBOARD ===== */
@@ -467,6 +557,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             padding: 40px;
             border-radius: 20px;
             margin-bottom: 40px;
+            margin-top: 60px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
         
@@ -1045,6 +1136,10 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                   })
                   .toUpperCase()}</span>
             </div>
+            <div class="footer-branding">
+                <span class="footer-brand">TEMSA ONE</span>
+                <span class="footer-system">Executive Analytics</span>
+            </div>
             <div class="footer-classification">
                 <span class="classification-badge">GİZLİ - YÖNETİCİ DÜZEYİ</span>
             </div>
@@ -1053,6 +1148,11 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
     
     <!-- ===== EXECUTIVE DASHBOARD ===== -->
     <div class="content-page">
+        <div class="page-header">
+            <span class="page-header-brand">TEMSA ONE</span>
+            <span class="page-header-title">Executive Project Analytics</span>
+        </div>
+        
         <div class="dashboard-header">
             <h1>YÖNETİCİ PANOSU</h1>
             <p>Gerçek Zamanlı Performans Metrikleri ve Analitiği</p>
