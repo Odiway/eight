@@ -300,15 +300,6 @@ export default function UserDetailModal({ userId, isOpen, onClose }: UserDetailM
                         </div>
                       </div>
                     </div>
-                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-4 rounded-xl text-white">
-                      <div className="flex items-center space-x-3">
-                        <Zap className="w-8 h-8" />
-                        <div>
-                          <p className="text-orange-100 text-sm">Verimlilik</p>
-                          <p className="text-2xl font-bold">%{userDetails.stats.efficiency}</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Personal Information */}
