@@ -1025,20 +1025,9 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
   `
 }
 
-// ===== MAIN API HANDLER =====
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  let browser = null
-
+// Helper function to build report data
+async function buildReportData(projectId: string): Promise<ProjectReportData | null> {
   try {
-    // Ensure database migrations are applied
-    await ensureMigrations()
-    
-    const projectId = params.id
-
-    // Fetch comprehensive project data
     const projectData = await prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -1066,9 +1055,7 @@ export async function GET(
       },
     })
 
-    if (!projectData) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-    }
+    if (!projectData) return null
 
     // Process team members
     const teamMembers = projectData.members.map((pm: any) => ({
@@ -1114,44 +1101,88 @@ export async function GET(
       averageTaskHours,
     }
 
-    // Prepare report data
-    const reportData: ProjectReportData = {
+    return {
       project: projectData,
       tasks: projectData.tasks,
       teamMembers,
       departments,
       workloadData,
     }
+  } catch (error) {
+    console.error('Failed to build report data:', error)
+    return null
+  }
+}
+
+// ===== MAIN API HANDLER =====
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  let browser = null
+
+  try {
+    // Ensure database migrations are applied
+    console.log('Checking database migrations...')
+    await ensureMigrations()
+    
+    const projectId = params.id
+    console.log('Fetching project data for ID:', projectId)
+
+    // Build comprehensive report data
+    const reportData = await buildReportData(projectId)
+    if (!reportData) {
+      console.log('Project not found for ID:', projectId)
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    console.log('Project data fetched successfully:', reportData.project.name)
 
     // Generate HTML report
+    console.log('Generating HTML content...')
     const htmlContent = generateExecutiveHTMLReport(reportData)
 
     // Launch Puppeteer with Vercel-optimized settings
-    browser = await puppeteer.launch({
+    console.log('Launching Puppeteer browser...')
+    
+    const browserOptions: any = {
       headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
         '--disable-gpu',
-        '--disable-web-security',
+        '--single-process',
+        '--disable-background-timer-throttling',
+        '--disable-renderer-backgrounding'
       ],
-    })
+    }
 
+    // Add executable path for Vercel if needed
+    if (process.env.VERCEL) {
+      console.log('Running on Vercel, using chrome-aws-lambda configuration')
+      // For Vercel, we might need chrome-aws-lambda instead
+      browserOptions.executablePath = '/usr/bin/google-chrome-stable'
+    }
+
+    browser = await puppeteer.launch(browserOptions)
+
+    console.log('Creating new page...')
     const page = await browser.newPage()
 
     // Set viewport for consistent rendering
+    console.log('Setting viewport...')
     await page.setViewport({ width: 1200, height: 1600 })
 
     // Set content and wait for fonts to load
+    console.log('Setting HTML content...')
     await page.setContent(htmlContent, {
-      waitUntil: ['networkidle0', 'domcontentloaded'],
+      waitUntil: ['domcontentloaded'],
+      timeout: 30000
     })
 
     // Generate PDF with premium settings
+    console.log('Generating PDF...')
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -1165,7 +1196,7 @@ export async function GET(
     })
 
     // Generate premium filename
-    const sanitizedName = formatTurkishText(projectData.name)
+    const sanitizedName = formatTurkishText(reportData.project.name)
       .replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ0-9\s]/g, '')
       .replace(/\s+/g, '_')
       .toLowerCase()
@@ -1186,8 +1217,51 @@ export async function GET(
     })
   } catch (error) {
     console.error('Executive PDF generation error:', error)
+    
+    const err = error as Error
+    console.error('Error details:', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    })
+    
+    // If this is a Puppeteer-specific error, try to provide an HTML fallback
+    if (err.message?.includes('Failed to launch') || 
+        err.message?.includes('Protocol error') ||
+        err.message?.includes('Target closed')) {
+      
+      console.log('Puppeteer failed, providing HTML fallback')
+      
+      // Return HTML version as fallback
+      const reportData = await buildReportData(params.id)
+      if (reportData) {
+        const htmlContent = generateExecutiveHTMLReport(reportData)
+        return new NextResponse(htmlContent, {
+          headers: {
+            'Content-Type': 'text/html',
+            'Content-Disposition': 'inline; filename="project_report.html"',
+          }
+        })
+      }
+    }
+    
+    // Provide more specific error information
+    let errorMessage = 'Failed to generate executive PDF report'
+    if (err.message?.includes('Protocol error')) {
+      errorMessage = 'Browser connection failed - Puppeteer issue'
+    } else if (err.message?.includes('Navigation timeout')) {
+      errorMessage = 'PDF generation timeout - content too complex'
+    } else if (err.message?.includes('Project not found')) {
+      errorMessage = 'Project not found in database'
+    } else if (err.message?.includes('PrismaClient')) {
+      errorMessage = 'Database connection error'
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to generate executive PDF report' },
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      },
       { status: 500 }
     )
   } finally {
