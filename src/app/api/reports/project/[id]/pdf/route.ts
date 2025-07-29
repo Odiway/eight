@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
 import puppeteer from 'puppeteer'
 import { PrismaClient } from '@prisma/client'
+import { ensureMigrations } from '@/lib/database'
 
 // Global Prisma client for Vercel production
-const prisma = global.prisma || new PrismaClient()
+const prisma = global.prisma || new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+})
 if (process.env.NODE_ENV === 'development') global.prisma = prisma
 
 // Enhanced Turkish Character Support
@@ -1026,6 +1033,9 @@ export async function GET(
   let browser = null
 
   try {
+    // Ensure database migrations are applied
+    await ensureMigrations()
+    
     const projectId = params.id
 
     // Fetch comprehensive project data
