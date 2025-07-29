@@ -251,12 +251,6 @@ export default function UserDetailModal({ userId, isOpen, onClose }: UserDetailM
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Verimlilik</span>
-                    <span className="text-sm font-semibold text-blue-600">
-                      %{userDetails.stats.efficiency}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Ortalama Saat</span>
                     <span className="text-sm font-semibold text-green-600">
                       {userDetails.stats.averageTaskHours}s
