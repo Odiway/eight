@@ -119,6 +119,8 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
   // Status translation to Turkish
   const getStatusText = (status: string) => {
     switch (status) {
+      case 'TODO':
+        return 'Yapılacak'
       case 'COMPLETED':
         return 'Tamamlandı'
       case 'IN_PROGRESS':
@@ -676,8 +678,8 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         
         .task-row {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1.5fr 120px 80px;
-            gap: 20px;
+            grid-template-columns: 2.5fr 1fr 1fr 2fr 120px 80px;
+            gap: 15px;
             align-items: center;
             padding: 16px 20px;
             border-bottom: 1px solid var(--light-silver);
@@ -695,9 +697,19 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             border-bottom: 2px solid var(--corporate-blue);
         }
         
+        .task-assignees {
+            font-size: 13px;
+            line-height: 1.3;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
         .task-title {
             font-weight: 600;
             color: var(--charcoal-black);
+            line-height: 1.3;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         .status-badge {
@@ -1044,9 +1056,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                     <div class="task-row">
                         <div class="task-title">${formatTurkishText(
                           task.title
-                        ).substring(0, 40)}${
-                      task.title.length > 40 ? '...' : ''
-                    }</div>
+                        )}</div>
                         <div>
                             <span class="status-badge ${statusClass}">
                                 <span class="status-dot"></span>
@@ -1058,14 +1068,13 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                                 ${getPriorityText(task.priority)}
                             </span>
                         </div>
-                        <div>${
+                        <div class="task-assignees">${
                           task.assignedUsers && task.assignedUsers.length > 0
                             ? task.assignedUsers
-                                .map(au => formatCompactName(au.user.name))
+                                .map(au => formatTurkishText(au.user.name))
                                 .join(', ')
-                                .substring(0, 25) + (task.assignedUsers.length > 1 ? '...' : '')
                             : task.assignedUser
-                            ? formatCompactName(task.assignedUser.name)
+                            ? formatTurkishText(task.assignedUser.name)
                             : 'Atanmadı'
                         }</div>
                         <div>
