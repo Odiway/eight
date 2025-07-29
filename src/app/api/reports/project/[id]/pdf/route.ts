@@ -4,13 +4,15 @@ import { PrismaClient } from '@prisma/client'
 import { ensureMigrations } from '@/lib/database'
 
 // Global Prisma client for Vercel production
-const prisma = global.prisma || new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
+const prisma =
+  global.prisma ||
+  new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
     },
-  },
-})
+  })
 if (process.env.NODE_ENV === 'development') global.prisma = prisma
 
 // Enhanced Turkish Character Support
@@ -1026,7 +1028,9 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
 }
 
 // Helper function to build report data
-async function buildReportData(projectId: string): Promise<ProjectReportData | null> {
+async function buildReportData(
+  projectId: string
+): Promise<ProjectReportData | null> {
   try {
     const projectData = await prisma.project.findUnique({
       where: { id: projectId },
@@ -1125,7 +1129,7 @@ export async function GET(
     // Ensure database migrations are applied
     console.log('Checking database migrations...')
     await ensureMigrations()
-    
+
     const projectId = params.id
     console.log('Fetching project data for ID:', projectId)
 
@@ -1144,7 +1148,7 @@ export async function GET(
 
     // Launch Puppeteer with Vercel-optimized settings
     console.log('Launching Puppeteer browser...')
-    
+
     const browserOptions: any = {
       headless: true,
       args: [
@@ -1154,7 +1158,7 @@ export async function GET(
         '--disable-gpu',
         '--single-process',
         '--disable-background-timer-throttling',
-        '--disable-renderer-backgrounding'
+        '--disable-renderer-backgrounding',
       ],
     }
 
@@ -1178,7 +1182,7 @@ export async function GET(
     console.log('Setting HTML content...')
     await page.setContent(htmlContent, {
       waitUntil: ['domcontentloaded'],
-      timeout: 30000
+      timeout: 30000,
     })
 
     // Generate PDF with premium settings
@@ -1217,21 +1221,22 @@ export async function GET(
     })
   } catch (error) {
     console.error('Executive PDF generation error:', error)
-    
+
     const err = error as Error
     console.error('Error details:', {
       message: err.message,
       stack: err.stack,
-      name: err.name
+      name: err.name,
     })
-    
+
     // If this is a Puppeteer-specific error, try to provide an HTML fallback
-    if (err.message?.includes('Failed to launch') || 
-        err.message?.includes('Protocol error') ||
-        err.message?.includes('Target closed')) {
-      
+    if (
+      err.message?.includes('Failed to launch') ||
+      err.message?.includes('Protocol error') ||
+      err.message?.includes('Target closed')
+    ) {
       console.log('Puppeteer failed, providing HTML fallback')
-      
+
       // Return HTML version as fallback
       const reportData = await buildReportData(params.id)
       if (reportData) {
@@ -1240,11 +1245,11 @@ export async function GET(
           headers: {
             'Content-Type': 'text/html',
             'Content-Disposition': 'inline; filename="project_report.html"',
-          }
+          },
         })
       }
     }
-    
+
     // Provide more specific error information
     let errorMessage = 'Failed to generate executive PDF report'
     if (err.message?.includes('Protocol error')) {
@@ -1256,11 +1261,12 @@ export async function GET(
     } else if (err.message?.includes('PrismaClient')) {
       errorMessage = 'Database connection error'
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+        details:
+          process.env.NODE_ENV === 'development' ? err.message : undefined,
       },
       { status: 500 }
     )
