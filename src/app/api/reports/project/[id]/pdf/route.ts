@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer-core'
+import chromium from '@sparticuz/chromium'
 import { PrismaClient } from '@prisma/client'
 import { ensureMigrations } from '@/lib/database'
 
@@ -1123,7 +1124,7 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  let browser = null
+  let browser: any = null
 
   try {
     // Ensure database migrations are applied
@@ -1149,27 +1150,30 @@ export async function GET(
     // Launch Puppeteer with Vercel-optimized settings
     console.log('Launching Puppeteer browser...')
 
-    const browserOptions: any = {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-        '--disable-background-timer-throttling',
-        '--disable-renderer-backgrounding',
-      ],
-    }
+    const isVercel = !!process.env.VERCEL || !!process.env.AWS_REGION
+    let browser: any
 
-    // Add executable path for Vercel if needed
-    if (process.env.VERCEL) {
-      console.log('Running on Vercel, using chrome-aws-lambda configuration')
-      // For Vercel, we might need chrome-aws-lambda instead
-      browserOptions.executablePath = '/usr/bin/google-chrome-stable'
+    if (isVercel) {
+      console.log('Running on Vercel/AWS, using Chromium')
+      browser = await puppeteer.launch({
+        args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
+        defaultViewport: { width: 1200, height: 1600 },
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      })
+    } else {
+      console.log('Running locally, using local Puppeteer')
+      const puppeteerLocal = require('puppeteer')
+      browser = await puppeteerLocal.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+        ],
+      })
     }
-
-    browser = await puppeteer.launch(browserOptions)
 
     console.log('Creating new page...')
     const page = await browser.newPage()
