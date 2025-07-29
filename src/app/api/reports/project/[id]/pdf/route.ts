@@ -818,26 +818,26 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         /* ===== TEAM MEMBERS ===== */
         .team-members-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
             margin-bottom: 40px;
         }
         
         .team-member-card {
             background: white;
-            border-radius: 12px;
-            padding: 18px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             border: 1px solid var(--light-silver);
             display: flex;
             align-items: center;
-            gap: 14px;
-            min-height: 80px;
+            gap: 10px;
+            min-height: 60px;
         }
         
         .member-avatar {
-            width: 50px;
-            height: 50px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--premium-blue) 100%);
             display: flex;
@@ -848,7 +848,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         
         .member-initial {
             color: white;
-            font-size: 20px;
+            font-size: 14px;
             font-weight: 700;
         }
         
@@ -857,24 +857,24 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         }
         
         .member-name {
-            font-size: 15px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--charcoal-black);
-            margin-bottom: 2px;
-            line-height: 1.2;
+            margin-bottom: 1px;
+            line-height: 1.1;
         }
         
         .member-position {
-            font-size: 13px;
+            font-size: 10px;
             font-weight: 500;
             color: var(--executive-gray);
-            margin-bottom: 2px;
+            margin-bottom: 1px;
             text-transform: capitalize;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.2px;
         }
         
         .member-department {
-            font-size: 12px;
+            font-size: 9px;
             color: var(--corporate-gray);
             text-transform: capitalize;
         }
@@ -1067,6 +1067,16 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             }
             
             .workload-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .team-members-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .team-members-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
