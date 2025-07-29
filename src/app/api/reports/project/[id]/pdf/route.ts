@@ -179,7 +179,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             --corporate-blue: #1565c0;
             --premium-blue: #1976d2;
             --accent-blue: #42a5f5;
-            --champagne-gold: #f7e98e;
+            --professional-white: #ffffff;
             --platinum-silver: #e8eaf6;
             --rose-gold: #f8bbd9;
             --success-forest: #2e7d32;
@@ -239,7 +239,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             left: -2px;
             right: -2px;
             bottom: -2px;
-            background: linear-gradient(45deg, var(--champagne-gold), var(--corporate-blue), var(--champagne-gold));
+            background: linear-gradient(45deg, var(--professional-white), var(--corporate-blue), var(--professional-white));
             border-radius: 32px;
             z-index: -1;
         }
@@ -260,7 +260,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         .logo-one {
             font-size: 52px;
             font-weight: 300;
-            color: var(--champagne-gold);
+            color: var(--professional-white);
             letter-spacing: 4px;
             position: relative;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
@@ -273,7 +273,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             left: 0;
             width: 100%;
             height: 4px;
-            background: linear-gradient(90deg, var(--corporate-blue) 0%, var(--champagne-gold) 100%);
+            background: linear-gradient(90deg, var(--corporate-blue) 0%, var(--professional-white) 100%);
             border-radius: 2px;
         }
         
@@ -296,7 +296,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         .decorative-line {
             width: 200px;
             height: 4px;
-            background: linear-gradient(90deg, var(--corporate-blue) 0%, var(--champagne-gold) 50%, var(--corporate-blue) 100%);
+            background: linear-gradient(90deg, var(--corporate-blue) 0%, var(--professional-white) 50%, var(--corporate-blue) 100%);
             margin: 0 auto 60px;
             border-radius: 2px;
             z-index: 2;
@@ -321,7 +321,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         .main-title h2 {
             font-size: 62px;
             font-weight: 700;
-            color: var(--champagne-gold);
+            color: var(--professional-white);
             text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
             line-height: 1.1;
             margin-bottom: 25px;
@@ -362,7 +362,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             left: -2px;
             right: -2px;
             bottom: -2px;
-            background: linear-gradient(45deg, var(--corporate-blue), var(--champagne-gold), var(--corporate-blue));
+            background: linear-gradient(45deg, var(--corporate-blue), var(--professional-white), var(--corporate-blue));
             border-radius: 27px;
             z-index: -1;
         }
@@ -500,7 +500,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         }
         
         .footer-system {
-            color: var(--champagne-gold);
+            color: var(--professional-white);
             font-size: 12px;
             font-weight: 600;
             letter-spacing: 1px;
@@ -545,7 +545,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         }
         
         .page-header-title {
-            color: var(--champagne-gold);
+            color: var(--professional-white);
             font-size: 12px;
             font-weight: 600;
         }
@@ -1097,32 +1097,6 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             <div class="project-title">${formatTurkishText(
               data.project.name
             ).toUpperCase()}</div>
-        </div>
-        
-        <div class="executive-summary">
-            <h3>YÖNETİCİ ÖZETİ</h3>
-            <div class="summary-grid">
-                <div class="summary-item">
-                    <span class="summary-icon">📊</span>
-                    <span>Kapsamlı proje performans analizi</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-icon">⚡</span>
-                    <span>Gerçek zamanlı takım metrikleri</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-icon">📈</span>
-                    <span>Gelişmiş iş yükü içgörüleri</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-icon">🎯</span>
-                    <span>Stratejik kaynak önerileri</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-icon">💼</span>
-                    <span>Yönetici karar destek sistemi</span>
-                </div>
-            </div>
         </div>
         
         <div class="cover-footer">
