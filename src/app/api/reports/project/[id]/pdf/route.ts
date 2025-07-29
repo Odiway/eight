@@ -315,7 +315,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 30px;
             margin-bottom: 60px;
         }
@@ -511,7 +511,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
         /* ===== WORKLOAD ANALYTICS ===== */
         .workload-cards {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
             margin-bottom: 40px;
         }
@@ -554,6 +554,59 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             opacity: 0.9;
             text-transform: uppercase;
             letter-spacing: 1px;
+        }
+        
+        /* ===== TEAM MEMBERS ===== */
+        .team-members-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .team-member-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--light-silver);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .member-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--premium-blue) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .member-initial {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .member-info {
+            flex: 1;
+        }
+        
+        .member-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--charcoal-black);
+            margin-bottom: 4px;
+        }
+        
+        .member-department {
+            font-size: 14px;
+            color: var(--corporate-gray);
+            text-transform: capitalize;
         }
         
         /* ===== TASK TABLE ===== */
@@ -796,13 +849,6 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                 <div class="kpi-subtitle">${completedTasks}/${totalTasks} Görev</div>
             </div>
             
-            <div class="kpi-card efficiency">
-                <span class="kpi-icon">⚡</span>
-                <div class="kpi-value">${efficiency.toFixed(1)}%</div>
-                <div class="kpi-label">Takım Verimliliği</div>
-                <div class="kpi-subtitle">Performans İndeksi</div>
-            </div>
-            
             <div class="kpi-card tasks">
                 <span class="kpi-icon">⚠</span>
                 <div class="kpi-value">${inProgressTasks}</div>
@@ -815,6 +861,32 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                 <div class="kpi-value">${data.teamMembers.length}</div>
                 <div class="kpi-label">Takım Üyeleri</div>
                 <div class="kpi-subtitle">Kaynak Havuzu</div>
+            </div>
+        </div>
+        
+        <!-- ===== TEAM MEMBERS SECTION ===== -->
+        <div class="analytics-section">
+            <div class="section-header">
+                <h2>TAKIM ÜYELERİ</h2>
+                <p>Proje Ekibi Üyeleri ve Pozisyonları</p>
+            </div>
+            
+            <div class="team-members-grid">
+                ${data.teamMembers
+                  .map((member) => {
+                    return `
+                    <div class="team-member-card">
+                        <div class="member-avatar">
+                            <span class="member-initial">${member.name.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div class="member-info">
+                            <div class="member-name">${formatTurkishText(member.name)}</div>
+                            <div class="member-department">${formatTurkishText(member.department || 'Genel')}</div>
+                        </div>
+                    </div>
+                  `
+                  })
+                  .join('')}
             </div>
         </div>
         
@@ -854,39 +926,6 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                           .join('')}
                     </div>
                 </div>
-                
-                <div class="chart-container">
-                    <div class="chart-title">Takım Performans Matrisi</div>
-                    <div class="team-matrix">
-                        ${data.departments
-                          .map((dept) => {
-                            const tasksPerPerson =
-                              dept.count > 0
-                                ? Math.round(
-                                    (data.tasks.length /
-                                      data.teamMembers.length) *
-                                      100
-                                  ) / 100
-                                : 0
-                            const performanceScore = Math.min(
-                              100,
-                              tasksPerPerson * 20
-                            )
-                            return `
-                            <div class="matrix-cell">
-                                <div class="matrix-score">${performanceScore.toFixed(
-                                  0
-                                )}</div>
-                                <div class="matrix-dept">${formatTurkishText(
-                                  dept.name
-                                ).substring(0, 8)}</div>
-                                <div class="matrix-stats">${dept.count}k</div>
-                            </div>
-                          `
-                          })
-                          .join('')}
-                    </div>
-                </div>
             </div>
         </div>
         
@@ -906,28 +945,12 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                     <div class="workload-metric">Toplam Tahmini</div>
                 </div>
                 
-                <div class="workload-card actual">
-                    <span class="workload-icon">✓</span>
-                    <div class="workload-value">${
-                      data.workloadData.totalActual
-                    }s</div>
-                    <div class="workload-metric">Toplam Gerçek</div>
-                </div>
-                
                 <div class="workload-card">
                     <span class="workload-icon">📊</span>
                     <div class="workload-value">${data.workloadData.averageTaskHours.toFixed(
                       1
                     )}s</div>
                     <div class="workload-metric">Ortalama Görev</div>
-                </div>
-                
-                <div class="workload-card efficiency">
-                    <span class="workload-icon">⚡</span>
-                    <div class="workload-value">${data.workloadData.efficiency.toFixed(
-                      1
-                    )}%</div>
-                    <div class="workload-metric">Verimlilik</div>
                 </div>
             </div>
         </div>
@@ -990,10 +1013,13 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                             </span>
                         </div>
                         <div>${
-                          task.assignedUser
-                            ? formatTurkishText(
-                                task.assignedUser.name
-                              ).substring(0, 15)
+                          task.assignedUsers && task.assignedUsers.length > 0
+                            ? task.assignedUsers
+                                .map(au => formatTurkishText(au.user.name))
+                                .join(', ')
+                                .substring(0, 20) + (task.assignedUsers.length > 1 ? '...' : '')
+                            : task.assignedUser
+                            ? formatTurkishText(task.assignedUser.name).substring(0, 15)
                             : 'Atanmadı'
                         }</div>
                         <div>
