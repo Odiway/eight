@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   eslint: {
@@ -25,7 +25,8 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
           },
         ],
       },
@@ -40,18 +41,18 @@ const nextConfig: NextConfig = {
         fs: false,
         path: false,
         crypto: false,
-      };
+      }
     }
-    
+
     // jsPDF için özel konfigürasyon
     config.module.rules.push({
       test: /\.node$/,
       use: 'node-loader',
-    });
-    
-    return config;
+    })
+
+    return config
   },
   /* config options here */
-};
+}
 
-export default nextConfig;
+export default nextConfig

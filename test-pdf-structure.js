@@ -8,7 +8,7 @@ const testData = {
     status: 'IN_PROGRESS',
     startDate: new Date('2024-01-01'),
     endDate: new Date('2024-12-31'),
-    createdAt: new Date()
+    createdAt: new Date(),
   },
   tasks: [
     {
@@ -23,9 +23,23 @@ const testData = {
       endDate: new Date('2024-01-15'),
       assignedUser: { id: '1', name: 'Ahmet Yılmaz' },
       assignedUsers: [
-        { user: { id: '1', name: 'Ahmet Yılmaz', department: 'Yazılım', position: 'Senior Developer' } },
-        { user: { id: '3', name: 'Mehmet Demir', department: 'Yazılım', position: 'Frontend Developer' } }
-      ]
+        {
+          user: {
+            id: '1',
+            name: 'Ahmet Yılmaz',
+            department: 'Yazılım',
+            position: 'Senior Developer',
+          },
+        },
+        {
+          user: {
+            id: '3',
+            name: 'Mehmet Demir',
+            department: 'Yazılım',
+            position: 'Frontend Developer',
+          },
+        },
+      ],
     },
     {
       id: '2',
@@ -39,18 +53,64 @@ const testData = {
       endDate: new Date('2024-02-01'),
       assignedUser: { id: '2', name: 'Ayşe Kara' },
       assignedUsers: [
-        { user: { id: '2', name: 'Ayşe Kara', department: 'Tasarım', position: 'UI/UX Designer' } },
-        { user: { id: '4', name: 'Fatma Öz', department: 'Test', position: 'QA Specialist' } },
-        { user: { id: '1', name: 'Ahmet Yılmaz', department: 'Yazılım', position: 'Senior Developer' } }
-      ]
-    }
+        {
+          user: {
+            id: '2',
+            name: 'Ayşe Kara',
+            department: 'Tasarım',
+            position: 'UI/UX Designer',
+          },
+        },
+        {
+          user: {
+            id: '4',
+            name: 'Fatma Öz',
+            department: 'Test',
+            position: 'QA Specialist',
+          },
+        },
+        {
+          user: {
+            id: '1',
+            name: 'Ahmet Yılmaz',
+            department: 'Yazılım',
+            position: 'Senior Developer',
+          },
+        },
+      ],
+    },
   ],
   allUsers: [
-    { id: '1', name: 'Ahmet Yılmaz', department: 'Yazılım', position: 'Senior Developer' },
-    { id: '2', name: 'Ayşe Kara', department: 'Tasarım', position: 'UI/UX Designer' },
-    { id: '3', name: 'Mehmet Demir', department: 'Yazılım', position: 'Frontend Developer' },
-    { id: '4', name: 'Fatma Öz', department: 'Test', position: 'QA Specialist' },
-    { id: '5', name: 'Ali Çelik', department: 'DevOps', position: 'System Administrator' }
+    {
+      id: '1',
+      name: 'Ahmet Yılmaz',
+      department: 'Yazılım',
+      position: 'Senior Developer',
+    },
+    {
+      id: '2',
+      name: 'Ayşe Kara',
+      department: 'Tasarım',
+      position: 'UI/UX Designer',
+    },
+    {
+      id: '3',
+      name: 'Mehmet Demir',
+      department: 'Yazılım',
+      position: 'Frontend Developer',
+    },
+    {
+      id: '4',
+      name: 'Fatma Öz',
+      department: 'Test',
+      position: 'QA Specialist',
+    },
+    {
+      id: '5',
+      name: 'Ali Çelik',
+      department: 'DevOps',
+      position: 'System Administrator',
+    },
   ],
   totalTasks: 2,
   completedTasks: 1,
@@ -59,7 +119,7 @@ const testData = {
   blockedTasks: 0,
   totalEstimatedHours: 64,
   totalActualHours: 51,
-  completionPercentage: 50
+  completionPercentage: 50,
 }
 
 console.log('✅ Test data structure for enhanced individual project PDF:')
@@ -72,14 +132,20 @@ testData.tasks.forEach((task, index) => {
   console.log(`     Primary assignee: ${task.assignedUser?.name || 'None'}`)
   console.log(`     All assignees: ${task.assignedUsers.length} users`)
   task.assignedUsers.forEach((assignment, userIndex) => {
-    console.log(`       ${userIndex + 1}. ${assignment.user.name} (${assignment.user.department} - ${assignment.user.position})`)
+    console.log(
+      `       ${userIndex + 1}. ${assignment.user.name} (${
+        assignment.user.department
+      } - ${assignment.user.position})`
+    )
   })
   console.log('')
 })
 
 console.log('🏢 All users in the system:')
 testData.allUsers.forEach((user, index) => {
-  console.log(`  ${index + 1}. ${user.name} - ${user.department} (${user.position})`)
+  console.log(
+    `  ${index + 1}. ${user.name} - ${user.department} (${user.position})`
+  )
 })
 
 console.log('\n📄 The PDF will now include:')

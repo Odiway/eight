@@ -13,7 +13,8 @@
 }
 
 @keyframes kanban-float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -22,7 +23,8 @@
 }
 
 @keyframes kanban-pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
   }
   50% {
@@ -55,10 +57,18 @@
   animation: kanban-fade-in 0.6s ease-out;
 }
 
-.kanban-column:nth-child(1) { animation-delay: 0.1s; }
-.kanban-column:nth-child(2) { animation-delay: 0.2s; }
-.kanban-column:nth-child(3) { animation-delay: 0.3s; }
-.kanban-column:nth-child(4) { animation-delay: 0.4s; }
+.kanban-column:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.kanban-column:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.kanban-column:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.kanban-column:nth-child(4) {
+  animation-delay: 0.4s;
+}
 
 /* Task card animations */
 .kanban-task-card {
@@ -171,7 +181,7 @@
   .kanban-column {
     min-height: 300px;
   }
-  
+
   .kanban-task-card {
     padding: 1rem;
   }
@@ -181,7 +191,7 @@
   .kanban-task-card {
     padding: 0.75rem;
   }
-  
+
   .kanban-task-card .text-base {
     font-size: 0.875rem;
   }
@@ -190,12 +200,20 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .kanban-column {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8));
+    background: linear-gradient(
+      135deg,
+      rgba(30, 41, 59, 0.8),
+      rgba(51, 65, 85, 0.8)
+    );
     border-color: rgba(71, 85, 105, 0.3);
   }
-  
+
   .kanban-task-card {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.9));
+    background: linear-gradient(
+      135deg,
+      rgba(30, 41, 59, 0.9),
+      rgba(51, 65, 85, 0.9)
+    );
     border-color: rgba(71, 85, 105, 0.4);
   }
 }

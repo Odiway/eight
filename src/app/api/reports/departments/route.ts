@@ -7,7 +7,7 @@ export async function GET() {
     return NextResponse.json(data)
   } catch (error) {
     console.error('Departments reports API error:', error)
-    // Return mock data when database is not available  
+    // Return mock data when database is not available
     return NextResponse.json(getMockDepartmentsData())
   }
 }
@@ -30,16 +30,19 @@ async function getDepartmentsData() {
     })
 
     // Group by departments
-    const departments: Record<string, {
-      name: string
-      userCount: number
-      totalTasks: number
-      completedTasks: number
-      users: any[]
-      projects: Set<string>
-    }> = {}
+    const departments: Record<
+      string,
+      {
+        name: string
+        userCount: number
+        totalTasks: number
+        completedTasks: number
+        users: any[]
+        projects: Set<string>
+      }
+    > = {}
 
-    users.forEach(user => {
+    users.forEach((user) => {
       if (!departments[user.department]) {
         departments[user.department] = {
           name: user.department,
@@ -47,7 +50,7 @@ async function getDepartmentsData() {
           totalTasks: 0,
           completedTasks: 0,
           users: [],
-          projects: new Set()
+          projects: new Set(),
         }
       }
 
@@ -55,7 +58,7 @@ async function getDepartmentsData() {
       dept.userCount++
       dept.totalTasks += user.taskAssignments.length
       dept.completedTasks += user.taskAssignments.filter(
-        ta => ta.task.status === 'COMPLETED'
+        (ta) => ta.task.status === 'COMPLETED'
       ).length
 
       dept.users.push({
@@ -64,22 +67,27 @@ async function getDepartmentsData() {
         email: user.email,
         position: user.position,
         totalTasks: user.taskAssignments.length,
-        completedTasks: user.taskAssignments.filter(ta => ta.task.status === 'COMPLETED').length
+        completedTasks: user.taskAssignments.filter(
+          (ta) => ta.task.status === 'COMPLETED'
+        ).length,
       })
 
       // Add unique projects
-      user.taskAssignments.forEach(ta => {
+      user.taskAssignments.forEach((ta) => {
         dept.projects.add(ta.task.project.id)
       })
     })
 
     return {
       generatedAt: new Date().toISOString(),
-      departments: Object.values(departments).map(dept => ({
+      departments: Object.values(departments).map((dept) => ({
         ...dept,
         projectCount: dept.projects.size,
-        completionRate: dept.totalTasks > 0 ? Math.round((dept.completedTasks / dept.totalTasks) * 100) : 0
-      }))
+        completionRate:
+          dept.totalTasks > 0
+            ? Math.round((dept.completedTasks / dept.totalTasks) * 100)
+            : 0,
+      })),
     }
   } catch (error) {
     console.error('Database error in getDepartmentsData:', error)
@@ -105,7 +113,7 @@ function getMockDepartmentsData() {
             email: 'ahmet@example.com',
             position: 'Yazılım Geliştirici',
             totalTasks: 12,
-            completedTasks: 11
+            completedTasks: 11,
           },
           {
             id: '2',
@@ -113,7 +121,7 @@ function getMockDepartmentsData() {
             email: 'mehmet@example.com',
             position: 'Sistem Yöneticisi',
             totalTasks: 10,
-            completedTasks: 8
+            completedTasks: 8,
           },
           {
             id: '3',
@@ -121,9 +129,9 @@ function getMockDepartmentsData() {
             email: 'ayse@example.com',
             position: 'Frontend Developer',
             totalTasks: 8,
-            completedTasks: 6
-          }
-        ]
+            completedTasks: 6,
+          },
+        ],
       },
       {
         name: 'İnsan Kaynakları',
@@ -139,7 +147,7 @@ function getMockDepartmentsData() {
             email: 'fatma@example.com',
             position: 'İK Uzmanı',
             totalTasks: 8,
-            completedTasks: 7
+            completedTasks: 7,
           },
           {
             id: '5',
@@ -147,9 +155,9 @@ function getMockDepartmentsData() {
             email: 'can@example.com',
             position: 'İK Müdürü',
             totalTasks: 6,
-            completedTasks: 5
-          }
-        ]
+            completedTasks: 5,
+          },
+        ],
       },
       {
         name: 'Pazarlama',
@@ -165,7 +173,7 @@ function getMockDepartmentsData() {
             email: 'zeynep@example.com',
             position: 'Pazarlama Uzmanı',
             totalTasks: 7,
-            completedTasks: 4
+            completedTasks: 4,
           },
           {
             id: '7',
@@ -173,10 +181,10 @@ function getMockDepartmentsData() {
             email: 'emre@example.com',
             position: 'Sosyal Medya Uzmanı',
             totalTasks: 5,
-            completedTasks: 4
-          }
-        ]
-      }
-    ]
+            completedTasks: 4,
+          },
+        ],
+      },
+    ],
   }
 }

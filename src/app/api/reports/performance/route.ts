@@ -20,26 +20,29 @@ async function getPerformanceData() {
           include: {
             task: {
               include: {
-                project: true
-              }
-            }
-          }
-        }
-      }
+                project: true,
+              },
+            },
+          },
+        },
+      },
     })
 
     const projects = await prisma.project.findMany({
       include: {
-        tasks: true
-      }
+        tasks: true,
+      },
     })
 
     // Calculate user performance
-    const userPerformance = users.map(user => {
+    const userPerformance = users.map((user) => {
       const totalTasks = user.taskAssignments.length
-      const completedTasks = user.taskAssignments.filter(ta => ta.task.status === 'COMPLETED').length
-      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-      
+      const completedTasks = user.taskAssignments.filter(
+        (ta) => ta.task.status === 'COMPLETED'
+      ).length
+      const completionRate =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+
       return {
         id: user.id,
         name: user.name,
@@ -47,17 +50,26 @@ async function getPerformanceData() {
         totalTasks,
         completedTasks,
         completionRate,
-        averageTasksPerProject: user.taskAssignments.length > 0 ? 
-          Math.round(user.taskAssignments.length / new Set(user.taskAssignments.map(ta => ta.task.projectId)).size) : 0
+        averageTasksPerProject:
+          user.taskAssignments.length > 0
+            ? Math.round(
+                user.taskAssignments.length /
+                  new Set(user.taskAssignments.map((ta) => ta.task.projectId))
+                    .size
+              )
+            : 0,
       }
     })
 
     // Calculate project performance
-    const projectPerformance = projects.map(project => {
+    const projectPerformance = projects.map((project) => {
       const totalTasks = project.tasks.length
-      const completedTasks = project.tasks.filter(task => task.status === 'COMPLETED').length
-      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-      
+      const completedTasks = project.tasks.filter(
+        (task) => task.status === 'COMPLETED'
+      ).length
+      const completionRate =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+
       return {
         id: project.id,
         name: project.name,
@@ -65,21 +77,37 @@ async function getPerformanceData() {
         totalTasks,
         completedTasks,
         completionRate,
-        estimatedHours: project.tasks.reduce((sum, task) => sum + (task.estimatedHours || 0), 0),
-        actualHours: project.tasks.reduce((sum, task) => sum + (task.actualHours || 0), 0)
+        estimatedHours: project.tasks.reduce(
+          (sum, task) => sum + (task.estimatedHours || 0),
+          0
+        ),
+        actualHours: project.tasks.reduce(
+          (sum, task) => sum + (task.actualHours || 0),
+          0
+        ),
       }
     })
 
     return {
       generatedAt: new Date().toISOString(),
-      userPerformance: userPerformance.sort((a, b) => b.completionRate - a.completionRate),
-      projectPerformance: projectPerformance.sort((a, b) => b.completionRate - a.completionRate),
+      userPerformance: userPerformance.sort(
+        (a, b) => b.completionRate - a.completionRate
+      ),
+      projectPerformance: projectPerformance.sort(
+        (a, b) => b.completionRate - a.completionRate
+      ),
       summary: {
         totalUsers: users.length,
         totalProjects: projects.length,
-        averageUserCompletion: userPerformance.reduce((sum, user) => sum + user.completionRate, 0) / userPerformance.length || 0,
-        averageProjectCompletion: projectPerformance.reduce((sum, proj) => sum + proj.completionRate, 0) / projectPerformance.length || 0
-      }
+        averageUserCompletion:
+          userPerformance.reduce((sum, user) => sum + user.completionRate, 0) /
+            userPerformance.length || 0,
+        averageProjectCompletion:
+          projectPerformance.reduce(
+            (sum, proj) => sum + proj.completionRate,
+            0
+          ) / projectPerformance.length || 0,
+      },
     }
   } catch (error) {
     console.error('Database error in getPerformanceData:', error)
@@ -98,7 +126,7 @@ function getMockPerformanceData() {
         totalTasks: 12,
         completedTasks: 11,
         completionRate: 92,
-        averageTasksPerProject: 4
+        averageTasksPerProject: 4,
       },
       {
         id: '2',
@@ -107,7 +135,7 @@ function getMockPerformanceData() {
         totalTasks: 8,
         completedTasks: 7,
         completionRate: 88,
-        averageTasksPerProject: 3
+        averageTasksPerProject: 3,
       },
       {
         id: '3',
@@ -116,8 +144,8 @@ function getMockPerformanceData() {
         totalTasks: 10,
         completedTasks: 8,
         completionRate: 80,
-        averageTasksPerProject: 5
-      }
+        averageTasksPerProject: 5,
+      },
     ],
     projectPerformance: [
       {
@@ -128,7 +156,7 @@ function getMockPerformanceData() {
         completedTasks: 12,
         completionRate: 80,
         estimatedHours: 120,
-        actualHours: 95
+        actualHours: 95,
       },
       {
         id: '2',
@@ -138,14 +166,14 @@ function getMockPerformanceData() {
         completedTasks: 8,
         completionRate: 100,
         estimatedHours: 80,
-        actualHours: 85
-      }
+        actualHours: 85,
+      },
     ],
     summary: {
       totalUsers: 12,
       totalProjects: 8,
       averageUserCompletion: 85,
-      averageProjectCompletion: 78
-    }
+      averageProjectCompletion: 78,
+    },
   }
 }

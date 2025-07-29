@@ -400,7 +400,8 @@ export default function ReportsPage() {
                     Genel Sistem Raporu
                   </h4>
                   <p className='text-sm text-blue-700'>
-                    Sistem geneli istatistikler, proje özeti ve departman dağılımı
+                    Sistem geneli istatistikler, proje özeti ve departman
+                    dağılımı
                   </p>
                 </div>
 

@@ -56,14 +56,13 @@ export default function ProjectDetailsPage() {
   const [editForm, setEditForm] = useState<any>({})
   const [draggedTask, setDraggedTask] = useState<string | null>(null)
   const [savingTask, setSavingTask] = useState<string | null>(null)
-  const [selectedTaskDetails, setSelectedTaskDetails] = useState<ExtendedTask | null>(null)
+  const [selectedTaskDetails, setSelectedTaskDetails] =
+    useState<ExtendedTask | null>(null)
   const [showTaskDetailsModal, setShowTaskDetailsModal] = useState(false)
-  
-
 
   // Task management handlers
   const handleTaskEdit = (taskId: string) => {
-    const task = project?.tasks.find(t => t.id === taskId)
+    const task = project?.tasks.find((t) => t.id === taskId)
     if (task) {
       setEditingTask(taskId)
       setEditForm({
@@ -72,7 +71,7 @@ export default function ProjectDetailsPage() {
         status: task.status,
         priority: task.priority,
         estimatedHours: task.estimatedHours || 0,
-        assignedToId: task.assignedId || ''
+        assignedToId: task.assignedId || '',
       })
     }
   }
@@ -86,7 +85,7 @@ export default function ProjectDetailsPage() {
       }
 
       setSavingTask(taskId)
-      
+
       // Map form fields to API fields
       const updateData = {
         title: editForm.title.trim(),
@@ -94,15 +93,15 @@ export default function ProjectDetailsPage() {
         status: editForm.status,
         priority: editForm.priority,
         estimatedHours: editForm.estimatedHours,
-        assignedId: editForm.assignedToId || null
+        assignedId: editForm.assignedToId || null,
       }
 
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
+        body: JSON.stringify(updateData),
       })
-      
+
       if (response.ok) {
         await fetchProject()
         setEditingTask(null)
@@ -125,13 +124,14 @@ export default function ProjectDetailsPage() {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus }),
       })
-      
+
       if (response.ok) {
         await fetchProject()
         // Show brief success feedback
-        const taskTitle = project?.tasks.find(t => t.id === taskId)?.title || 'Görev'
+        const taskTitle =
+          project?.tasks.find((t) => t.id === taskId)?.title || 'Görev'
         console.log(`✅ ${taskTitle} durumu güncellendi: ${newStatus}`)
       } else {
         const errorData = await response.json()
@@ -148,9 +148,9 @@ export default function ProjectDetailsPage() {
     if (confirm('Bu görevi silmek istediğinizden emin misiniz?')) {
       try {
         const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'DELETE'
+          method: 'DELETE',
         })
-        
+
         if (response.ok) {
           await fetchProject()
         }
@@ -207,8 +207,9 @@ export default function ProjectDetailsPage() {
         if (response.ok) {
           const data = await response.json()
           // Remove duplicates based on user ID
-          const uniqueUsers = data.filter((user: any, index: number, self: any[]) => 
-            index === self.findIndex((u) => u.id === user.id)
+          const uniqueUsers = data.filter(
+            (user: any, index: number, self: any[]) =>
+              index === self.findIndex((u) => u.id === user.id)
           )
           setUsers(uniqueUsers)
         }
@@ -257,8 +258,6 @@ export default function ProjectDetailsPage() {
     setSelectedTaskDetails(task)
     setShowTaskDetailsModal(true)
   }
-
-
 
   // Handle project reschedule
   const handleProjectReschedule = async (strategy: string) => {
@@ -455,20 +454,30 @@ export default function ProjectDetailsPage() {
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
   // TaskList Component
-  function TaskList({ tasks, users, onTaskClick }: { 
+  function TaskList({
+    tasks,
+    users,
+    onTaskClick,
+  }: {
     tasks: ExtendedTask[]
     users: User[]
-    onTaskClick: (task: ExtendedTask) => void 
+    onTaskClick: (task: ExtendedTask) => void
   }) {
-    const [filter, setFilter] = useState<'all' | 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'BLOCKED'>('all')
-    const [sortBy, setSortBy] = useState<'title' | 'priority' | 'status' | 'dueDate'>('title')
+    const [filter, setFilter] = useState<
+      'all' | 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'BLOCKED'
+    >('all')
+    const [sortBy, setSortBy] = useState<
+      'title' | 'priority' | 'status' | 'dueDate'
+    >('title')
 
-    const filteredTasks = tasks.filter(task => filter === 'all' || task.status === filter)
-    
+    const filteredTasks = tasks.filter(
+      (task) => filter === 'all' || task.status === filter
+    )
+
     const sortedTasks = [...filteredTasks].sort((a, b) => {
       switch (sortBy) {
         case 'priority':
-          const priorityOrder = { 'URGENT': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 }
+          const priorityOrder = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
           return priorityOrder[a.priority] - priorityOrder[b.priority]
         case 'status':
           return a.status.localeCompare(b.status)
@@ -484,43 +493,54 @@ export default function ProjectDetailsPage() {
 
     const getStatusText = (status: string) => {
       const statusMap: { [key: string]: string } = {
-        'TODO': 'Yapılacak',
-        'IN_PROGRESS': 'Devam Ediyor',
-        'REVIEW': 'İncelemede',
-        'COMPLETED': 'Tamamlandı',
-        'BLOCKED': 'Engellenmiş'
+        TODO: 'Yapılacak',
+        IN_PROGRESS: 'Devam Ediyor',
+        REVIEW: 'İncelemede',
+        COMPLETED: 'Tamamlandı',
+        BLOCKED: 'Engellenmiş',
       }
       return statusMap[status] || status
     }
 
     const getPriorityText = (priority: string) => {
       const priorityMap: { [key: string]: string } = {
-        'LOW': 'Düşük',
-        'MEDIUM': 'Orta',
-        'HIGH': 'Yüksek',
-        'URGENT': 'Acil'
+        LOW: 'Düşük',
+        MEDIUM: 'Orta',
+        HIGH: 'Yüksek',
+        URGENT: 'Acil',
       }
       return priorityMap[priority] || priority
     }
 
     const getStatusColor = (status: string) => {
       switch (status) {
-        case 'TODO': return 'bg-gray-100 text-gray-700'
-        case 'IN_PROGRESS': return 'bg-blue-100 text-blue-700'
-        case 'REVIEW': return 'bg-purple-100 text-purple-700'
-        case 'COMPLETED': return 'bg-green-100 text-green-700'
-        case 'BLOCKED': return 'bg-red-100 text-red-700'
-        default: return 'bg-gray-100 text-gray-700'
+        case 'TODO':
+          return 'bg-gray-100 text-gray-700'
+        case 'IN_PROGRESS':
+          return 'bg-blue-100 text-blue-700'
+        case 'REVIEW':
+          return 'bg-purple-100 text-purple-700'
+        case 'COMPLETED':
+          return 'bg-green-100 text-green-700'
+        case 'BLOCKED':
+          return 'bg-red-100 text-red-700'
+        default:
+          return 'bg-gray-100 text-gray-700'
       }
     }
 
     const getPriorityColor = (priority: string) => {
       switch (priority) {
-        case 'LOW': return 'bg-green-100 text-green-700'
-        case 'MEDIUM': return 'bg-yellow-100 text-yellow-700'
-        case 'HIGH': return 'bg-orange-100 text-orange-700'
-        case 'URGENT': return 'bg-red-100 text-red-700'
-        default: return 'bg-gray-100 text-gray-700'
+        case 'LOW':
+          return 'bg-green-100 text-green-700'
+        case 'MEDIUM':
+          return 'bg-yellow-100 text-yellow-700'
+        case 'HIGH':
+          return 'bg-orange-100 text-orange-700'
+        case 'URGENT':
+          return 'bg-red-100 text-red-700'
+        default:
+          return 'bg-gray-100 text-gray-700'
       }
     }
 
@@ -536,14 +556,27 @@ export default function ProjectDetailsPage() {
               className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
             >
               <option value='all'>Tümü ({tasks.length})</option>
-              <option value='TODO'>Yapılacak ({tasks.filter(t => t.status === 'TODO').length})</option>
-              <option value='IN_PROGRESS'>Devam Eden ({tasks.filter(t => t.status === 'IN_PROGRESS').length})</option>
-              <option value='REVIEW'>İncelemede ({tasks.filter(t => t.status === 'REVIEW').length})</option>
-              <option value='COMPLETED'>Tamamlandı ({tasks.filter(t => t.status === 'COMPLETED').length})</option>
-              <option value='BLOCKED'>Engellenmiş ({tasks.filter(t => t.status === 'BLOCKED').length})</option>
+              <option value='TODO'>
+                Yapılacak ({tasks.filter((t) => t.status === 'TODO').length})
+              </option>
+              <option value='IN_PROGRESS'>
+                Devam Eden (
+                {tasks.filter((t) => t.status === 'IN_PROGRESS').length})
+              </option>
+              <option value='REVIEW'>
+                İncelemede ({tasks.filter((t) => t.status === 'REVIEW').length})
+              </option>
+              <option value='COMPLETED'>
+                Tamamlandı (
+                {tasks.filter((t) => t.status === 'COMPLETED').length})
+              </option>
+              <option value='BLOCKED'>
+                Engellenmiş (
+                {tasks.filter((t) => t.status === 'BLOCKED').length})
+              </option>
             </select>
           </div>
-          
+
           <div className='flex items-center gap-2'>
             <span className='text-sm font-medium text-gray-700'>Sırala:</span>
             <select
@@ -566,39 +599,58 @@ export default function ProjectDetailsPage() {
               <Target className='w-12 h-12 mx-auto' />
             </div>
             <p className='text-gray-500'>
-              {filter === 'all' ? 'Henüz görev eklenmemiş' : `${getStatusText(filter)} durumunda görev bulunamadı`}
+              {filter === 'all'
+                ? 'Henüz görev eklenmemiş'
+                : `${getStatusText(filter)} durumunda görev bulunamadı`}
             </p>
           </div>
         ) : (
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-            {sortedTasks.map(task => {
-              const assignedUser = users.find(u => u.id === task.assignedId)
-              const isOverdue = task.endDate && new Date(task.endDate) < new Date() && task.status !== 'COMPLETED'
-              
+            {sortedTasks.map((task) => {
+              const assignedUser = users.find((u) => u.id === task.assignedId)
+              const isOverdue =
+                task.endDate &&
+                new Date(task.endDate) < new Date() &&
+                task.status !== 'COMPLETED'
+
               return (
                 <div
                   key={task.id}
                   onClick={() => onTaskClick(task)}
                   className={`bg-white border rounded-lg p-4 hover:shadow-lg transition-all cursor-pointer ${
-                    isOverdue ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-blue-300'
+                    isOverdue
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-200 hover:border-blue-300'
                   }`}
                 >
                   <div className='flex items-start justify-between mb-3'>
-                    <h4 className='font-semibold text-gray-900 flex-1 pr-2'>{task.title}</h4>
+                    <h4 className='font-semibold text-gray-900 flex-1 pr-2'>
+                      {task.title}
+                    </h4>
                     <button className='text-gray-400 hover:text-blue-600 transition-colors'>
                       <Eye className='w-4 h-4' />
                     </button>
                   </div>
 
                   {task.description && (
-                    <p className='text-sm text-gray-600 mb-3 line-clamp-2'>{task.description}</p>
+                    <p className='text-sm text-gray-600 mb-3 line-clamp-2'>
+                      {task.description}
+                    </p>
                   )}
 
                   <div className='flex items-center gap-2 mb-3'>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)}`}>
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                        task.status
+                      )}`}
+                    >
                       {getStatusText(task.status)}
                     </span>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(task.priority)}`}>
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(
+                        task.priority
+                      )}`}
+                    >
                       {getPriorityText(task.priority)}
                     </span>
                   </div>
@@ -610,18 +662,22 @@ export default function ProjectDetailsPage() {
                         <span>{assignedUser.name}</span>
                       </div>
                     )}
-                    
+
                     {task.estimatedHours && (
                       <div className='flex items-center gap-1'>
                         <Timer className='w-3 h-3' />
                         <span>{task.estimatedHours} saat</span>
                       </div>
                     )}
-                    
+
                     {task.endDate && (
                       <div className='flex items-center gap-1'>
                         <CalendarIcon className='w-3 h-3' />
-                        <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
+                        <span
+                          className={
+                            isOverdue ? 'text-red-600 font-semibold' : ''
+                          }
+                        >
                           {new Date(task.endDate).toLocaleDateString('tr-TR')}
                           {isOverdue && ' (Gecikmiş)'}
                         </span>
@@ -640,7 +696,10 @@ export default function ProjectDetailsPage() {
   // Enhanced Task Card Component
   function TaskCard({ task }: { task: ExtendedTask }) {
     const isEditing = editingTask === task.id
-    const isOverdue = task.endDate && new Date(task.endDate) < new Date() && task.status !== 'COMPLETED'
+    const isOverdue =
+      task.endDate &&
+      new Date(task.endDate) < new Date() &&
+      task.status !== 'COMPLETED'
 
     // Get status-specific styling
     const getStatusStyling = (status: string) => {
@@ -650,40 +709,40 @@ export default function ProjectDetailsPage() {
             bgColor: 'bg-gradient-to-r from-emerald-50 to-emerald-100',
             borderColor: 'border-emerald-200',
             textColor: 'text-emerald-800',
-            statusIcon: <CheckCircle className="w-4 h-4 text-emerald-600" />,
-            shadowColor: 'shadow-emerald-100'
+            statusIcon: <CheckCircle className='w-4 h-4 text-emerald-600' />,
+            shadowColor: 'shadow-emerald-100',
           }
         case 'IN_PROGRESS':
           return {
             bgColor: 'bg-gradient-to-r from-blue-50 to-blue-100',
             borderColor: 'border-blue-200',
             textColor: 'text-blue-800',
-            statusIcon: <AlertCircle className="w-4 h-4 text-blue-600" />,
-            shadowColor: 'shadow-blue-100'
+            statusIcon: <AlertCircle className='w-4 h-4 text-blue-600' />,
+            shadowColor: 'shadow-blue-100',
           }
         case 'REVIEW':
           return {
             bgColor: 'bg-gradient-to-r from-purple-50 to-purple-100',
             borderColor: 'border-purple-200',
             textColor: 'text-purple-800',
-            statusIcon: <Eye className="w-4 h-4 text-purple-600" />,
-            shadowColor: 'shadow-purple-100'
+            statusIcon: <Eye className='w-4 h-4 text-purple-600' />,
+            shadowColor: 'shadow-purple-100',
           }
         case 'BLOCKED':
           return {
             bgColor: 'bg-gradient-to-r from-red-50 to-red-100',
             borderColor: 'border-red-200',
             textColor: 'text-red-800',
-            statusIcon: <X className="w-4 h-4 text-red-600" />,
-            shadowColor: 'shadow-red-100'
+            statusIcon: <X className='w-4 h-4 text-red-600' />,
+            shadowColor: 'shadow-red-100',
           }
         default:
           return {
             bgColor: 'bg-gradient-to-r from-slate-50 to-slate-100',
             borderColor: 'border-slate-200',
             textColor: 'text-slate-800',
-            statusIcon: <Circle className="w-4 h-4 text-slate-600" />,
-            shadowColor: 'shadow-slate-100'
+            statusIcon: <Circle className='w-4 h-4 text-slate-600' />,
+            shadowColor: 'shadow-slate-100',
           }
       }
     }
@@ -711,11 +770,13 @@ export default function ProjectDetailsPage() {
         <div className="absolute inset-0 opacity-[0.02] bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Cg fill-rule=%22evenodd%22%3E%3Cg fill=%22%23000%22 fill-opacity=%220.4%22 fill-rule=%22nonzero%22%3E%3Cpath d=%22m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
 
         {isEditing ? (
-          <div className="space-y-4 relative z-10">
+          <div className='space-y-4 relative z-10'>
             <input
-              type="text"
+              type='text'
               value={editForm.title}
-              onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+              onChange={(e) =>
+                setEditForm({ ...editForm, title: e.target.value })
+              }
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.shiftKey === false) {
                   e.preventDefault()
@@ -725,61 +786,74 @@ export default function ProjectDetailsPage() {
                   setEditForm({})
                 }
               }}
-              className="w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all"
-              placeholder="Görev başlığı"
+              className='w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all'
+              placeholder='Görev başlığı'
               autoFocus
             />
             <textarea
               value={editForm.description}
-              onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-              className="w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all resize-none"
-              placeholder="Açıklama"
+              onChange={(e) =>
+                setEditForm({ ...editForm, description: e.target.value })
+              }
+              className='w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all resize-none'
+              placeholder='Açıklama'
               rows={3}
             />
-            <div className="grid grid-cols-2 gap-3">
+            <div className='grid grid-cols-2 gap-3'>
               <select
                 value={editForm.priority}
-                onChange={(e) => setEditForm({...editForm, priority: e.target.value})}
-                className="p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all"
+                onChange={(e) =>
+                  setEditForm({ ...editForm, priority: e.target.value })
+                }
+                className='p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all'
               >
-                <option value="LOW">🟢 Düşük</option>
-                <option value="MEDIUM">🟡 Orta</option>
-                <option value="HIGH">🟠 Yüksek</option>
-                <option value="URGENT">🔴 Acil</option>
+                <option value='LOW'>🟢 Düşük</option>
+                <option value='MEDIUM'>🟡 Orta</option>
+                <option value='HIGH'>🟠 Yüksek</option>
+                <option value='URGENT'>🔴 Acil</option>
               </select>
               <input
-                type="number"
+                type='number'
                 value={editForm.estimatedHours}
-                onChange={(e) => setEditForm({...editForm, estimatedHours: parseInt(e.target.value) || 0})}
-                className="p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all"
-                placeholder="⏱️ Saat"
-                min="0"
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    estimatedHours: parseInt(e.target.value) || 0,
+                  })
+                }
+                className='p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all'
+                placeholder='⏱️ Saat'
+                min='0'
               />
             </div>
             <select
               value={editForm.assignedToId}
-              onChange={(e) => setEditForm({...editForm, assignedToId: e.target.value})}
-              className="w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all"
+              onChange={(e) =>
+                setEditForm({ ...editForm, assignedToId: e.target.value })
+              }
+              className='w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all'
             >
-              <option value="">👤 Atanmamış</option>
-              {users.map(user => (
-                <option key={user.id} value={user.id}>👨‍💼 {user.name}</option>
+              <option value=''>👤 Atanmamış</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  👨‍💼 {user.name}
+                </option>
               ))}
             </select>
-            <div className="flex gap-3">
+            <div className='flex gap-3'>
               <button
                 onClick={() => handleTaskSave(task.id)}
                 disabled={savingTask === task.id}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-3 rounded-lg hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium shadow-lg hover:shadow-xl"
+                className='flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-3 rounded-lg hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium shadow-lg hover:shadow-xl'
               >
                 {savingTask === task.id ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2'></div>
                     Kaydediliyor...
                   </>
                 ) : (
                   <>
-                    <Save className="w-5 h-5 mr-2" />
+                    <Save className='w-5 h-5 mr-2' />
                     Kaydet
                   </>
                 )}
@@ -790,69 +864,80 @@ export default function ProjectDetailsPage() {
                   setEditForm({})
                 }}
                 disabled={savingTask === task.id}
-                className="flex-1 bg-gradient-to-r from-slate-500 to-slate-600 text-white p-3 rounded-lg hover:from-slate-600 hover:to-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium shadow-lg hover:shadow-xl"
+                className='flex-1 bg-gradient-to-r from-slate-500 to-slate-600 text-white p-3 rounded-lg hover:from-slate-600 hover:to-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium shadow-lg hover:shadow-xl'
               >
-                <X className="w-5 h-5 mr-2" />
+                <X className='w-5 h-5 mr-2' />
                 İptal
               </button>
             </div>
           </div>
         ) : (
-          <div className="relative z-10">
+          <div className='relative z-10'>
             {/* Header with status and actions */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-3 flex-1">
-                <div className="p-2 bg-white/80 rounded-lg shadow-sm">
+            <div className='flex items-start justify-between mb-3'>
+              <div className='flex items-center gap-3 flex-1'>
+                <div className='p-2 bg-white/80 rounded-lg shadow-sm'>
                   {statusStyling.statusIcon}
                 </div>
-                <h4 className={`font-bold text-base ${statusStyling.textColor} leading-tight`}>
+                <h4
+                  className={`font-bold text-base ${statusStyling.textColor} leading-tight`}
+                >
                   {task.title}
                 </h4>
                 {isOverdue && (
-                  <div className="flex items-center bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold animate-bounce">
+                  <div className='flex items-center bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold animate-bounce'>
                     ⚠️ GECİKMİŞ
                   </div>
                 )}
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className='flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
                 <button
                   onClick={() => handleTaskEdit(task.id)}
-                  className="p-2 text-slate-500 hover:text-blue-600 hover:bg-white/80 rounded-lg transition-all duration-200"
+                  className='p-2 text-slate-500 hover:text-blue-600 hover:bg-white/80 rounded-lg transition-all duration-200'
                 >
-                  <Edit className="w-4 h-4" />
+                  <Edit className='w-4 h-4' />
                 </button>
                 <button
                   onClick={() => handleTaskDelete(task.id)}
-                  className="p-2 text-slate-500 hover:text-red-600 hover:bg-white/80 rounded-lg transition-all duration-200"
+                  className='p-2 text-slate-500 hover:text-red-600 hover:bg-white/80 rounded-lg transition-all duration-200'
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className='w-4 h-4' />
                 </button>
               </div>
             </div>
-            
+
             {/* Description */}
             {task.description && (
-              <p className="text-sm text-slate-600 mb-4 bg-white/50 p-3 rounded-lg leading-relaxed">
+              <p className='text-sm text-slate-600 mb-4 bg-white/50 p-3 rounded-lg leading-relaxed'>
                 {task.description}
               </p>
             )}
-            
+
             {/* Priority and metadata */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 shadow-sm ${
-                  task.priority === 'URGENT' ? 'bg-red-100 text-red-700 border-red-200' :
-                  task.priority === 'HIGH' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                  task.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                  'bg-emerald-100 text-emerald-700 border-emerald-200'
-                }`}>
-                  {task.priority === 'URGENT' ? '🔴 Acil' :
-                   task.priority === 'HIGH' ? '🟠 Yüksek' :
-                   task.priority === 'MEDIUM' ? '🟡 Orta' : '🟢 Düşük'}
+            <div className='flex items-center justify-between mb-4'>
+              <div className='flex items-center gap-3'>
+                <span
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 shadow-sm ${
+                    task.priority === 'URGENT'
+                      ? 'bg-red-100 text-red-700 border-red-200'
+                      : task.priority === 'HIGH'
+                      ? 'bg-orange-100 text-orange-700 border-orange-200'
+                      : task.priority === 'MEDIUM'
+                      ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                      : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                  }`}
+                >
+                  {task.priority === 'URGENT'
+                    ? '🔴 Acil'
+                    : task.priority === 'HIGH'
+                    ? '🟠 Yüksek'
+                    : task.priority === 'MEDIUM'
+                    ? '🟡 Orta'
+                    : '🟢 Düşük'}
                 </span>
                 {task.estimatedHours && (
-                  <div className="flex items-center bg-white/80 px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 shadow-sm border">
-                    <Clock className="w-3 h-3 mr-1.5" />
+                  <div className='flex items-center bg-white/80 px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 shadow-sm border'>
+                    <Clock className='w-3 h-3 mr-1.5' />
                     {task.estimatedHours}h
                   </div>
                 )}
@@ -861,43 +946,51 @@ export default function ProjectDetailsPage() {
 
             {/* Assigned user */}
             {task.assignedUser && (
-              <div className="flex items-center bg-white/80 p-3 rounded-lg mb-4 border shadow-sm">
-                <div className="kanban-user-avatar w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+              <div className='flex items-center bg-white/80 p-3 rounded-lg mb-4 border shadow-sm'>
+                <div className='kanban-user-avatar w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3'>
                   {task.assignedUser.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-medium text-slate-800 text-sm">{task.assignedUser.name}</p>
-                  <p className="text-xs text-slate-500">Sorumlu</p>
+                  <p className='font-medium text-slate-800 text-sm'>
+                    {task.assignedUser.name}
+                  </p>
+                  <p className='text-xs text-slate-500'>Sorumlu</p>
                 </div>
               </div>
             )}
-            
+
             {/* Dates */}
             {(task.startDate || task.endDate) && (
-              <div className="bg-white/80 p-3 rounded-lg border shadow-sm">
-                <div className="flex items-center justify-between text-xs">
+              <div className='bg-white/80 p-3 rounded-lg border shadow-sm'>
+                <div className='flex items-center justify-between text-xs'>
                   {task.startDate && (
-                    <div className="flex items-center text-emerald-600">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
-                      <span className="font-medium">
-                        🚀 {new Date(task.startDate).toLocaleDateString('tr-TR', { 
-                          day: '2-digit', 
-                          month: '2-digit' 
+                    <div className='flex items-center text-emerald-600'>
+                      <div className='w-2 h-2 bg-emerald-500 rounded-full mr-2'></div>
+                      <span className='font-medium'>
+                        🚀{' '}
+                        {new Date(task.startDate).toLocaleDateString('tr-TR', {
+                          day: '2-digit',
+                          month: '2-digit',
                         })}
                       </span>
                     </div>
                   )}
                   {task.endDate && (
-                    <div className={`flex items-center ${
-                      isOverdue ? 'text-red-600 font-bold' : 'text-red-500'
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full mr-2 ${
-                        isOverdue ? 'bg-red-600 animate-pulse' : 'bg-red-500'
-                      }`}></div>
-                      <span className="font-medium">
-                        🏁 {new Date(task.endDate).toLocaleDateString('tr-TR', { 
-                          day: '2-digit', 
-                          month: '2-digit' 
+                    <div
+                      className={`flex items-center ${
+                        isOverdue ? 'text-red-600 font-bold' : 'text-red-500'
+                      }`}
+                    >
+                      <div
+                        className={`w-2 h-2 rounded-full mr-2 ${
+                          isOverdue ? 'bg-red-600 animate-pulse' : 'bg-red-500'
+                        }`}
+                      ></div>
+                      <span className='font-medium'>
+                        🏁{' '}
+                        {new Date(task.endDate).toLocaleDateString('tr-TR', {
+                          day: '2-digit',
+                          month: '2-digit',
                         })}
                       </span>
                     </div>
@@ -907,13 +1000,16 @@ export default function ProjectDetailsPage() {
             )}
 
             {/* Progress indicator for status */}
-            <div className="mt-4 w-full bg-slate-200 rounded-full h-2 overflow-hidden kanban-progress-bar">
-              <div 
+            <div className='mt-4 w-full bg-slate-200 rounded-full h-2 overflow-hidden kanban-progress-bar'>
+              <div
                 className={`h-full transition-all duration-500 ${
-                  task.status === 'COMPLETED' ? 'w-full bg-gradient-to-r from-emerald-500 to-emerald-600' :
-                  task.status === 'REVIEW' ? 'w-4/5 bg-gradient-to-r from-purple-500 to-purple-600' :
-                  task.status === 'IN_PROGRESS' ? 'w-1/2 bg-gradient-to-r from-blue-500 to-blue-600' :
-                  'w-1/4 bg-gradient-to-r from-slate-400 to-slate-500'
+                  task.status === 'COMPLETED'
+                    ? 'w-full bg-gradient-to-r from-emerald-500 to-emerald-600'
+                    : task.status === 'REVIEW'
+                    ? 'w-4/5 bg-gradient-to-r from-purple-500 to-purple-600'
+                    : task.status === 'IN_PROGRESS'
+                    ? 'w-1/2 bg-gradient-to-r from-blue-500 to-blue-600'
+                    : 'w-1/4 bg-gradient-to-r from-slate-400 to-slate-500'
                 }`}
               ></div>
             </div>
@@ -943,31 +1039,33 @@ export default function ProjectDetailsPage() {
                 <h1 className='text-3xl font-bold text-gray-900'>
                   {project.name}
                 </h1>
-              {project.description && (
-                <p className='text-gray-600 mt-2'>{project.description}</p>
-              )}
-              <div className='flex items-center gap-4 mt-4'>
-                <div className='flex items-center gap-2'>
-                  <Clock className='w-5 h-5 text-gray-400' />
-                  <span className='text-sm text-gray-600'>
-                    {project.startDate
-                      ? new Date(project.startDate).toLocaleDateString('tr-TR')
-                      : 'Başlangıç tarihi belirtilmemiş'}
-                    {' - '}
-                    {project.endDate
-                      ? new Date(project.endDate).toLocaleDateString('tr-TR')
-                      : 'Bitiş tarihi belirtilmemiş'}
-                  </span>
-                </div>
-                <div className='flex items-center gap-2'>
-                  <Users className='w-5 h-5 text-gray-400' />
-                  <span className='text-sm text-gray-600'>
-                    {totalTasks} görev
-                  </span>
+                {project.description && (
+                  <p className='text-gray-600 mt-2'>{project.description}</p>
+                )}
+                <div className='flex items-center gap-4 mt-4'>
+                  <div className='flex items-center gap-2'>
+                    <Clock className='w-5 h-5 text-gray-400' />
+                    <span className='text-sm text-gray-600'>
+                      {project.startDate
+                        ? new Date(project.startDate).toLocaleDateString(
+                            'tr-TR'
+                          )
+                        : 'Başlangıç tarihi belirtilmemiş'}
+                      {' - '}
+                      {project.endDate
+                        ? new Date(project.endDate).toLocaleDateString('tr-TR')
+                        : 'Bitiş tarihi belirtilmemiş'}
+                    </span>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <Users className='w-5 h-5 text-gray-400' />
+                    <span className='text-sm text-gray-600'>
+                      {totalTasks} görev
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
             <div className='flex items-center gap-3'>
               <button
                 onClick={() => setShowTaskModal(true)}
@@ -1072,132 +1170,184 @@ export default function ProjectDetailsPage() {
                 {/* Enhanced Interactive Kanban Board */}
                 <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
                   {/* TODO Column */}
-                  <div 
+                  <div
                     className={`kanban-column bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 transition-all duration-300 border border-slate-200 shadow-sm ${
-                      draggedTask && 'ring-2 ring-blue-400 bg-gradient-to-br from-blue-50 to-blue-100 scale-105 shadow-lg drag-over'
+                      draggedTask &&
+                      'ring-2 ring-blue-400 bg-gradient-to-br from-blue-50 to-blue-100 scale-105 shadow-lg drag-over'
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'TODO')}
                   >
-                    <div className="kanban-column-header flex items-center justify-between mb-6">
-                      <div className="flex items-center">
-                        <div className="p-2 bg-white rounded-lg shadow-sm mr-3">
-                          <Circle className="w-5 h-5 text-slate-500" />
+                    <div className='kanban-column-header flex items-center justify-between mb-6'>
+                      <div className='flex items-center'>
+                        <div className='p-2 bg-white rounded-lg shadow-sm mr-3'>
+                          <Circle className='w-5 h-5 text-slate-500' />
                         </div>
                         <div>
-                          <h3 className="font-bold text-slate-800 text-lg">Yapılacak</h3>
-                          <p className="text-slate-500 text-sm">{project.tasks.filter(t => t.status === 'TODO').length} görev</p>
+                          <h3 className='font-bold text-slate-800 text-lg'>
+                            Yapılacak
+                          </h3>
+                          <p className='text-slate-500 text-sm'>
+                            {
+                              project.tasks.filter((t) => t.status === 'TODO')
+                                .length
+                            }{' '}
+                            görev
+                          </p>
                         </div>
                       </div>
-                      <div className="w-3 h-3 bg-slate-400 rounded-full"></div>
+                      <div className='w-3 h-3 bg-slate-400 rounded-full'></div>
                     </div>
-                    <div className="space-y-3 min-h-[450px] overflow-y-auto">
-                      {project.tasks.filter(t => t.status === 'TODO').map((task) => (
-                        <TaskCard key={task.id} task={task} />
-                      ))}
-                      {project.tasks.filter(t => t.status === 'TODO').length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                          <Circle className="w-12 h-12 mb-3 opacity-40" />
-                          <p className="text-center">Henüz yapılacak görev yok</p>
+                    <div className='space-y-3 min-h-[450px] overflow-y-auto'>
+                      {project.tasks
+                        .filter((t) => t.status === 'TODO')
+                        .map((task) => (
+                          <TaskCard key={task.id} task={task} />
+                        ))}
+                      {project.tasks.filter((t) => t.status === 'TODO')
+                        .length === 0 && (
+                        <div className='flex flex-col items-center justify-center py-12 text-slate-400'>
+                          <Circle className='w-12 h-12 mb-3 opacity-40' />
+                          <p className='text-center'>
+                            Henüz yapılacak görev yok
+                          </p>
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* IN_PROGRESS Column */}
-                  <div 
+                  <div
                     className={`kanban-column bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 transition-all duration-300 border border-blue-200 shadow-sm ${
-                      draggedTask && 'ring-2 ring-blue-400 bg-gradient-to-br from-blue-100 to-blue-200 scale-105 shadow-lg drag-over'
+                      draggedTask &&
+                      'ring-2 ring-blue-400 bg-gradient-to-br from-blue-100 to-blue-200 scale-105 shadow-lg drag-over'
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'IN_PROGRESS')}
                   >
-                    <div className="kanban-column-header flex items-center justify-between mb-6">
-                      <div className="flex items-center">
-                        <div className="p-2 bg-white rounded-lg shadow-sm mr-3">
-                          <AlertCircle className="w-5 h-5 text-blue-600" />
+                    <div className='kanban-column-header flex items-center justify-between mb-6'>
+                      <div className='flex items-center'>
+                        <div className='p-2 bg-white rounded-lg shadow-sm mr-3'>
+                          <AlertCircle className='w-5 h-5 text-blue-600' />
                         </div>
                         <div>
-                          <h3 className="font-bold text-blue-800 text-lg">Devam Eden</h3>
-                          <p className="text-blue-600 text-sm">{project.tasks.filter(t => t.status === 'IN_PROGRESS').length} görev</p>
+                          <h3 className='font-bold text-blue-800 text-lg'>
+                            Devam Eden
+                          </h3>
+                          <p className='text-blue-600 text-sm'>
+                            {
+                              project.tasks.filter(
+                                (t) => t.status === 'IN_PROGRESS'
+                              ).length
+                            }{' '}
+                            görev
+                          </p>
                         </div>
                       </div>
-                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                      <div className='w-3 h-3 bg-blue-500 rounded-full animate-pulse'></div>
                     </div>
-                    <div className="space-y-3 min-h-[450px] overflow-y-auto">
-                      {project.tasks.filter(t => t.status === 'IN_PROGRESS').map((task) => (
-                        <TaskCard key={task.id} task={task} />
-                      ))}
-                      {project.tasks.filter(t => t.status === 'IN_PROGRESS').length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-12 text-blue-400">
-                          <AlertCircle className="w-12 h-12 mb-3 opacity-40" />
-                          <p className="text-center">Devam eden görev yok</p>
+                    <div className='space-y-3 min-h-[450px] overflow-y-auto'>
+                      {project.tasks
+                        .filter((t) => t.status === 'IN_PROGRESS')
+                        .map((task) => (
+                          <TaskCard key={task.id} task={task} />
+                        ))}
+                      {project.tasks.filter((t) => t.status === 'IN_PROGRESS')
+                        .length === 0 && (
+                        <div className='flex flex-col items-center justify-center py-12 text-blue-400'>
+                          <AlertCircle className='w-12 h-12 mb-3 opacity-40' />
+                          <p className='text-center'>Devam eden görev yok</p>
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* REVIEW Column - Added between IN_PROGRESS and COMPLETED */}
-                  <div 
+                  <div
                     className={`kanban-column bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 transition-all duration-300 border border-purple-200 shadow-sm ${
-                      draggedTask && 'ring-2 ring-blue-400 bg-gradient-to-br from-purple-100 to-purple-200 scale-105 shadow-lg drag-over'
+                      draggedTask &&
+                      'ring-2 ring-blue-400 bg-gradient-to-br from-purple-100 to-purple-200 scale-105 shadow-lg drag-over'
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'REVIEW')}
                   >
-                    <div className="kanban-column-header flex items-center justify-between mb-6">
-                      <div className="flex items-center">
-                        <div className="p-2 bg-white rounded-lg shadow-sm mr-3">
-                          <Eye className="w-5 h-5 text-purple-600" />
+                    <div className='kanban-column-header flex items-center justify-between mb-6'>
+                      <div className='flex items-center'>
+                        <div className='p-2 bg-white rounded-lg shadow-sm mr-3'>
+                          <Eye className='w-5 h-5 text-purple-600' />
                         </div>
                         <div>
-                          <h3 className="font-bold text-purple-800 text-lg">İncelemede</h3>
-                          <p className="text-purple-600 text-sm">{project.tasks.filter(t => t.status === 'REVIEW').length} görev</p>
+                          <h3 className='font-bold text-purple-800 text-lg'>
+                            İncelemede
+                          </h3>
+                          <p className='text-purple-600 text-sm'>
+                            {
+                              project.tasks.filter((t) => t.status === 'REVIEW')
+                                .length
+                            }{' '}
+                            görev
+                          </p>
                         </div>
                       </div>
-                      <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                      <div className='w-3 h-3 bg-purple-500 rounded-full animate-pulse'></div>
                     </div>
-                    <div className="space-y-3 min-h-[450px] overflow-y-auto">
-                      {project.tasks.filter(t => t.status === 'REVIEW').map((task) => (
-                        <TaskCard key={task.id} task={task} />
-                      ))}
-                      {project.tasks.filter(t => t.status === 'REVIEW').length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-12 text-purple-400">
-                          <Eye className="w-12 h-12 mb-3 opacity-40" />
-                          <p className="text-center">İncelenen görev yok</p>
+                    <div className='space-y-3 min-h-[450px] overflow-y-auto'>
+                      {project.tasks
+                        .filter((t) => t.status === 'REVIEW')
+                        .map((task) => (
+                          <TaskCard key={task.id} task={task} />
+                        ))}
+                      {project.tasks.filter((t) => t.status === 'REVIEW')
+                        .length === 0 && (
+                        <div className='flex flex-col items-center justify-center py-12 text-purple-400'>
+                          <Eye className='w-12 h-12 mb-3 opacity-40' />
+                          <p className='text-center'>İncelenen görev yok</p>
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* COMPLETED Column */}
-                  <div 
+                  <div
                     className={`kanban-column bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-5 transition-all duration-300 border border-emerald-200 shadow-sm ${
-                      draggedTask && 'ring-2 ring-blue-400 bg-gradient-to-br from-emerald-100 to-emerald-200 scale-105 shadow-lg drag-over'
+                      draggedTask &&
+                      'ring-2 ring-blue-400 bg-gradient-to-br from-emerald-100 to-emerald-200 scale-105 shadow-lg drag-over'
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'COMPLETED')}
                   >
-                    <div className="kanban-column-header flex items-center justify-between mb-6">
-                      <div className="flex items-center">
-                        <div className="p-2 bg-white rounded-lg shadow-sm mr-3">
-                          <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    <div className='kanban-column-header flex items-center justify-between mb-6'>
+                      <div className='flex items-center'>
+                        <div className='p-2 bg-white rounded-lg shadow-sm mr-3'>
+                          <CheckCircle className='w-5 h-5 text-emerald-600' />
                         </div>
                         <div>
-                          <h3 className="font-bold text-emerald-800 text-lg">Tamamlanan</h3>
-                          <p className="text-emerald-600 text-sm">{project.tasks.filter(t => t.status === 'COMPLETED').length} görev</p>
+                          <h3 className='font-bold text-emerald-800 text-lg'>
+                            Tamamlanan
+                          </h3>
+                          <p className='text-emerald-600 text-sm'>
+                            {
+                              project.tasks.filter(
+                                (t) => t.status === 'COMPLETED'
+                              ).length
+                            }{' '}
+                            görev
+                          </p>
                         </div>
                       </div>
-                      <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                      <div className='w-3 h-3 bg-emerald-500 rounded-full'></div>
                     </div>
-                    <div className="space-y-3 min-h-[450px] overflow-y-auto">
-                      {project.tasks.filter(t => t.status === 'COMPLETED').map((task) => (
-                        <TaskCard key={task.id} task={task} />
-                      ))}
-                      {project.tasks.filter(t => t.status === 'COMPLETED').length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-12 text-emerald-400">
-                          <CheckCircle className="w-12 h-12 mb-3 opacity-40" />
-                          <p className="text-center">Tamamlanan görev yok</p>
+                    <div className='space-y-3 min-h-[450px] overflow-y-auto'>
+                      {project.tasks
+                        .filter((t) => t.status === 'COMPLETED')
+                        .map((task) => (
+                          <TaskCard key={task.id} task={task} />
+                        ))}
+                      {project.tasks.filter((t) => t.status === 'COMPLETED')
+                        .length === 0 && (
+                        <div className='flex flex-col items-center justify-center py-12 text-emerald-400'>
+                          <CheckCircle className='w-12 h-12 mb-3 opacity-40' />
+                          <p className='text-center'>Tamamlanan görev yok</p>
                         </div>
                       )}
                     </div>
@@ -1213,11 +1363,16 @@ export default function ProjectDetailsPage() {
                         Tüm Görevler ({project.tasks.length})
                       </h3>
                       <p className='text-blue-100 text-sm mt-1'>
-                        Görevlere tıklayarak detaylı bilgileri görüntüleyebilirsiniz
+                        Görevlere tıklayarak detaylı bilgileri
+                        görüntüleyebilirsiniz
                       </p>
                     </div>
                     <div className='p-6'>
-                      <TaskList tasks={project.tasks} users={users} onTaskClick={handleTaskClick} />
+                      <TaskList
+                        tasks={project.tasks}
+                        users={users}
+                        onTaskClick={handleTaskClick}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1273,24 +1428,38 @@ export default function ProjectDetailsPage() {
                 {/* Project Overview Stats */}
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
                   <div className='bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white'>
-                    <h3 className='text-sm font-medium opacity-90'>Tamamlanma Oranı</h3>
+                    <h3 className='text-sm font-medium opacity-90'>
+                      Tamamlanma Oranı
+                    </h3>
                     <p className='text-2xl font-bold'>{progressPercentage}%</p>
-                    <p className='text-xs opacity-75'>{completedTasks}/{totalTasks} görev</p>
+                    <p className='text-xs opacity-75'>
+                      {completedTasks}/{totalTasks} görev
+                    </p>
                   </div>
                   <div className='bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white'>
-                    <h3 className='text-sm font-medium opacity-90'>Aktif Görevler</h3>
+                    <h3 className='text-sm font-medium opacity-90'>
+                      Aktif Görevler
+                    </h3>
                     <p className='text-2xl font-bold'>{inProgressTasks}</p>
                     <p className='text-xs opacity-75'>Devam eden işler</p>
                   </div>
                   <div className='bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-4 text-white'>
-                    <h3 className='text-sm font-medium opacity-90'>Bekleyen Görevler</h3>
+                    <h3 className='text-sm font-medium opacity-90'>
+                      Bekleyen Görevler
+                    </h3>
                     <p className='text-2xl font-bold'>{todoTasks}</p>
                     <p className='text-xs opacity-75'>Başlanmamış işler</p>
                   </div>
                   <div className='bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white'>
-                    <h3 className='text-sm font-medium opacity-90'>Toplam Süre</h3>
+                    <h3 className='text-sm font-medium opacity-90'>
+                      Toplam Süre
+                    </h3>
                     <p className='text-2xl font-bold'>
-                      {project.tasks.reduce((sum, task) => sum + (task.estimatedHours || 0), 0)}h
+                      {project.tasks.reduce(
+                        (sum, task) => sum + (task.estimatedHours || 0),
+                        0
+                      )}
+                      h
                     </p>
                     <p className='text-xs opacity-75'>Tahmini toplam</p>
                   </div>
@@ -1298,36 +1467,58 @@ export default function ProjectDetailsPage() {
 
                 {/* Task Status Distribution */}
                 <div className='bg-white rounded-lg border border-gray-200 p-6'>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>Görev Durum Dağılımı</h3>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                    Görev Durum Dağılımı
+                  </h3>
                   <div className='space-y-3'>
                     <div className='flex items-center justify-between'>
                       <div className='flex items-center gap-3'>
                         <div className='w-4 h-4 bg-green-500 rounded'></div>
-                        <span className='text-sm text-gray-700'>Tamamlanan</span>
+                        <span className='text-sm text-gray-700'>
+                          Tamamlanan
+                        </span>
                       </div>
                       <div className='flex items-center gap-2'>
                         <div className='w-32 bg-gray-200 rounded-full h-2'>
                           <div
                             className='bg-green-500 h-2 rounded-full'
-                            style={{ width: `${totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0}%` }}
+                            style={{
+                              width: `${
+                                totalTasks > 0
+                                  ? (completedTasks / totalTasks) * 100
+                                  : 0
+                              }%`,
+                            }}
                           ></div>
                         </div>
-                        <span className='text-sm font-medium text-gray-900 w-12'>{completedTasks}</span>
+                        <span className='text-sm font-medium text-gray-900 w-12'>
+                          {completedTasks}
+                        </span>
                       </div>
                     </div>
                     <div className='flex items-center justify-between'>
                       <div className='flex items-center gap-3'>
                         <div className='w-4 h-4 bg-blue-500 rounded'></div>
-                        <span className='text-sm text-gray-700'>Devam Eden</span>
+                        <span className='text-sm text-gray-700'>
+                          Devam Eden
+                        </span>
                       </div>
                       <div className='flex items-center gap-2'>
                         <div className='w-32 bg-gray-200 rounded-full h-2'>
                           <div
                             className='bg-blue-500 h-2 rounded-full'
-                            style={{ width: `${totalTasks > 0 ? (inProgressTasks / totalTasks) * 100 : 0}%` }}
+                            style={{
+                              width: `${
+                                totalTasks > 0
+                                  ? (inProgressTasks / totalTasks) * 100
+                                  : 0
+                              }%`,
+                            }}
                           ></div>
                         </div>
-                        <span className='text-sm font-medium text-gray-900 w-12'>{inProgressTasks}</span>
+                        <span className='text-sm font-medium text-gray-900 w-12'>
+                          {inProgressTasks}
+                        </span>
                       </div>
                     </div>
                     <div className='flex items-center justify-between'>
@@ -1339,10 +1530,18 @@ export default function ProjectDetailsPage() {
                         <div className='w-32 bg-gray-200 rounded-full h-2'>
                           <div
                             className='bg-orange-500 h-2 rounded-full'
-                            style={{ width: `${totalTasks > 0 ? (todoTasks / totalTasks) * 100 : 0}%` }}
+                            style={{
+                              width: `${
+                                totalTasks > 0
+                                  ? (todoTasks / totalTasks) * 100
+                                  : 0
+                              }%`,
+                            }}
                           ></div>
                         </div>
-                        <span className='text-sm font-medium text-gray-900 w-12'>{todoTasks}</span>
+                        <span className='text-sm font-medium text-gray-900 w-12'>
+                          {todoTasks}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1350,43 +1549,77 @@ export default function ProjectDetailsPage() {
 
                 {/* Team Performance */}
                 <div className='bg-white rounded-lg border border-gray-200 p-6'>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>Takım Performansı</h3>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                    Takım Performansı
+                  </h3>
                   <div className='space-y-4'>
-                    {users.map(user => {
-                      const userTasks = project.tasks.filter(task => task.assignedId === user.id)
-                      const completedUserTasks = userTasks.filter(task => task.status === 'COMPLETED')
-                      const userProgress = userTasks.length > 0 ? Math.round((completedUserTasks.length / userTasks.length) * 100) : 0
-                      const userHours = userTasks.reduce((sum, task) => sum + (task.estimatedHours || 0), 0)
-                      
-                      return userTasks.length > 0 && (
-                        <div key={user.id} className='p-4 border border-gray-100 rounded-lg'>
-                          <div className='flex items-center justify-between mb-2'>
-                            <h4 className='font-medium text-gray-900'>{user.name}</h4>
-                            <span className='text-sm text-gray-500'>{userTasks.length} görev</span>
-                          </div>
-                          <div className='grid grid-cols-3 gap-4 text-sm'>
-                            <div>
-                              <span className='text-gray-500'>İlerleme:</span>
-                              <div className='flex items-center gap-2 mt-1'>
-                                <div className='flex-1 bg-gray-200 rounded-full h-2'>
-                                  <div
-                                    className='bg-blue-600 h-2 rounded-full'
-                                    style={{ width: `${userProgress}%` }}
-                                  ></div>
+                    {users.map((user) => {
+                      const userTasks = project.tasks.filter(
+                        (task) => task.assignedId === user.id
+                      )
+                      const completedUserTasks = userTasks.filter(
+                        (task) => task.status === 'COMPLETED'
+                      )
+                      const userProgress =
+                        userTasks.length > 0
+                          ? Math.round(
+                              (completedUserTasks.length / userTasks.length) *
+                                100
+                            )
+                          : 0
+                      const userHours = userTasks.reduce(
+                        (sum, task) => sum + (task.estimatedHours || 0),
+                        0
+                      )
+
+                      return (
+                        userTasks.length > 0 && (
+                          <div
+                            key={user.id}
+                            className='p-4 border border-gray-100 rounded-lg'
+                          >
+                            <div className='flex items-center justify-between mb-2'>
+                              <h4 className='font-medium text-gray-900'>
+                                {user.name}
+                              </h4>
+                              <span className='text-sm text-gray-500'>
+                                {userTasks.length} görev
+                              </span>
+                            </div>
+                            <div className='grid grid-cols-3 gap-4 text-sm'>
+                              <div>
+                                <span className='text-gray-500'>İlerleme:</span>
+                                <div className='flex items-center gap-2 mt-1'>
+                                  <div className='flex-1 bg-gray-200 rounded-full h-2'>
+                                    <div
+                                      className='bg-blue-600 h-2 rounded-full'
+                                      style={{ width: `${userProgress}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className='font-medium text-gray-900'>
+                                    {userProgress}%
+                                  </span>
                                 </div>
-                                <span className='font-medium text-gray-900'>{userProgress}%</span>
+                              </div>
+                              <div>
+                                <span className='text-gray-500'>
+                                  Toplam Süre:
+                                </span>
+                                <p className='font-medium text-gray-900 mt-1'>
+                                  {userHours}h
+                                </p>
+                              </div>
+                              <div>
+                                <span className='text-gray-500'>
+                                  Tamamlanan:
+                                </span>
+                                <p className='font-medium text-gray-900 mt-1'>
+                                  {completedUserTasks.length}/{userTasks.length}
+                                </p>
                               </div>
                             </div>
-                            <div>
-                              <span className='text-gray-500'>Toplam Süre:</span>
-                              <p className='font-medium text-gray-900 mt-1'>{userHours}h</p>
-                            </div>
-                            <div>
-                              <span className='text-gray-500'>Tamamlanan:</span>
-                              <p className='font-medium text-gray-900 mt-1'>{completedUserTasks.length}/{userTasks.length}</p>
-                            </div>
                           </div>
-                        </div>
+                        )
                       )
                     })}
                   </div>
@@ -1394,18 +1627,28 @@ export default function ProjectDetailsPage() {
 
                 {/* Project Timeline */}
                 <div className='bg-white rounded-lg border border-gray-200 p-6'>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>Proje Zaman Çizelgesi</h3>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                    Proje Zaman Çizelgesi
+                  </h3>
                   <div className='space-y-3'>
                     <div className='flex items-center justify-between text-sm'>
                       <span className='text-gray-500'>Başlangıç Tarihi:</span>
                       <span className='font-medium text-gray-900'>
-                        {project.startDate ? new Date(project.startDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}
+                        {project.startDate
+                          ? new Date(project.startDate).toLocaleDateString(
+                              'tr-TR'
+                            )
+                          : 'Belirtilmemiş'}
                       </span>
                     </div>
                     <div className='flex items-center justify-between text-sm'>
                       <span className='text-gray-500'>Bitiş Tarihi:</span>
                       <span className='font-medium text-gray-900'>
-                        {project.endDate ? new Date(project.endDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}
+                        {project.endDate
+                          ? new Date(project.endDate).toLocaleDateString(
+                              'tr-TR'
+                            )
+                          : 'Belirtilmemiş'}
                       </span>
                     </div>
                     {project.startDate && project.endDate && (
@@ -1413,13 +1656,26 @@ export default function ProjectDetailsPage() {
                         <div className='flex items-center justify-between text-sm'>
                           <span className='text-gray-500'>Toplam Süre:</span>
                           <span className='font-medium text-gray-900'>
-                            {Math.ceil((new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} gün
+                            {Math.ceil(
+                              (new Date(project.endDate).getTime() -
+                                new Date(project.startDate).getTime()) /
+                                (1000 * 60 * 60 * 24)
+                            )}{' '}
+                            gün
                           </span>
                         </div>
                         <div className='flex items-center justify-between text-sm'>
                           <span className='text-gray-500'>Kalan Süre:</span>
                           <span className='font-medium text-gray-900'>
-                            {Math.max(0, Math.ceil((new Date(project.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} gün
+                            {Math.max(
+                              0,
+                              Math.ceil(
+                                (new Date(project.endDate).getTime() -
+                                  new Date().getTime()) /
+                                  (1000 * 60 * 60 * 24)
+                              )
+                            )}{' '}
+                            gün
                           </span>
                         </div>
                       </>
@@ -1429,32 +1685,59 @@ export default function ProjectDetailsPage() {
 
                 {/* Priority Distribution */}
                 <div className='bg-white rounded-lg border border-gray-200 p-6'>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>Öncelik Dağılımı</h3>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                    Öncelik Dağılımı
+                  </h3>
                   <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-                    {['URGENT', 'HIGH', 'MEDIUM', 'LOW'].map(priority => {
-                      const priorityTasks = project.tasks.filter(task => task.priority === priority)
+                    {['URGENT', 'HIGH', 'MEDIUM', 'LOW'].map((priority) => {
+                      const priorityTasks = project.tasks.filter(
+                        (task) => task.priority === priority
+                      )
                       const priorityCount = priorityTasks.length
-                      const priorityPercent = totalTasks > 0 ? Math.round((priorityCount / totalTasks) * 100) : 0
-                      
+                      const priorityPercent =
+                        totalTasks > 0
+                          ? Math.round((priorityCount / totalTasks) * 100)
+                          : 0
+
                       return (
-                        <div key={priority} className='text-center p-3 border border-gray-100 rounded-lg'>
-                          <div className={`w-8 h-8 mx-auto mb-2 rounded-full flex items-center justify-center ${
-                            priority === 'URGENT' ? 'bg-red-100 text-red-600' :
-                            priority === 'HIGH' ? 'bg-orange-100 text-orange-600' :
-                            priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-600' :
-                            'bg-green-100 text-green-600'
-                          }`}>
-                            {priority === 'URGENT' ? '🔥' :
-                             priority === 'HIGH' ? '🔴' :
-                             priority === 'MEDIUM' ? '🟡' : '🟢'}
+                        <div
+                          key={priority}
+                          className='text-center p-3 border border-gray-100 rounded-lg'
+                        >
+                          <div
+                            className={`w-8 h-8 mx-auto mb-2 rounded-full flex items-center justify-center ${
+                              priority === 'URGENT'
+                                ? 'bg-red-100 text-red-600'
+                                : priority === 'HIGH'
+                                ? 'bg-orange-100 text-orange-600'
+                                : priority === 'MEDIUM'
+                                ? 'bg-yellow-100 text-yellow-600'
+                                : 'bg-green-100 text-green-600'
+                            }`}
+                          >
+                            {priority === 'URGENT'
+                              ? '🔥'
+                              : priority === 'HIGH'
+                              ? '🔴'
+                              : priority === 'MEDIUM'
+                              ? '🟡'
+                              : '🟢'}
                           </div>
                           <h4 className='font-medium text-gray-900 text-sm'>
-                            {priority === 'URGENT' ? 'Acil' :
-                             priority === 'HIGH' ? 'Yüksek' :
-                             priority === 'MEDIUM' ? 'Orta' : 'Düşük'}
+                            {priority === 'URGENT'
+                              ? 'Acil'
+                              : priority === 'HIGH'
+                              ? 'Yüksek'
+                              : priority === 'MEDIUM'
+                              ? 'Orta'
+                              : 'Düşük'}
                           </h4>
-                          <p className='text-2xl font-bold text-gray-900'>{priorityCount}</p>
-                          <p className='text-xs text-gray-500'>{priorityPercent}%</p>
+                          <p className='text-2xl font-bold text-gray-900'>
+                            {priorityCount}
+                          </p>
+                          <p className='text-xs text-gray-500'>
+                            {priorityPercent}%
+                          </p>
                         </div>
                       )
                     })}
@@ -1484,17 +1767,23 @@ export default function ProjectDetailsPage() {
                 </button>
               </div>
             </div>
-            
+
             <div className='p-6'>
               <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
                 {/* Left Column - Basic Info */}
                 <div className='space-y-6'>
                   <div>
-                    <h4 className='text-2xl font-bold text-gray-900 mb-2'>{selectedTaskDetails.title}</h4>
+                    <h4 className='text-2xl font-bold text-gray-900 mb-2'>
+                      {selectedTaskDetails.title}
+                    </h4>
                     {selectedTaskDetails.description && (
                       <div className='bg-gray-50 p-4 rounded-lg'>
-                        <h5 className='font-semibold text-gray-700 mb-2'>Açıklama:</h5>
-                        <p className='text-gray-600 leading-relaxed'>{selectedTaskDetails.description}</p>
+                        <h5 className='font-semibold text-gray-700 mb-2'>
+                          Açıklama:
+                        </h5>
+                        <p className='text-gray-600 leading-relaxed'>
+                          {selectedTaskDetails.description}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -1505,17 +1794,28 @@ export default function ProjectDetailsPage() {
                         <Target className='w-4 h-4 mr-1' />
                         Durum
                       </h5>
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                        selectedTaskDetails.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                        selectedTaskDetails.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
-                        selectedTaskDetails.status === 'REVIEW' ? 'bg-purple-100 text-purple-700' :
-                        selectedTaskDetails.status === 'BLOCKED' ? 'bg-red-100 text-red-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {selectedTaskDetails.status === 'TODO' ? 'Yapılacak' :
-                         selectedTaskDetails.status === 'IN_PROGRESS' ? 'Devam Ediyor' :
-                         selectedTaskDetails.status === 'REVIEW' ? 'İncelemede' :
-                         selectedTaskDetails.status === 'BLOCKED' ? 'Engellenmiş' : 'Tamamlandı'}
+                      <span
+                        className={`px-3 py-1 text-sm font-medium rounded-full ${
+                          selectedTaskDetails.status === 'COMPLETED'
+                            ? 'bg-green-100 text-green-700'
+                            : selectedTaskDetails.status === 'IN_PROGRESS'
+                            ? 'bg-blue-100 text-blue-700'
+                            : selectedTaskDetails.status === 'REVIEW'
+                            ? 'bg-purple-100 text-purple-700'
+                            : selectedTaskDetails.status === 'BLOCKED'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {selectedTaskDetails.status === 'TODO'
+                          ? 'Yapılacak'
+                          : selectedTaskDetails.status === 'IN_PROGRESS'
+                          ? 'Devam Ediyor'
+                          : selectedTaskDetails.status === 'REVIEW'
+                          ? 'İncelemede'
+                          : selectedTaskDetails.status === 'BLOCKED'
+                          ? 'Engellenmiş'
+                          : 'Tamamlandı'}
                       </span>
                     </div>
 
@@ -1524,15 +1824,24 @@ export default function ProjectDetailsPage() {
                         <AlertTriangle className='w-4 h-4 mr-1' />
                         Öncelik
                       </h5>
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                        selectedTaskDetails.priority === 'URGENT' ? 'bg-red-100 text-red-700' :
-                        selectedTaskDetails.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
-                        selectedTaskDetails.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {selectedTaskDetails.priority === 'URGENT' ? 'Acil' :
-                         selectedTaskDetails.priority === 'HIGH' ? 'Yüksek' :
-                         selectedTaskDetails.priority === 'MEDIUM' ? 'Orta' : 'Düşük'}
+                      <span
+                        className={`px-3 py-1 text-sm font-medium rounded-full ${
+                          selectedTaskDetails.priority === 'URGENT'
+                            ? 'bg-red-100 text-red-700'
+                            : selectedTaskDetails.priority === 'HIGH'
+                            ? 'bg-orange-100 text-orange-700'
+                            : selectedTaskDetails.priority === 'MEDIUM'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-green-100 text-green-700'
+                        }`}
+                      >
+                        {selectedTaskDetails.priority === 'URGENT'
+                          ? 'Acil'
+                          : selectedTaskDetails.priority === 'HIGH'
+                          ? 'Yüksek'
+                          : selectedTaskDetails.priority === 'MEDIUM'
+                          ? 'Orta'
+                          : 'Düşük'}
                       </span>
                     </div>
                   </div>
@@ -1548,8 +1857,12 @@ export default function ProjectDetailsPage() {
                           {selectedTaskDetails.assignedUser.name.charAt(0)}
                         </div>
                         <div>
-                          <p className='font-medium text-gray-900'>{selectedTaskDetails.assignedUser.name}</p>
-                          <p className='text-sm text-gray-600'>{selectedTaskDetails.assignedUser.email}</p>
+                          <p className='font-medium text-gray-900'>
+                            {selectedTaskDetails.assignedUser.name}
+                          </p>
+                          <p className='text-sm text-gray-600'>
+                            {selectedTaskDetails.assignedUser.email}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1558,7 +1871,8 @@ export default function ProjectDetailsPage() {
 
                 {/* Right Column - Time & Dates */}
                 <div className='space-y-6'>
-                  {(selectedTaskDetails.estimatedHours || selectedTaskDetails.actualHours) && (
+                  {(selectedTaskDetails.estimatedHours ||
+                    selectedTaskDetails.actualHours) && (
                     <div className='bg-green-50 p-4 rounded-lg'>
                       <h5 className='font-semibold text-green-700 mb-3 flex items-center'>
                         <Timer className='w-4 h-4 mr-1' />
@@ -1567,35 +1881,56 @@ export default function ProjectDetailsPage() {
                       <div className='space-y-2'>
                         {selectedTaskDetails.estimatedHours && (
                           <div className='flex justify-between'>
-                            <span className='text-sm text-gray-600'>Tahmini Süre:</span>
-                            <span className='text-sm font-medium'>{selectedTaskDetails.estimatedHours} saat</span>
+                            <span className='text-sm text-gray-600'>
+                              Tahmini Süre:
+                            </span>
+                            <span className='text-sm font-medium'>
+                              {selectedTaskDetails.estimatedHours} saat
+                            </span>
                           </div>
                         )}
                         {selectedTaskDetails.actualHours && (
                           <div className='flex justify-between'>
-                            <span className='text-sm text-gray-600'>Gerçekleşen Süre:</span>
-                            <span className='text-sm font-medium'>{selectedTaskDetails.actualHours} saat</span>
+                            <span className='text-sm text-gray-600'>
+                              Gerçekleşen Süre:
+                            </span>
+                            <span className='text-sm font-medium'>
+                              {selectedTaskDetails.actualHours} saat
+                            </span>
                           </div>
                         )}
-                        {selectedTaskDetails.estimatedHours && selectedTaskDetails.actualHours && (
-                          <div className='pt-2 border-t border-green-200'>
-                            <div className='flex justify-between'>
-                              <span className='text-sm text-gray-600'>Fark:</span>
-                              <span className={`text-sm font-medium ${
-                                selectedTaskDetails.actualHours > selectedTaskDetails.estimatedHours 
-                                  ? 'text-red-600' : 'text-green-600'
-                              }`}>
-                                {selectedTaskDetails.actualHours > selectedTaskDetails.estimatedHours ? '+' : ''}
-                                {selectedTaskDetails.actualHours - selectedTaskDetails.estimatedHours} saat
-                              </span>
+                        {selectedTaskDetails.estimatedHours &&
+                          selectedTaskDetails.actualHours && (
+                            <div className='pt-2 border-t border-green-200'>
+                              <div className='flex justify-between'>
+                                <span className='text-sm text-gray-600'>
+                                  Fark:
+                                </span>
+                                <span
+                                  className={`text-sm font-medium ${
+                                    selectedTaskDetails.actualHours >
+                                    selectedTaskDetails.estimatedHours
+                                      ? 'text-red-600'
+                                      : 'text-green-600'
+                                  }`}
+                                >
+                                  {selectedTaskDetails.actualHours >
+                                  selectedTaskDetails.estimatedHours
+                                    ? '+'
+                                    : ''}
+                                  {selectedTaskDetails.actualHours -
+                                    selectedTaskDetails.estimatedHours}{' '}
+                                  saat
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </div>
                     </div>
                   )}
 
-                  {(selectedTaskDetails.startDate || selectedTaskDetails.endDate) && (
+                  {(selectedTaskDetails.startDate ||
+                    selectedTaskDetails.endDate) && (
                     <div className='bg-blue-50 p-4 rounded-lg'>
                       <h5 className='font-semibold text-blue-700 mb-3 flex items-center'>
                         <CalendarIcon className='w-4 h-4 mr-1' />
@@ -1604,50 +1939,81 @@ export default function ProjectDetailsPage() {
                       <div className='space-y-2'>
                         {selectedTaskDetails.startDate && (
                           <div className='flex justify-between items-center'>
-                            <span className='text-sm text-gray-600'>Başlangıç:</span>
+                            <span className='text-sm text-gray-600'>
+                              Başlangıç:
+                            </span>
                             <span className='text-sm font-medium'>
-                              {new Date(selectedTaskDetails.startDate).toLocaleDateString('tr-TR', {
+                              {new Date(
+                                selectedTaskDetails.startDate
+                              ).toLocaleDateString('tr-TR', {
                                 day: '2-digit',
                                 month: 'long',
-                                year: 'numeric'
+                                year: 'numeric',
                               })}
                             </span>
                           </div>
                         )}
                         {selectedTaskDetails.endDate && (
                           <div className='flex justify-between items-center'>
-                            <span className='text-sm text-gray-600'>Bitiş:</span>
-                            <span className={`text-sm font-medium ${
-                              new Date(selectedTaskDetails.endDate) < new Date() && selectedTaskDetails.status !== 'COMPLETED'
-                                ? 'text-red-600' : ''
-                            }`}>
-                              {new Date(selectedTaskDetails.endDate).toLocaleDateString('tr-TR', {
+                            <span className='text-sm text-gray-600'>
+                              Bitiş:
+                            </span>
+                            <span
+                              className={`text-sm font-medium ${
+                                new Date(selectedTaskDetails.endDate) <
+                                  new Date() &&
+                                selectedTaskDetails.status !== 'COMPLETED'
+                                  ? 'text-red-600'
+                                  : ''
+                              }`}
+                            >
+                              {new Date(
+                                selectedTaskDetails.endDate
+                              ).toLocaleDateString('tr-TR', {
                                 day: '2-digit',
                                 month: 'long',
-                                year: 'numeric'
+                                year: 'numeric',
                               })}
-                              {new Date(selectedTaskDetails.endDate) < new Date() && selectedTaskDetails.status !== 'COMPLETED' && (
-                                <span className='ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full'>Gecikmiş</span>
-                              )}
+                              {new Date(selectedTaskDetails.endDate) <
+                                new Date() &&
+                                selectedTaskDetails.status !== 'COMPLETED' && (
+                                  <span className='ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full'>
+                                    Gecikmiş
+                                  </span>
+                                )}
                             </span>
                           </div>
                         )}
-                        {selectedTaskDetails.startDate && selectedTaskDetails.endDate && (
-                          <div className='pt-2 border-t border-blue-200'>
-                            <div className='flex justify-between'>
-                              <span className='text-sm text-gray-600'>Süre:</span>
-                              <span className='text-sm font-medium'>
-                                {Math.ceil((new Date(selectedTaskDetails.endDate).getTime() - new Date(selectedTaskDetails.startDate).getTime()) / (1000 * 60 * 60 * 24))} gün
-                              </span>
+                        {selectedTaskDetails.startDate &&
+                          selectedTaskDetails.endDate && (
+                            <div className='pt-2 border-t border-blue-200'>
+                              <div className='flex justify-between'>
+                                <span className='text-sm text-gray-600'>
+                                  Süre:
+                                </span>
+                                <span className='text-sm font-medium'>
+                                  {Math.ceil(
+                                    (new Date(
+                                      selectedTaskDetails.endDate
+                                    ).getTime() -
+                                      new Date(
+                                        selectedTaskDetails.startDate
+                                      ).getTime()) /
+                                      (1000 * 60 * 60 * 24)
+                                  )}{' '}
+                                  gün
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </div>
                     </div>
                   )}
 
                   <div className='bg-gray-50 p-4 rounded-lg'>
-                    <h5 className='font-semibold text-gray-700 mb-3'>Hızlı İşlemler</h5>
+                    <h5 className='font-semibold text-gray-700 mb-3'>
+                      Hızlı İşlemler
+                    </h5>
                     <div className='space-y-2'>
                       <button
                         onClick={() => {
@@ -1661,7 +2027,11 @@ export default function ProjectDetailsPage() {
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm('Bu görevi silmek istediğinizden emin misiniz?')) {
+                          if (
+                            confirm(
+                              'Bu görevi silmek istediğinizden emin misiniz?'
+                            )
+                          ) {
                             handleTaskDelete(selectedTaskDetails.id)
                             setShowTaskDetailsModal(false)
                           }

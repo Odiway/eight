@@ -1,0 +1,1188 @@
+import { NextResponse } from 'next/server'
+import puppeteer from 'puppeteer'
+import { PrismaClient } from '@prisma/client'
+
+// Global Prisma client for Vercel production
+const prisma = global.prisma || new PrismaClient()
+if (process.env.NODE_ENV === 'development') global.prisma = prisma
+
+// Enhanced Turkish Character Support
+function formatTurkishText(text: string): string {
+  if (!text) return ''
+  return text // Keep original Turkish characters in HTML/CSS
+}
+
+// Comprehensive Data Models
+interface ProjectReportData {
+  project: {
+    id: string
+    name: string
+    description: string | null
+    status: string
+    startDate: Date | null
+    endDate: Date | null
+    createdAt: Date
+    budget?: number
+  }
+  tasks: Array<{
+    id: string
+    title: string
+    description: string | null
+    status: string
+    priority: string
+    estimatedHours: number | null
+    actualHours: number | null
+    startDate: Date | null
+    endDate: Date | null
+    assignedUser: { id: string; name: string } | null
+    assignedUsers: Array<{
+      user: { id: string; name: string; department: string }
+    }>
+  }>
+  teamMembers: Array<{
+    id: string
+    name: string
+    department: string
+  }>
+  departments: Array<{
+    name: string
+    count: number
+  }>
+  workloadData: {
+    totalEstimated: number
+    totalActual: number
+    efficiency: number
+    averageTaskHours: number
+  }
+}
+
+// ===== ULTRA-PREMIUM HTML TEMPLATE =====
+function generateExecutiveHTMLReport(data: ProjectReportData): string {
+  // Calculate KPIs
+  const totalTasks = data.tasks.length
+  const completedTasks = data.tasks.filter(
+    (t) => t.status === 'COMPLETED'
+  ).length
+  const inProgressTasks = data.tasks.filter(
+    (t) => t.status === 'IN_PROGRESS'
+  ).length
+  const completionRate =
+    totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
+  const efficiency = data.workloadData.efficiency
+
+  // Calculate status distribution for chart
+  const statusStats = data.tasks.reduce((acc, task) => {
+    acc[task.status] = (acc[task.status] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  // Status translation to Turkish
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'COMPLETED':
+        return 'Tamamlandı'
+      case 'IN_PROGRESS':
+        return 'Devam Ediyor'
+      case 'PENDING':
+        return 'Beklemede'
+      case 'ON_HOLD':
+        return 'Askıda'
+      default:
+        return status
+    }
+  }
+
+  // Priority translation to Turkish
+  const getPriorityText = (priority: string) => {
+    switch (priority) {
+      case 'HIGH':
+        return 'Yüksek'
+      case 'MEDIUM':
+        return 'Orta'
+      case 'LOW':
+        return 'Düşük'
+      default:
+        return priority
+    }
+  }
+
+  return `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Project Report - ${formatTurkishText(
+      data.project.name
+    )}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: #1a202c;
+            background: #ffffff;
+        }
+        
+        /* ===== PREMIUM COLOR SYSTEM ===== */
+        :root {
+            --executive-navy: #0a1929;
+            --corporate-blue: #1565c0;
+            --premium-blue: #1976d2;
+            --accent-blue: #42a5f5;
+            --champagne-gold: #f7e98e;
+            --platinum-silver: #e8eaf6;
+            --rose-gold: #f8bbd9;
+            --success-forest: #2e7d32;
+            --warning-amber: #f57c00;
+            --danger-crimson: #d32f2f;
+            --charcoal-black: #212121;
+            --executive-gray: #424242;
+            --corporate-gray: #616161;
+            --light-silver: #e0e0e0;
+            --pearl-white: #fafafa;
+        }
+        
+        /* ===== COVER PAGE ===== */
+        .cover-page {
+            height: 100vh;
+            background: linear-gradient(135deg, var(--executive-navy) 0%, var(--corporate-blue) 50%, var(--premium-blue) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
+        }
+        
+        .cover-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.05) 0%, transparent 50%),
+                linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.02) 50%, transparent 70%);
+        }
+        
+        .company-branding {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 60px;
+            z-index: 2;
+        }
+        
+        .company-logo {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--corporate-blue);
+            letter-spacing: -0.5px;
+        }
+        
+        .company-tagline {
+            font-size: 14px;
+            color: var(--executive-gray);
+            margin-top: 8px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .main-title {
+            z-index: 2;
+            margin-bottom: 40px;
+        }
+        
+        .main-title h1 {
+            font-size: 72px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            line-height: 1.1;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+        }
+        
+        .main-title h2 {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--champagne-gold);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            line-height: 1.2;
+        }
+        
+        .project-name {
+            font-size: 24px;
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px 30px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 60px;
+            z-index: 2;
+        }
+        
+        .executive-summary {
+            background: linear-gradient(135deg, var(--champagne-gold) 0%, var(--platinum-silver) 100%);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            max-width: 600px;
+            z-index: 2;
+        }
+        
+        .executive-summary h3 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--corporate-blue);
+            margin-bottom: 20px;
+        }
+        
+        .executive-summary ul {
+            list-style: none;
+            font-size: 16px;
+            color: var(--charcoal-black);
+        }
+        
+        .executive-summary li {
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        
+        .cover-footer {
+            position: absolute;
+            bottom: 40px;
+            left: 60px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            z-index: 2;
+        }
+        
+        /* ===== CONTENT PAGES ===== */
+        .content-page {
+            padding: 60px;
+            min-height: 100vh;
+            page-break-before: always;
+        }
+        
+        /* ===== EXECUTIVE DASHBOARD ===== */
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--premium-blue) 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dashboard-header h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+        
+        .dashboard-header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        
+        .kpi-card {
+            background: linear-gradient(135deg, var(--success-forest) 0%, #4caf50 100%);
+            padding: 30px;
+            border-radius: 16px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card.efficiency {
+            background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--premium-blue) 100%);
+        }
+        
+        .kpi-card.tasks {
+            background: linear-gradient(135deg, var(--warning-amber) 0%, #ff9800 100%);
+        }
+        
+        .kpi-card.team {
+            background: linear-gradient(135deg, #ad1457 0%, #e91e63 100%);
+        }
+        
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+        
+        .kpi-icon {
+            font-size: 32px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .kpi-value {
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+        
+        .kpi-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        
+        .kpi-subtitle {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        /* ===== ANALYTICS SECTION ===== */
+        .analytics-section {
+            margin-bottom: 60px;
+        }
+        
+        .section-header {
+            background: linear-gradient(135deg, var(--pearl-white) 0%, var(--light-silver) 100%);
+            padding: 30px 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 6px solid var(--corporate-blue);
+        }
+        
+        .section-header h2 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--corporate-blue);
+            margin-bottom: 8px;
+        }
+        
+        .section-header p {
+            font-size: 16px;
+            color: var(--corporate-gray);
+        }
+        
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--light-silver);
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--corporate-blue);
+            margin-bottom: 20px;
+        }
+        
+        .progress-bars {
+            space-y: 16px;
+        }
+        
+        .progress-item {
+            margin-bottom: 16px;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: var(--light-silver);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            position: relative;
+            background: linear-gradient(90deg, var(--success-forest) 0%, #4caf50 100%);
+        }
+        
+        .progress-fill.in-progress {
+            background: linear-gradient(90deg, var(--corporate-blue) 0%, var(--premium-blue) 100%);
+        }
+        
+        .progress-fill.pending {
+            background: linear-gradient(90deg, var(--warning-amber) 0%, #ff9800 100%);
+        }
+        
+        .progress-fill.on-hold {
+            background: linear-gradient(90deg, var(--danger-crimson) 0%, #f44336 100%);
+        }
+        
+        .team-matrix {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 20px;
+        }
+        
+        .matrix-cell {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--light-silver);
+        }
+        
+        .matrix-score {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--corporate-blue);
+            margin-bottom: 8px;
+        }
+        
+        .matrix-dept {
+            font-size: 12px;
+            color: var(--corporate-gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        
+        .matrix-stats {
+            font-size: 10px;
+            color: var(--executive-gray);
+        }
+        
+        /* ===== WORKLOAD ANALYTICS ===== */
+        .workload-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .workload-card {
+            background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--premium-blue) 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+        
+        .workload-card.estimated {
+            background: linear-gradient(135deg, var(--success-forest) 0%, #4caf50 100%);
+        }
+        
+        .workload-card.actual {
+            background: linear-gradient(135deg, var(--warning-amber) 0%, #ff9800 100%);
+        }
+        
+        .workload-card.efficiency {
+            background: linear-gradient(135deg, #ad1457 0%, #e91e63 100%);
+        }
+        
+        .workload-icon {
+            font-size: 24px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .workload-value {
+            font-size: 24px;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+        
+        .workload-metric {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* ===== TASK TABLE ===== */
+        .task-table {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--light-silver);
+        }
+        
+        .table-header {
+            background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--premium-blue) 100%);
+            color: white;
+            padding: 20px;
+        }
+        
+        .table-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .table-content {
+            overflow-x: auto;
+        }
+        
+        .task-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1.5fr 120px 80px;
+            gap: 20px;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--light-silver);
+            font-size: 14px;
+        }
+        
+        .task-row:nth-child(even) {
+            background: var(--pearl-white);
+        }
+        
+        .task-row.header {
+            background: var(--light-silver);
+            font-weight: 700;
+            color: var(--charcoal-black);
+            border-bottom: 2px solid var(--corporate-blue);
+        }
+        
+        .task-title {
+            font-weight: 600;
+            color: var(--charcoal-black);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-badge.completed {
+            background: rgba(46, 125, 50, 0.1);
+            color: var(--success-forest);
+        }
+        
+        .status-badge.in-progress {
+            background: rgba(21, 101, 192, 0.1);
+            color: var(--corporate-blue);
+        }
+        
+        .status-badge.pending {
+            background: rgba(245, 124, 0, 0.1);
+            color: var(--warning-amber);
+        }
+        
+        .status-badge.on-hold {
+            background: rgba(211, 47, 47, 0.1);
+            color: var(--danger-crimson);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        
+        .priority-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .priority-badge.high {
+            background: rgba(211, 47, 47, 0.1);
+            color: var(--danger-crimson);
+        }
+        
+        .priority-badge.medium {
+            background: rgba(245, 124, 0, 0.1);
+            color: var(--warning-amber);
+        }
+        
+        .priority-badge.low {
+            background: rgba(46, 125, 50, 0.1);
+            color: var(--success-forest);
+        }
+        
+        .mini-progress {
+            width: 100%;
+            height: 6px;
+            background: var(--light-silver);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .mini-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-forest) 0%, #4caf50 100%);
+            border-radius: 3px;
+        }
+        
+        /* ===== FOOTER ===== */
+        .premium-footer {
+            background: linear-gradient(135deg, var(--executive-navy) 0%, var(--corporate-blue) 100%);
+            color: white;
+            padding: 30px 60px;
+            margin-top: 60px;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .footer-brand {
+            font-size: 18px;
+            font-weight: 800;
+        }
+        
+        .footer-meta {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        /* ===== PRINT STYLES ===== */
+        @media print {
+            .cover-page {
+                page-break-after: always;
+            }
+            
+            .content-page {
+                page-break-before: always;
+            }
+            
+            .analytics-section {
+                page-break-inside: avoid;
+            }
+        }
+        
+        /* ===== RESPONSIVE ADJUSTMENTS ===== */
+        @media (max-width: 1024px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .workload-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== COVER PAGE ===== -->
+    <div class="cover-page">
+        <div class="company-branding">
+            <div class="company-logo">TEMSAONE</div>
+            <div class="company-tagline">Executive Solutions</div>
+        </div>
+        
+        <div class="main-title">
+            <h1>YÖNETİCİ</h1>
+            <h2>PROJE ANALİTİĞİ</h2>
+        </div>
+        
+        <div class="project-name">
+            <strong>PROJE:</strong> ${formatTurkishText(
+              data.project.name
+            ).toUpperCase()}
+        </div>
+        
+        <div class="executive-summary">
+            <h3>YÖNETİCİ ÖZETİ</h3>
+            <ul>
+                <li>• Kapsamlı proje performans analizi</li>
+                <li>• Gerçek zamanlı takım verimlilik metrikleri</li>
+                <li>• Gelişmiş iş yükü dağılım içgörüleri</li>
+                <li>• Stratejik kaynak tahsis önerileri</li>
+                <li>• Yönetici düzeyi karar destek verileri</li>
+            </ul>
+        </div>
+        
+        <div class="cover-footer">
+            <div>RAPOR TARİHİ: ${new Date()
+              .toLocaleDateString('tr-TR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })
+              .toUpperCase()}</div>
+            <div>GİZLİ - YÖNETİCİ DÜZEYİ</div>
+        </div>
+    </div>
+    
+    <!-- ===== EXECUTIVE DASHBOARD ===== -->
+    <div class="content-page">
+        <div class="dashboard-header">
+            <h1>YÖNETİCİ PANOSU</h1>
+            <p>Gerçek Zamanlı Performans Metrikleri ve Analitiği</p>
+        </div>
+        
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <span class="kpi-icon">✓</span>
+                <div class="kpi-value">${completionRate.toFixed(1)}%</div>
+                <div class="kpi-label">Proje Tamamlanma</div>
+                <div class="kpi-subtitle">${completedTasks}/${totalTasks} Görev</div>
+            </div>
+            
+            <div class="kpi-card efficiency">
+                <span class="kpi-icon">⚡</span>
+                <div class="kpi-value">${efficiency.toFixed(1)}%</div>
+                <div class="kpi-label">Takım Verimliliği</div>
+                <div class="kpi-subtitle">Performans İndeksi</div>
+            </div>
+            
+            <div class="kpi-card tasks">
+                <span class="kpi-icon">⚠</span>
+                <div class="kpi-value">${inProgressTasks}</div>
+                <div class="kpi-label">Aktif Görevler</div>
+                <div class="kpi-subtitle">Devam Eden</div>
+            </div>
+            
+            <div class="kpi-card team">
+                <span class="kpi-icon">👥</span>
+                <div class="kpi-value">${data.teamMembers.length}</div>
+                <div class="kpi-label">Takım Üyeleri</div>
+                <div class="kpi-subtitle">Kaynak Havuzu</div>
+            </div>
+        </div>
+        
+        <!-- ===== ANALYTICS SECTION ===== -->
+        <div class="analytics-section">
+            <div class="section-header">
+                <h2>GELİŞMİŞ PROJE ANALİTİĞİ</h2>
+                <p>Kapsamlı Performans İçgörüleri ve Stratejik Metrikler</p>
+            </div>
+            
+            <div class="analytics-grid">
+                <div class="chart-container">
+                    <div class="chart-title">Görev İlerleme Dağılımı</div>
+                    <div class="progress-bars">
+                        ${Object.entries(statusStats)
+                          .map(([status, count]) => {
+                            const percentage =
+                              totalTasks > 0 ? (count / totalTasks) * 100 : 0
+                            const statusClass = status
+                              .toLowerCase()
+                              .replace('_', '-')
+                            const statusLabel = getStatusText(status)
+                            return `
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span>${statusLabel}</span>
+                                    <span>${count} (${percentage.toFixed(
+                              1
+                            )}%)</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill ${statusClass}" style="width: ${percentage}%"></div>
+                                </div>
+                            </div>
+                          `
+                          })
+                          .join('')}
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Takım Performans Matrisi</div>
+                    <div class="team-matrix">
+                        ${data.departments
+                          .map((dept) => {
+                            const tasksPerPerson =
+                              dept.count > 0
+                                ? Math.round(
+                                    (data.tasks.length /
+                                      data.teamMembers.length) *
+                                      100
+                                  ) / 100
+                                : 0
+                            const performanceScore = Math.min(
+                              100,
+                              tasksPerPerson * 20
+                            )
+                            return `
+                            <div class="matrix-cell">
+                                <div class="matrix-score">${performanceScore.toFixed(
+                                  0
+                                )}</div>
+                                <div class="matrix-dept">${formatTurkishText(
+                                  dept.name
+                                ).substring(0, 8)}</div>
+                                <div class="matrix-stats">${dept.count}k</div>
+                            </div>
+                          `
+                          })
+                          .join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ===== WORKLOAD ANALYTICS ===== -->
+        <div class="analytics-section">
+            <div class="section-header">
+                <h2>İŞ YÜKÜ ANALİTİK PANOSU</h2>
+                <p>Kaynak Tahsisi ve Performans Optimizasyonu</p>
+            </div>
+            
+            <div class="workload-cards">
+                <div class="workload-card estimated">
+                    <span class="workload-icon">⏱</span>
+                    <div class="workload-value">${
+                      data.workloadData.totalEstimated
+                    }s</div>
+                    <div class="workload-metric">Toplam Tahmini</div>
+                </div>
+                
+                <div class="workload-card actual">
+                    <span class="workload-icon">✓</span>
+                    <div class="workload-value">${
+                      data.workloadData.totalActual
+                    }s</div>
+                    <div class="workload-metric">Toplam Gerçek</div>
+                </div>
+                
+                <div class="workload-card">
+                    <span class="workload-icon">📊</span>
+                    <div class="workload-value">${data.workloadData.averageTaskHours.toFixed(
+                      1
+                    )}s</div>
+                    <div class="workload-metric">Ortalama Görev</div>
+                </div>
+                
+                <div class="workload-card efficiency">
+                    <span class="workload-icon">⚡</span>
+                    <div class="workload-value">${data.workloadData.efficiency.toFixed(
+                      1
+                    )}%</div>
+                    <div class="workload-metric">Verimlilik</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ===== DETAILED TASK BREAKDOWN ===== -->
+    <div class="content-page">
+        <div class="section-header">
+            <h2>DETAYLI GÖREV DAĞILIMI</h2>
+            <p>Kapsamlı Görev Analizi ve Atama Detayları</p>
+        </div>
+        
+        <div class="task-table">
+            <div class="table-header">
+                <h3>Görev Genel Bakış ve Durum Takibi</h3>
+            </div>
+            
+            <div class="table-content">
+                <div class="task-row header">
+                    <div>GÖREV</div>
+                    <div>DURUM</div>
+                    <div>ÖNCELİK</div>
+                    <div>ATANAN</div>
+                    <div>İLERLEME</div>
+                    <div>SAAT</div>
+                </div>
+                
+                ${data.tasks
+                  .map((task) => {
+                    const progress =
+                      task.status === 'COMPLETED'
+                        ? 100
+                        : task.status === 'IN_PROGRESS'
+                        ? 60
+                        : task.status === 'PENDING'
+                        ? 20
+                        : 0
+
+                    const statusClass = task.status
+                      .toLowerCase()
+                      .replace('_', '-')
+                    const priorityClass = task.priority.toLowerCase()
+
+                    return `
+                    <div class="task-row">
+                        <div class="task-title">${formatTurkishText(
+                          task.title
+                        ).substring(0, 40)}${
+                      task.title.length > 40 ? '...' : ''
+                    }</div>
+                        <div>
+                            <span class="status-badge ${statusClass}">
+                                <span class="status-dot"></span>
+                                ${getStatusText(task.status)}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="priority-badge ${priorityClass}">
+                                ${getPriorityText(task.priority)}
+                            </span>
+                        </div>
+                        <div>${
+                          task.assignedUser
+                            ? formatTurkishText(
+                                task.assignedUser.name
+                              ).substring(0, 15)
+                            : 'Atanmadı'
+                        }</div>
+                        <div>
+                            <div class="mini-progress">
+                                <div class="mini-progress-fill" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                        <div>${
+                          task.estimatedHours ? `${task.estimatedHours}s` : '-'
+                        }</div>
+                    </div>
+                  `
+                  })
+                  .join('')}
+            </div>
+        </div>
+        
+        <div class="premium-footer">
+            <div class="footer-content">
+                <div class="footer-brand">TEMSAONE YÖNETİCİ ÇÖZÜMLERİ</div>
+                <div class="footer-meta">
+                    <div>Oluşturuldu: ${new Date().toLocaleString(
+                      'tr-TR'
+                    )}</div>
+                    <div>GİZLİ - YÖNETİCİ DÜZEYİ</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+  `
+}
+
+// ===== MAIN API HANDLER =====
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  let browser = null
+
+  try {
+    const projectId = params.id
+
+    // Fetch comprehensive project data
+    const projectData = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        tasks: {
+          include: {
+            assignedUser: {
+              select: { id: true, name: true },
+            },
+            assignedUsers: {
+              include: {
+                user: {
+                  select: { id: true, name: true, department: true },
+                },
+              },
+            },
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: { id: true, name: true, department: true },
+            },
+          },
+        },
+      },
+    })
+
+    if (!projectData) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    // Process team members
+    const teamMembers = projectData.members.map((pm: any) => ({
+      id: pm.user.id,
+      name: pm.user.name,
+      department: pm.user.department,
+    }))
+
+    // Calculate departments
+    const departmentCounts = teamMembers.reduce((acc: any, member: any) => {
+      const dept = member.department || 'Atanmadı'
+      acc[dept] = (acc[dept] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const departments = Object.entries(departmentCounts).map(
+      ([name, count]) => ({
+        name,
+        count: count as number,
+      })
+    )
+
+    // Calculate workload analytics
+    const totalEstimated = projectData.tasks.reduce(
+      (sum: any, task: any) => sum + (task.estimatedHours || 0),
+      0
+    )
+    const totalActual = projectData.tasks.reduce(
+      (sum: any, task: any) => sum + (task.actualHours || 0),
+      0
+    )
+    const efficiency =
+      totalEstimated > 0 ? (totalActual / totalEstimated) * 100 : 100
+    const averageTaskHours =
+      projectData.tasks.length > 0
+        ? totalEstimated / projectData.tasks.length
+        : 0
+
+    const workloadData = {
+      totalEstimated,
+      totalActual,
+      efficiency,
+      averageTaskHours,
+    }
+
+    // Prepare report data
+    const reportData: ProjectReportData = {
+      project: projectData,
+      tasks: projectData.tasks,
+      teamMembers,
+      departments,
+      workloadData,
+    }
+
+    // Generate HTML report
+    const htmlContent = generateExecutiveHTMLReport(reportData)
+
+    // Launch Puppeteer with Vercel-optimized settings
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-web-security',
+      ],
+    })
+
+    const page = await browser.newPage()
+
+    // Set viewport for consistent rendering
+    await page.setViewport({ width: 1200, height: 1600 })
+
+    // Set content and wait for fonts to load
+    await page.setContent(htmlContent, {
+      waitUntil: ['networkidle0', 'domcontentloaded'],
+    })
+
+    // Generate PDF with premium settings
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '0mm',
+        right: '0mm',
+        bottom: '0mm',
+        left: '0mm',
+      },
+      preferCSSPageSize: true,
+    })
+
+    // Generate premium filename
+    const sanitizedName = formatTurkishText(projectData.name)
+      .replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ0-9\s]/g, '')
+      .replace(/\s+/g, '_')
+      .toLowerCase()
+
+    const timestamp = new Date().toISOString().slice(0, 10)
+    const filename = `Yonetici_Proje_Raporu_${sanitizedName}_${timestamp}.pdf`
+
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+      },
+    })
+  } catch (error) {
+    console.error('Executive PDF generation error:', error)
+    return NextResponse.json(
+      { error: 'Failed to generate executive PDF report' },
+      { status: 500 }
+    )
+  } finally {
+    if (browser) {
+      await browser.close()
+    }
+  }
+}

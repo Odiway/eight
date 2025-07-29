@@ -6,17 +6,18 @@ export async function GET() {
     // Check environment variables
     const hasDbUrl = !!process.env.DATABASE_URL
     const nodeEnv = process.env.NODE_ENV || 'development'
-    
+
     let dbConnection = false
     let dbError = null
-    
+
     // Test database connection
     try {
       await prisma.$connect()
       dbConnection = true
       await prisma.$disconnect()
     } catch (error) {
-      dbError = error instanceof Error ? error.message : 'Unknown database error'
+      dbError =
+        error instanceof Error ? error.message : 'Unknown database error'
     }
 
     return NextResponse.json({
@@ -25,13 +26,16 @@ export async function GET() {
       hasDbUrl,
       dbConnection,
       dbError,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    return NextResponse.json({
-      status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    )
   }
 }

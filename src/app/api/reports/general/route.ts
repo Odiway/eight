@@ -24,27 +24,32 @@ async function getGeneralReportsData() {
           tasks: true,
           members: {
             include: {
-              user: true
-            }
-          }
-        }
+              user: true,
+            },
+          },
+        },
       }),
       prisma.user.findMany(),
       prisma.task.findMany({
         include: {
           project: true,
-          assignedUser: true
-        }
-      })
+          assignedUser: true,
+        },
+      }),
     ])
 
     // Calculate summary statistics
     const totalProjects = projects.length
-    const completedProjects = projects.filter(p => p.status === 'COMPLETED').length
+    const completedProjects = projects.filter(
+      (p) => p.status === 'COMPLETED'
+    ).length
     const totalTasks = tasks.length
-    const completedTasks = tasks.filter(t => t.status === 'COMPLETED').length
-    const overdueTasks = tasks.filter(t => 
-      t.endDate && new Date(t.endDate) < new Date() && t.status !== 'COMPLETED'
+    const completedTasks = tasks.filter((t) => t.status === 'COMPLETED').length
+    const overdueTasks = tasks.filter(
+      (t) =>
+        t.endDate &&
+        new Date(t.endDate) < new Date() &&
+        t.status !== 'COMPLETED'
     ).length
     const totalUsers = users.length
 
@@ -57,19 +62,24 @@ async function getGeneralReportsData() {
           userCount: 0,
           totalTasks: 0,
           completedTasks: 0,
-          activeProjects: 0
+          activeProjects: 0,
         }
       }
-      
+
       acc[dept].userCount++
-      
-      const userTasks = tasks.filter(t => t.assignedId === user.id)
+
+      const userTasks = tasks.filter((t) => t.assignedId === user.id)
       acc[dept].totalTasks += userTasks.length
-      acc[dept].completedTasks += userTasks.filter(t => t.status === 'COMPLETED').length
-      
-      const userProjects = new Set(userTasks.map(t => t.projectId))
-      acc[dept].activeProjects = Math.max(acc[dept].activeProjects, userProjects.size)
-      
+      acc[dept].completedTasks += userTasks.filter(
+        (t) => t.status === 'COMPLETED'
+      ).length
+
+      const userProjects = new Set(userTasks.map((t) => t.projectId))
+      acc[dept].activeProjects = Math.max(
+        acc[dept].activeProjects,
+        userProjects.size
+      )
+
       return acc
     }, {} as Record<string, any>)
 
@@ -81,10 +91,10 @@ async function getGeneralReportsData() {
         totalUsers,
         completedProjects,
         completedTasks,
-        overdueTasks
+        overdueTasks,
       },
       projects,
-      departments
+      departments,
     }
   } catch (error) {
     console.error('Database error in getGeneralReportsData:', error)
@@ -101,7 +111,7 @@ function getMockReportsData() {
       totalUsers: 12,
       completedProjects: 3,
       completedTasks: 28,
-      overdueTasks: 5
+      overdueTasks: 5,
     },
     projects: [],
     departments: {
@@ -110,22 +120,22 @@ function getMockReportsData() {
         userCount: 6,
         totalTasks: 25,
         completedTasks: 18,
-        activeProjects: 3
+        activeProjects: 3,
       },
       'İnsan Kaynakları': {
         name: 'İnsan Kaynakları',
         userCount: 3,
         totalTasks: 12,
         completedTasks: 8,
-        activeProjects: 2
+        activeProjects: 2,
       },
-      'Pazarlama': {
+      Pazarlama: {
         name: 'Pazarlama',
         userCount: 3,
         totalTasks: 8,
         completedTasks: 2,
-        activeProjects: 1
-      }
-    }
+        activeProjects: 1,
+      },
+    },
   }
 }

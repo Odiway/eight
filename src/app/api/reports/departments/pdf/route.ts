@@ -16,8 +16,8 @@ const mockDepartmentData = {
       activeProjects: 3,
       users: [
         { name: 'Ahmet Yilmaz', totalTasks: 8, completedTasks: 6 },
-        { name: 'Mehmet Demir', totalTasks: 7, completedTasks: 4 }
-      ]
+        { name: 'Mehmet Demir', totalTasks: 7, completedTasks: 4 },
+      ],
     },
     {
       name: 'Tasarim',
@@ -27,8 +27,8 @@ const mockDepartmentData = {
       activeProjects: 2,
       users: [
         { name: 'Ayse Kara', totalTasks: 5, completedTasks: 4 },
-        { name: 'Fatma Oz', totalTasks: 3, completedTasks: 2 }
-      ]
+        { name: 'Fatma Oz', totalTasks: 3, completedTasks: 2 },
+      ],
     },
     {
       name: 'Test',
@@ -38,26 +38,26 @@ const mockDepartmentData = {
       activeProjects: 2,
       users: [
         { name: 'Ali Celik', totalTasks: 4, completedTasks: 3 },
-        { name: 'Zeynep Sahin', totalTasks: 2, completedTasks: 2 }
-      ]
-    }
+        { name: 'Zeynep Sahin', totalTasks: 2, completedTasks: 2 },
+      ],
+    },
   ],
-  generatedAt: new Date().toISOString()
+  generatedAt: new Date().toISOString(),
 }
 
 export async function GET(request: NextRequest) {
   try {
     const pdfBuffer = await generateDepartmentsPDF()
-    
+
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="departman-raporu.pdf"',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
     })
   } catch (error) {
     console.error('Departments PDF generation error:', error)
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
 async function generateDepartmentsPDF() {
   let data
-  
+
   try {
     // Try to fetch real data from database
     const users = await prisma.user.findMany({
@@ -80,18 +80,18 @@ async function generateDepartmentsPDF() {
             task: {
               select: {
                 status: true,
-                projectId: true
-              }
-            }
-          }
-        }
-      }
+                projectId: true,
+              },
+            },
+          },
+        },
+      },
     })
 
     // Group users by department
     const departmentMap = new Map()
-    
-    users.forEach(user => {
+
+    users.forEach((user) => {
       if (!departmentMap.has(user.department)) {
         departmentMap.set(user.department, {
           name: user.department,
@@ -99,33 +99,37 @@ async function generateDepartmentsPDF() {
           totalTasks: 0,
           completedTasks: 0,
           activeProjects: new Set(),
-          users: []
+          users: [],
         })
       }
-      
+
       const dept = departmentMap.get(user.department)
       dept.userCount++
       dept.totalTasks += user.taskAssignments.length
-      dept.completedTasks += user.taskAssignments.filter(ta => ta.task.status === 'COMPLETED').length
-      
+      dept.completedTasks += user.taskAssignments.filter(
+        (ta) => ta.task.status === 'COMPLETED'
+      ).length
+
       // Count unique projects
-      user.taskAssignments.forEach(ta => {
+      user.taskAssignments.forEach((ta) => {
         dept.activeProjects.add(ta.task.projectId)
       })
-      
+
       dept.users.push({
         name: user.name,
         totalTasks: user.taskAssignments.length,
-        completedTasks: user.taskAssignments.filter(ta => ta.task.status === 'COMPLETED').length
+        completedTasks: user.taskAssignments.filter(
+          (ta) => ta.task.status === 'COMPLETED'
+        ).length,
       })
     })
 
     data = {
-      departments: Array.from(departmentMap.values()).map(dept => ({
+      departments: Array.from(departmentMap.values()).map((dept) => ({
         ...dept,
-        activeProjects: dept.activeProjects.size
+        activeProjects: dept.activeProjects.size,
       })),
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
     }
   } catch (error) {
     console.error('Database error, using mock data:', error)
@@ -141,7 +145,13 @@ async function generateDepartmentsPDF() {
   yPosition += 15
 
   pdf.setFontSize(10)
-  pdf.text(formatTurkishText(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`), 20, yPosition)
+  pdf.text(
+    formatTurkishText(
+      `Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`
+    ),
+    20,
+    yPosition
+  )
   yPosition += 20
 
   // Department Statistics
@@ -156,21 +166,48 @@ async function generateDepartmentsPDF() {
     }
 
     pdf.setFontSize(12)
-    pdf.text(formatTurkishText(`${index + 1}. ${dept.name} Departmani`), 25, yPosition)
+    pdf.text(
+      formatTurkishText(`${index + 1}. ${dept.name} Departmani`),
+      25,
+      yPosition
+    )
     yPosition += 10
 
     pdf.setFontSize(10)
-    pdf.text(formatTurkishText(`   Calisan Sayisi: ${dept.userCount}`), 30, yPosition)
+    pdf.text(
+      formatTurkishText(`   Calisan Sayisi: ${dept.userCount}`),
+      30,
+      yPosition
+    )
     yPosition += 6
-    pdf.text(formatTurkishText(`   Toplam Gorev: ${dept.totalTasks}`), 30, yPosition)
+    pdf.text(
+      formatTurkishText(`   Toplam Gorev: ${dept.totalTasks}`),
+      30,
+      yPosition
+    )
     yPosition += 6
-    pdf.text(formatTurkishText(`   Tamamlanan Gorev: ${dept.completedTasks}`), 30, yPosition)
+    pdf.text(
+      formatTurkishText(`   Tamamlanan Gorev: ${dept.completedTasks}`),
+      30,
+      yPosition
+    )
     yPosition += 6
-    pdf.text(formatTurkishText(`   Aktif Proje: ${dept.activeProjects}`), 30, yPosition)
+    pdf.text(
+      formatTurkishText(`   Aktif Proje: ${dept.activeProjects}`),
+      30,
+      yPosition
+    )
     yPosition += 6
-    
-    const completionRate = dept.totalTasks > 0 ? Math.round((dept.completedTasks / dept.totalTasks) * 100) : 0
-    pdf.text(formatTurkishText(`   Tamamlanma Orani: %${completionRate}`), 30, yPosition)
+
+    const completionRate =
+      dept.totalTasks > 0
+        ? Math.round((dept.completedTasks / dept.totalTasks) * 100)
+        : 0
+    pdf.text(
+      formatTurkishText(`   Tamamlanma Orani: %${completionRate}`),
+      30,
+      yPosition
+    )
     yPosition += 15
 
     // Department users
@@ -184,14 +221,29 @@ async function generateDepartmentsPDF() {
           pdf.addPage()
           yPosition = 20
         }
-        
-        const userCompletionRate = user.totalTasks > 0 ? Math.round((user.completedTasks / user.totalTasks) * 100) : 0
-        pdf.text(formatTurkishText(`     ${userIndex + 1}. ${user.name}: ${user.completedTasks}/${user.totalTasks} gorev (%${userCompletionRate})`), 35, yPosition)
+
+        const userCompletionRate =
+          user.totalTasks > 0
+            ? Math.round((user.completedTasks / user.totalTasks) * 100)
+            : 0
+        pdf.text(
+          formatTurkishText(
+            `     ${userIndex + 1}. ${user.name}: ${user.completedTasks}/${
+              user.totalTasks
+            } gorev (%${userCompletionRate})`
+          ),
+          35,
+          yPosition
+        )
         yPosition += 6
       })
 
       if (dept.users.length > 5) {
-        pdf.text(formatTurkishText(`     Ve ${dept.users.length - 5} calisan daha...`), 35, yPosition)
+        pdf.text(
+          formatTurkishText(`     Ve ${dept.users.length - 5} calisan daha...`),
+          35,
+          yPosition
+        )
         yPosition += 6
       }
     }
@@ -209,21 +261,43 @@ async function generateDepartmentsPDF() {
   pdf.text(formatTurkishText('Genel Istatistikler'), 20, yPosition)
   yPosition += 15
 
-  const totalUsers = data.departments.reduce((sum, dept) => sum + dept.userCount, 0)
-  const totalTasks = data.departments.reduce((sum, dept) => sum + dept.totalTasks, 0)
-  const totalCompleted = data.departments.reduce((sum, dept) => sum + dept.completedTasks, 0)
-  const overallCompletionRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0
+  const totalUsers = data.departments.reduce(
+    (sum, dept) => sum + dept.userCount,
+    0
+  )
+  const totalTasks = data.departments.reduce(
+    (sum, dept) => sum + dept.totalTasks,
+    0
+  )
+  const totalCompleted = data.departments.reduce(
+    (sum, dept) => sum + dept.completedTasks,
+    0
+  )
+  const overallCompletionRate =
+    totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0
 
   pdf.setFontSize(10)
-  pdf.text(formatTurkishText(`Toplam Departman: ${data.departments.length}`), 25, yPosition)
+  pdf.text(
+    formatTurkishText(`Toplam Departman: ${data.departments.length}`),
+    25,
+    yPosition
+  )
   yPosition += 8
   pdf.text(formatTurkishText(`Toplam Calisan: ${totalUsers}`), 25, yPosition)
   yPosition += 8
   pdf.text(formatTurkishText(`Toplam Gorev: ${totalTasks}`), 25, yPosition)
   yPosition += 8
-  pdf.text(formatTurkishText(`Tamamlanan Gorev: ${totalCompleted}`), 25, yPosition)
+  pdf.text(
+    formatTurkishText(`Tamamlanan Gorev: ${totalCompleted}`),
+    25,
+    yPosition
+  )
   yPosition += 8
-  pdf.text(formatTurkishText(`Genel Tamamlanma Orani: %${overallCompletionRate}`), 25, yPosition)
+  pdf.text(
+    formatTurkishText(`Genel Tamamlanma Orani: %${overallCompletionRate}`),
+    25,
+    yPosition
+  )
 
   return pdf.output('arraybuffer')
 }
