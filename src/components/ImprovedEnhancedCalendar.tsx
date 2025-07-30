@@ -79,7 +79,7 @@ function ImprovedEnhancedCalendar({
   onTaskUpdate, 
   onProjectReschedule 
 }: EnhancedCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(() => new Date(2025, 6, 23))
+  const [currentDate, setCurrentDate] = useState(() => new Date())
   const [viewMode, setViewMode] = useState<'calendar' | 'workload' | 'timeline'>('calendar')
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [workloadData, setWorkloadData] = useState<WorkloadData[]>([])
