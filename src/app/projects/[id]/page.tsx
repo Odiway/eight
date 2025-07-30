@@ -24,6 +24,7 @@ import {
   Calendar as CalendarIcon,
   Target,
   Timer,
+  MessageSquare,
 } from 'lucide-react'
 import type { Project, Task, User } from '@prisma/client'
 import ImprovedEnhancedCalendar from '@/components/ImprovedEnhancedCalendar'
@@ -37,6 +38,14 @@ interface ExtendedProject extends Project {
 
 interface ExtendedTask extends Task {
   assignedUser?: User
+}
+
+interface StatusNote {
+  id: string
+  content: string
+  createdAt: string
+  createdBy: string
+  status: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
 }
 
 export default function ProjectDetailsPage() {
@@ -58,6 +67,10 @@ export default function ProjectDetailsPage() {
   const [showTaskDetailsModal, setShowTaskDetailsModal] = useState(false)
   const [editingTaskData, setEditingTaskData] = useState<ExtendedTask | null>(null)
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
+  
+  // Status Notes state for task details modal
+  const [taskStatusNotes, setTaskStatusNotes] = useState<StatusNote[]>([])
+  const [showStatusNotesModal, setShowStatusNotesModal] = useState(false)
 
   // Task status change handler
   const handleTaskStatusChange = async (taskId: string, newStatus: string) => {
@@ -198,6 +211,36 @@ export default function ProjectDetailsPage() {
   const handleTaskClick = (task: ExtendedTask) => {
     setSelectedTaskDetails(task)
     setShowTaskDetailsModal(true)
+    loadTaskStatusNotes(task.id)
+  }
+
+  // Load status notes for a task
+  const loadTaskStatusNotes = async (taskId: string) => {
+    // Mock data for now - in real app, fetch from API
+    const mockNotes: StatusNote[] = [
+      {
+        id: '1',
+        content: 'Görev başlatıldı ve ilk aşama tamamlandı.',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        createdBy: 'Ahmet Yılmaz',
+        status: 'INFO'
+      },
+      {
+        id: '2',
+        content: 'Tasarım kısmında bazı revizyonlar gerekiyor.',
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        createdBy: 'Mete Kuşdemir',
+        status: 'WARNING'
+      },
+      {
+        id: '3',
+        content: 'Müşteri onayı alındı, projeye devam ediliyor.',
+        createdAt: new Date().toISOString(),
+        createdBy: 'Murat Kara',
+        status: 'SUCCESS'
+      }
+    ]
+    setTaskStatusNotes(mockNotes)
   }
 
   // Handle project reschedule
@@ -1729,25 +1772,88 @@ export default function ProjectDetailsPage() {
 
                   {selectedTaskDetails.assignedUser && (
                     <div className='bg-purple-50 p-4 rounded-lg'>
-                      <h5 className='font-semibold text-purple-700 mb-2 flex items-center'>
+                      <h5 className='font-semibold text-purple-700 mb-3 flex items-center'>
                         <UserIcon className='w-4 h-4 mr-1' />
-                        Sorumlu Kişi
+                        Üzerinde Çalışanlar
                       </h5>
                       <div className='flex items-center gap-3'>
-                        <div className='w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm'>
+                        <div className='w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold'>
                           {selectedTaskDetails.assignedUser.name.charAt(0)}
                         </div>
-                        <div>
+                        <div className='flex-1'>
                           <p className='font-medium text-gray-900'>
                             {selectedTaskDetails.assignedUser.name}
                           </p>
                           <p className='text-sm text-gray-600'>
                             {selectedTaskDetails.assignedUser.email}
                           </p>
+                          <p className='text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full inline-block mt-1'>
+                            Ana Sorumlu
+                          </p>
                         </div>
                       </div>
                     </div>
                   )}
+
+                  {/* Status Notes Section */}
+                  <div className='bg-blue-50 p-4 rounded-lg'>
+                    <div className='flex items-center justify-between mb-3'>
+                      <h5 className='font-semibold text-blue-700 flex items-center'>
+                        <MessageSquare className='w-4 h-4 mr-1' />
+                        Durum Notları
+                        <span className='ml-2 bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-bold'>
+                          {taskStatusNotes.length}
+                        </span>
+                      </h5>
+                      <button
+                        onClick={() => setShowStatusNotesModal(true)}
+                        className='text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors'
+                      >
+                        Tümünü Gör
+                      </button>
+                    </div>
+                    
+                    {taskStatusNotes.length > 0 ? (
+                      <div className='space-y-2'>
+                        {taskStatusNotes.slice(0, 2).map((note) => (
+                          <div key={note.id} className='bg-white p-3 rounded-lg border border-blue-200'>
+                            <div className='flex items-start justify-between mb-1'>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                note.status === 'INFO' ? 'bg-blue-100 text-blue-700' :
+                                note.status === 'WARNING' ? 'bg-orange-100 text-orange-700' :
+                                note.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {note.status === 'INFO' ? 'Bilgi' :
+                                 note.status === 'WARNING' ? 'Uyarı' :
+                                 note.status === 'SUCCESS' ? 'Başarı' : 'Hata'}
+                              </span>
+                              <span className='text-xs text-gray-500'>
+                                {new Date(note.createdAt).toLocaleDateString('tr-TR')}
+                              </span>
+                            </div>
+                            <p className='text-sm text-gray-700 mb-2'>{note.content}</p>
+                            <div className='flex items-center gap-2'>
+                              <div className='w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold text-gray-600'>
+                                {note.createdBy.charAt(0)}
+                              </div>
+                              <span className='text-xs text-gray-600'>{note.createdBy}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {taskStatusNotes.length > 2 && (
+                          <p className='text-xs text-gray-500 text-center'>
+                            +{taskStatusNotes.length - 2} daha fazla not
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className='text-center py-4'>
+                        <MessageSquare className='w-8 h-8 mx-auto text-blue-300 mb-2' />
+                        <p className='text-sm text-blue-600'>Henüz durum notu eklenmemiş</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Right Column - Time & Dates */}
@@ -1925,6 +2031,117 @@ export default function ProjectDetailsPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Notes Modal */}
+      {showStatusNotesModal && (
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4'>
+          <div className='bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden shadow-2xl'>
+            {/* Status Notes Modal Header */}
+            <div className='p-6 border-b border-white/20'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center gap-3'>
+                  <MessageSquare className='w-6 h-6 text-white' />
+                  <h3 className='text-xl font-bold text-white'>Görev Durum Notları</h3>
+                  <span className='bg-white/20 px-3 py-1 rounded-full text-sm text-white'>
+                    {taskStatusNotes.length} Not
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowStatusNotesModal(false)}
+                  className='text-white/70 hover:text-white transition-colors'
+                >
+                  <X className='w-6 h-6' />
+                </button>
+              </div>
+              {selectedTaskDetails && (
+                <p className='text-white/80 mt-2'>
+                  {selectedTaskDetails.title}
+                </p>
+              )}
+            </div>
+
+            {/* Status Notes Content */}
+            <div className='p-6 overflow-y-auto max-h-[60vh]'>
+              <div className='space-y-4'>
+                {taskStatusNotes.length === 0 ? (
+                  <div className='text-center py-12 text-white/60'>
+                    <MessageSquare className='w-16 h-16 mx-auto mb-4 opacity-50' />
+                    <p className='text-lg mb-2'>Henüz durum notu eklenmemiş</p>
+                    <p className='text-sm'>Bu görev için henüz hiç durum notu bulunmuyor.</p>
+                  </div>
+                ) : (
+                  taskStatusNotes.map((note, index) => (
+                    <div key={note.id} className='bg-white/10 rounded-xl p-5 backdrop-blur-sm'>
+                      <div className='flex items-start justify-between mb-3'>
+                        <div className='flex items-center gap-3'>
+                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
+                            note.status === 'INFO' ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30' :
+                            note.status === 'WARNING' ? 'bg-orange-500/30 text-orange-200 border border-orange-400/30' :
+                            note.status === 'SUCCESS' ? 'bg-green-500/30 text-green-200 border border-green-400/30' :
+                            'bg-red-500/30 text-red-200 border border-red-400/30'
+                          }`}>
+                            {note.status === 'INFO' ? '📋 Bilgi' :
+                             note.status === 'WARNING' ? '⚠️ Uyarı' :
+                             note.status === 'SUCCESS' ? '✅ Başarı' : '❌ Hata'}
+                          </span>
+                          <span className='text-white/60 text-sm'>
+                            #{taskStatusNotes.length - index}
+                          </span>
+                        </div>
+                        <div className='text-right'>
+                          <div className='text-xs text-white/70'>
+                            {new Date(note.createdAt).toLocaleDateString('tr-TR', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })}
+                          </div>
+                          <div className='text-xs text-white/50'>
+                            {new Date(note.createdAt).toLocaleTimeString('tr-TR', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p className='text-white text-sm leading-relaxed mb-4 bg-white/5 p-3 rounded-lg'>
+                        {note.content}
+                      </p>
+                      
+                      <div className='flex items-center gap-3'>
+                        <div className='w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold'>
+                          {note.createdBy.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className='text-white font-medium text-sm'>{note.createdBy}</div>
+                          <div className='text-white/60 text-xs'>Durum Notu Ekleyen</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className='p-6 border-t border-white/20 bg-white/5'>
+              <div className='flex justify-between items-center'>
+                <div className='text-white/70 text-sm'>
+                  Toplam {taskStatusNotes.length} durum notu
+                </div>
+                <button
+                  onClick={() => setShowStatusNotesModal(false)}
+                  className='bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2'
+                >
+                  <X className='w-4 h-4' />
+                  Kapat
+                </button>
               </div>
             </div>
           </div>
