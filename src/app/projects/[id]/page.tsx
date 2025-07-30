@@ -226,9 +226,10 @@ export default function ProjectDetailsPage() {
       const response = await fetch(`/api/tasks/${taskId}/status-notes`)
       if (response.ok) {
         const notes = await response.json()
-        setTaskStatusNotes(notes)
+        console.log('Loaded status notes:', notes) // Debug log
+        setTaskStatusNotes(notes || [])
       } else {
-        console.error('Failed to load status notes')
+        console.error('Failed to load status notes, status:', response.status)
         setTaskStatusNotes([])
       }
     } catch (error) {
@@ -1827,7 +1828,7 @@ export default function ProjectDetailsPage() {
                         <MessageSquare className='w-4 h-4 mr-1' />
                         Durum Notları
                         <span className='ml-2 bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-bold'>
-                          {taskStatusNotes.length}
+                          {taskStatusNotes?.length || 0}
                         </span>
                       </h5>
                       <div className='flex gap-2'>
@@ -1835,12 +1836,12 @@ export default function ProjectDetailsPage() {
                           onClick={() => setShowStatusNotesModal(true)}
                           className='text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors'
                         >
-                          {taskStatusNotes.length > 0 ? 'Tümünü Gör' : 'Not Ekle'}
+                          {(taskStatusNotes?.length || 0) > 0 ? 'Tümünü Gör' : 'Not Ekle'}
                         </button>
                       </div>
                     </div>
                     
-                    {taskStatusNotes.length > 0 ? (
+                    {(taskStatusNotes && taskStatusNotes.length > 0) ? (
                       <div className='space-y-2'>
                         {taskStatusNotes.slice(0, 2).map((note) => (
                           <div key={note.id} className='bg-white p-3 rounded-lg border border-blue-200'>
@@ -1862,9 +1863,9 @@ export default function ProjectDetailsPage() {
                             <p className='text-sm text-gray-700 mb-2'>{note.content}</p>
                             <div className='flex items-center gap-2'>
                               <div className='w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold text-gray-600'>
-                                {note.createdBy.name.charAt(0)}
+                                {note.createdBy?.name?.charAt(0) || 'U'}
                               </div>
-                              <span className='text-xs text-gray-600'>{note.createdBy.name}</span>
+                              <span className='text-xs text-gray-600'>{note.createdBy?.name || 'Unknown User'}</span>
                             </div>
                           </div>
                         ))}
@@ -2159,7 +2160,7 @@ export default function ProjectDetailsPage() {
               </div>
 
               <div className='space-y-4'>
-                {taskStatusNotes.length === 0 ? (
+                {(taskStatusNotes?.length || 0) === 0 ? (
                   <div className='text-center py-12 text-white/60'>
                     <MessageSquare className='w-16 h-16 mx-auto mb-4 opacity-50' />
                     <p className='text-lg mb-2'>Bu görev için henüz durum notu yok</p>
@@ -2167,7 +2168,7 @@ export default function ProjectDetailsPage() {
                     <p className='text-xs opacity-75'>Not tipleri: Bilgi, Uyarı, Başarı, Hata</p>
                   </div>
                 ) : (
-                  taskStatusNotes.map((note, index) => (
+                  (taskStatusNotes || []).map((note, index) => (
                     <div key={note.id} className='bg-white/10 rounded-xl p-5 backdrop-blur-sm'>
                       <div className='flex items-start justify-between mb-3'>
                         <div className='flex items-center gap-3'>
@@ -2182,7 +2183,7 @@ export default function ProjectDetailsPage() {
                              note.status === 'SUCCESS' ? '✅ Başarı' : '❌ Hata'}
                           </span>
                           <span className='text-white/60 text-sm'>
-                            #{taskStatusNotes.length - index}
+                            #{(taskStatusNotes?.length || 0) - index}
                           </span>
                         </div>
                         <div className='text-right'>
@@ -2208,10 +2209,10 @@ export default function ProjectDetailsPage() {
                       
                       <div className='flex items-center gap-3'>
                         <div className='w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold'>
-                          {note.createdBy.name.charAt(0).toUpperCase()}
+                          {note.createdBy?.name?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
                         <div>
-                          <div className='text-white font-medium text-sm'>{note.createdBy.name}</div>
+                          <div className='text-white font-medium text-sm'>{note.createdBy?.name || 'Unknown User'}</div>
                           <div className='text-white/60 text-xs'>Durum Notu Ekleyen</div>
                         </div>
                       </div>
@@ -2225,7 +2226,7 @@ export default function ProjectDetailsPage() {
             <div className='p-6 border-t border-white/20 bg-white/5'>
               <div className='flex justify-between items-center'>
                 <div className='text-white/70 text-sm'>
-                  Toplam {taskStatusNotes.length} durum notu
+                  Toplam {taskStatusNotes?.length || 0} durum notu
                 </div>
                 <button
                   onClick={() => {

@@ -43,7 +43,10 @@ export async function GET(
       id: note.id,
       content: note.content,
       createdAt: note.createdAt.toISOString(),
-      createdBy: note.createdBy?.name || 'Unknown User',
+      createdBy: {
+        id: note.createdBy?.id || 'unknown',
+        name: note.createdBy?.name || 'Unknown User'
+      },
       status: note.status,
     }))
 
@@ -51,7 +54,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching status notes:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch status notes' },
+      { error: 'Failed to fetch status notes', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -124,7 +127,10 @@ export async function POST(
       id: statusNote.id,
       content: statusNote.content,
       createdAt: statusNote.createdAt.toISOString(),
-      createdBy: statusNote.createdBy?.name || 'Unknown User',
+      createdBy: {
+        id: statusNote.createdBy?.id || 'unknown',
+        name: statusNote.createdBy?.name || 'Unknown User'
+      },
       status: statusNote.status,
     }
 
@@ -132,7 +138,7 @@ export async function POST(
   } catch (error) {
     console.error('Error creating status note:', error)
     return NextResponse.json(
-      { error: 'Failed to create status note' },
+      { error: 'Failed to create status note', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
