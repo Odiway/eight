@@ -38,6 +38,13 @@ interface ExtendedProject extends Project {
 
 interface ExtendedTask extends Task {
   assignedUser?: User
+  assignedUsers?: Array<{
+    id: string
+    taskId: string
+    userId: string
+    assignedAt: Date
+    user: User
+  }>
 }
 
 interface StatusNote {
@@ -223,6 +230,14 @@ export default function ProjectDetailsPage() {
     setSelectedNoteCreator('')
     setNewStatusNoteContent('')
     setNewStatusNoteType('INFO')
+    
+    // Debug: Log task assignment data
+    console.log('Task clicked:', {
+      title: task.title,
+      assignedUser: task.assignedUser,
+      assignedUsers: task.assignedUsers,
+      assignedUsersCount: task.assignedUsers?.length || 0
+    })
   }
 
   // Load status notes for a task
@@ -1805,17 +1820,17 @@ export default function ProjectDetailsPage() {
                     </div>
                   </div>
 
-                  {/* Team Members Section */}
+                  {/* Task Assigned Users Section */}
                   <div className='bg-purple-50 p-4 rounded-lg'>
                     <h5 className='font-semibold text-purple-700 mb-3 flex items-center'>
                       <Users className='w-4 h-4 mr-1' />
-                      Proje Ekibi
+                      Bu Göreve Atanan Kişiler
                       <span className='ml-2 bg-purple-200 text-purple-800 px-2 py-1 rounded-full text-xs font-bold'>
-                        {project?.users?.length || 0}
+                        {((selectedTaskDetails.assignedUsers?.length || 0) + (selectedTaskDetails.assignedUser && !selectedTaskDetails.assignedUsers?.some(a => a.user.id === selectedTaskDetails.assignedUser?.id) ? 1 : 0))}
                       </span>
                     </h5>
                     
-                    {/* Assigned User */}
+                    {/* Main Assigned User (Legacy assignedUser field) */}
                     {selectedTaskDetails.assignedUser && (
                       <div className='mb-4'>
                         <h6 className='text-sm font-medium text-purple-600 mb-2 flex items-center'>
@@ -1835,55 +1850,47 @@ export default function ProjectDetailsPage() {
                             </p>
                           </div>
                           <div className='text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full font-medium'>
-                            Sorumlu
+                            Ana Sorumlu
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* All Project Team Members */}
-                    {project?.users && project.users.length > 0 && (
+                    {/* Task Assignments (from TaskAssignment table) */}
+                    {selectedTaskDetails.assignedUsers && selectedTaskDetails.assignedUsers.length > 0 && (
                       <div>
                         <h6 className='text-sm font-medium text-purple-600 mb-2 flex items-center'>
                           <Users className='w-3 h-3 mr-1' />
-                          Tüm Ekip Üyeleri
+                          {selectedTaskDetails.assignedUser ? 'Ek Atananlar' : 'Atanan Kişiler'}
                         </h6>
                         <div className='space-y-2 max-h-48 overflow-y-auto'>
-                          {project.users.map((user) => {
-                            const isAssigned = selectedTaskDetails.assignedUser?.id === user.id;
+                          {selectedTaskDetails.assignedUsers.map((assignment) => {
+                            // Skip if this user is already shown as main assigned user
+                            const isMainAssigned = selectedTaskDetails.assignedUser?.id === assignment.user.id;
+                            if (isMainAssigned) return null;
+                            
                             return (
                               <div
-                                key={user.id}
-                                className={`flex items-center gap-3 p-3 rounded-lg border ${
-                                  isAssigned 
-                                    ? 'bg-purple-100 border-purple-300' 
-                                    : 'bg-white border-gray-200 hover:border-purple-200'
-                                } transition-colors`}
+                                key={assignment.id}
+                                className='flex items-center gap-3 p-3 rounded-lg border bg-white border-gray-200 hover:border-purple-200 transition-colors'
                               >
-                                <div className={`w-8 h-8 ${
-                                  isAssigned 
-                                    ? 'bg-gradient-to-br from-purple-600 to-purple-700' 
-                                    : 'bg-gradient-to-br from-gray-500 to-gray-600'
-                                } text-white rounded-full flex items-center justify-center font-bold text-sm`}>
-                                  {user.name.charAt(0)}
+                                <div className='w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm'>
+                                  {assignment.user.name.charAt(0)}
                                 </div>
                                 <div className='flex-1 min-w-0'>
-                                  <p className={`font-medium truncate ${
-                                    isAssigned ? 'text-purple-900' : 'text-gray-900'
-                                  }`}>
-                                    {user.name}
+                                  <p className='font-medium truncate text-gray-900'>
+                                    {assignment.user.name}
                                   </p>
-                                  <p className={`text-sm truncate ${
-                                    isAssigned ? 'text-purple-600' : 'text-gray-600'
-                                  }`}>
-                                    {user.email}
+                                  <p className='text-sm truncate text-gray-600'>
+                                    {assignment.user.email}
+                                  </p>
+                                  <p className='text-xs text-blue-600'>
+                                    {new Date(assignment.assignedAt).toLocaleDateString('tr-TR')} tarihinde atandı
                                   </p>
                                 </div>
-                                {isAssigned && (
-                                  <div className='text-xs text-purple-600 bg-purple-200 px-2 py-1 rounded-full font-medium shrink-0'>
-                                    Bu Görevi Yapıyor
-                                  </div>
-                                )}
+                                <div className='text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full font-medium shrink-0'>
+                                  Atanan
+                                </div>
                               </div>
                             );
                           })}
@@ -1891,11 +1898,42 @@ export default function ProjectDetailsPage() {
                       </div>
                     )}
 
-                    {(!project?.users || project.users.length === 0) && !selectedTaskDetails.assignedUser && (
+                    {/* Show all assigned users when no main assigned user */}
+                    {!selectedTaskDetails.assignedUser && selectedTaskDetails.assignedUsers && selectedTaskDetails.assignedUsers.length > 0 && (
+                      <div className='space-y-2'>
+                        {selectedTaskDetails.assignedUsers.map((assignment) => (
+                          <div
+                            key={assignment.id}
+                            className='flex items-center gap-3 p-3 rounded-lg border bg-white border-purple-200 hover:border-purple-300 transition-colors'
+                          >
+                            <div className='w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-full flex items-center justify-center font-bold'>
+                              {assignment.user.name.charAt(0)}
+                            </div>
+                            <div className='flex-1 min-w-0'>
+                              <p className='font-medium truncate text-gray-900'>
+                                {assignment.user.name}
+                              </p>
+                              <p className='text-sm truncate text-gray-600'>
+                                {assignment.user.email}
+                              </p>
+                              <p className='text-xs text-purple-600'>
+                                {new Date(assignment.assignedAt).toLocaleDateString('tr-TR')} tarihinde atandı
+                              </p>
+                            </div>
+                            <div className='text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full font-medium shrink-0'>
+                              Atanan
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Empty State - No one assigned */}
+                    {!selectedTaskDetails.assignedUser && (!selectedTaskDetails.assignedUsers || selectedTaskDetails.assignedUsers.length === 0) && (
                       <div className='text-center py-6'>
                         <Users className='w-8 h-8 mx-auto text-purple-300 mb-2' />
-                        <p className='text-sm text-purple-600 mb-1'>Bu projede henüz ekip üyesi yok</p>
-                        <p className='text-xs text-purple-500'>Proje ayarlarından ekip üyeleri ekleyebilirsiniz</p>
+                        <p className='text-sm text-purple-600 mb-1'>Bu göreve henüz kimse atanmamış</p>
+                        <p className='text-xs text-purple-500'>Görev düzenleme modalından kişi atayabilirsiniz</p>
                       </div>
                     )}
                   </div>
