@@ -13,8 +13,20 @@ import {
   User,
   Building,
   Trash2,
+  MessageSquare,
+  Eye,
+  Clock,
+  AlertCircle,
 } from 'lucide-react'
 import UserWorkloadDisplay from './UserWorkloadDisplay'
+
+interface StatusNote {
+  id: string
+  content: string
+  createdAt: string
+  createdBy: string
+  status: string
+}
 
 interface TaskCreationModalProps {
   isOpen: boolean
@@ -300,6 +312,14 @@ export default function TaskCreationModal({
     ],
   })
 
+  // Status Notes state
+  const [showStatusNotesModal, setShowStatusNotesModal] = useState(false)
+  const [statusNotes, setStatusNotes] = useState<StatusNote[]>([])
+  const [newStatusNote, setNewStatusNote] = useState<Omit<StatusNote, 'id' | 'createdAt' | 'createdBy'>>({
+    content: '',
+    status: 'INFO'
+  })
+
   // Refs for auto-scrolling
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const workloadSectionRef = useRef<HTMLDivElement>(null)
@@ -318,6 +338,9 @@ export default function TaskCreationModal({
         startDate: editingTask.startDate ? new Date(editingTask.startDate).toISOString().split('T')[0] : '',
         endDate: editingTask.endDate ? new Date(editingTask.endDate).toISOString().split('T')[0] : '',
       })
+      
+      // Load status notes for the task (mock data for now)
+      loadStatusNotes(editingTask.id)
     } else {
       // Reset form for create mode
       setTaskData({
@@ -331,8 +354,56 @@ export default function TaskCreationModal({
         startDate: '',
         endDate: '',
       })
+      setStatusNotes([])
     }
   }, [mode, editingTask, isOpen])
+
+  // Load status notes for a task
+  const loadStatusNotes = async (taskId: string) => {
+    // Mock data - in real app, this would be an API call
+    const mockNotes: StatusNote[] = [
+      {
+        id: '1',
+        content: 'Görev başlatıldı ve ilk adımlar tamamlandı.',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        createdBy: 'Ahmet Yılmaz',
+        status: 'IN_PROGRESS'
+      },
+      {
+        id: '2',
+        content: 'Tasarım aşaması tamamlandı, geliştirme başlıyor.',
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        createdBy: 'Mehmet Demir',
+        status: 'IN_PROGRESS'
+      },
+      {
+        id: '3',
+        content: 'Test aşamasına geçildi, birkaç küçük hata bulundu.',
+        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+        createdBy: 'Ayşe Kaya',
+        status: 'REVIEW'
+      }
+    ]
+    setStatusNotes(mockNotes)
+  }
+
+  // Add new status note
+  const addStatusNote = async () => {
+    if (!newStatusNote.content.trim() || !editingTask) return
+
+    const note: StatusNote = {
+      id: Date.now().toString(),
+      content: newStatusNote.content.trim(),
+      createdAt: new Date().toISOString(),
+      createdBy: 'Mevcut Kullanıcı', // In real app, get from current user
+      status: newStatusNote.status
+    }
+
+    setStatusNotes(prev => [note, ...prev])
+    setNewStatusNote({ content: '', status: 'INFO' })
+    
+    // In real app, save to API here
+  }
 
   // Auto-scroll to workload section when users are selected
   useEffect(() => {
@@ -717,9 +788,10 @@ export default function TaskCreationModal({
               <X className='w-6 h-6' />
             </button>
           </div>
-          {/* Current Task Information for Edit Mode */}
+          {/* Enhanced Current Task Information for Edit Mode */}
           {mode === 'edit' && editingTask && (
-            <div className='mt-3 bg-white/10 rounded-lg p-3'>
+            <div className='mt-3 bg-white/10 rounded-lg p-4 space-y-3'>
+              {/* First Row: Status, Priority, Creation Date */}
               <div className='flex items-center justify-between text-white text-sm'>
                 <div className='flex items-center gap-4'>
                   <div className='flex items-center gap-2'>
@@ -759,18 +831,69 @@ export default function TaskCreationModal({
                        editingTask.priority === 'LOW' ? 'Düşük' : editingTask.priority}
                     </span>
                   </div>
-                  {editingTask.assignedUser && (
-                    <div className='flex items-center gap-2'>
-                      <span className='opacity-80'>Atanan:</span>
-                      <span className='bg-white/20 px-2 py-1 rounded-full text-xs font-medium'>
-                        {editingTask.assignedUser.name}
-                      </span>
-                    </div>
-                  )}
                 </div>
                 <div className='text-xs opacity-80'>
                   Oluşturulma: {editingTask.createdAt ? new Date(editingTask.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
                 </div>
+              </div>
+
+              {/* Second Row: Assigned Users */}
+              {(editingTask.assignedUser || (editingTask.assignedUsers && editingTask.assignedUsers.length > 0)) && (
+                <div className='border-t border-white/20 pt-3'>
+                  <div className='flex items-center gap-2 mb-2'>
+                    <Users className='w-4 h-4 opacity-80' />
+                    <span className='opacity-80 text-sm'>Üzerinde Çalışanlar:</span>
+                  </div>
+                  <div className='flex flex-wrap gap-2'>
+                    {editingTask.assignedUser && (
+                      <div className='flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-xs'>
+                        <div className='w-6 h-6 bg-white/30 rounded-full flex items-center justify-center text-white font-bold'>
+                          {editingTask.assignedUser.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span>{editingTask.assignedUser.name}</span>
+                      </div>
+                    )}
+                    {editingTask.assignedUsers && editingTask.assignedUsers.map((assignment: any) => (
+                      <div key={assignment.user.id} className='flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-xs'>
+                        <div className='w-6 h-6 bg-white/30 rounded-full flex items-center justify-center text-white font-bold'>
+                          {assignment.user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span>{assignment.user.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Third Row: Status Notes Section */}
+              <div className='border-t border-white/20 pt-3'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <MessageSquare className='w-4 h-4 opacity-80' />
+                    <span className='opacity-80 text-sm'>Durum Notları:</span>
+                    <span className='bg-white/20 px-2 py-0.5 rounded-full text-xs'>
+                      {statusNotes.length}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowStatusNotesModal(true)}
+                    className='flex items-center gap-1 bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-xs transition-colors'
+                  >
+                    <Eye className='w-3 h-3' />
+                    Notları Görüntüle
+                  </button>
+                </div>
+                {statusNotes.length > 0 && (
+                  <div className='mt-2 bg-white/10 rounded-lg p-2'>
+                    <div className='text-xs opacity-90'>
+                      Son Not: "{statusNotes[0]?.content.substring(0, 60)}
+                      {statusNotes[0]?.content.length > 60 ? '...' : ''}"
+                    </div>
+                    <div className='text-xs opacity-70 mt-1'>
+                      {statusNotes[0]?.createdBy} • {new Date(statusNotes[0]?.createdAt).toLocaleDateString('tr-TR')}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1284,6 +1407,115 @@ export default function TaskCreationModal({
           </button>
         </div>
       </div>
+
+      {/* Status Notes Modal */}
+      {showStatusNotesModal && (
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]'>
+          <div className='bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-2xl'>
+            {/* Status Notes Modal Header */}
+            <div className='p-6 border-b border-white/20'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center gap-3'>
+                  <MessageSquare className='w-6 h-6 text-white' />
+                  <h3 className='text-xl font-bold text-white'>Durum Notları</h3>
+                  <span className='bg-white/20 px-3 py-1 rounded-full text-sm text-white'>
+                    {statusNotes.length} Not
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowStatusNotesModal(false)}
+                  className='text-white/70 hover:text-white transition-colors'
+                >
+                  <X className='w-6 h-6' />
+                </button>
+              </div>
+            </div>
+
+            {/* Status Notes Content */}
+            <div className='p-6 overflow-y-auto max-h-[50vh]'>
+              {/* Add New Status Note */}
+              <div className='mb-6 bg-white/10 rounded-lg p-4'>
+                <div className='flex items-center gap-2 mb-3'>
+                  <Plus className='w-4 h-4 text-white' />
+                  <span className='text-white font-medium'>Yeni Durum Notu Ekle</span>
+                </div>
+                <div className='space-y-3'>
+                  <textarea
+                    value={newStatusNote.content}
+                    onChange={(e) => setNewStatusNote(prev => ({ ...prev, content: e.target.value }))}
+                    placeholder='Durum notu yazın...'
+                    className='w-full bg-white/20 text-white placeholder-white/60 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-white/30'
+                    rows={3}
+                  />
+                  <div className='flex items-center justify-between'>
+                    <select
+                      value={newStatusNote.status}
+                      onChange={(e) => setNewStatusNote(prev => ({ ...prev, status: e.target.value }))}
+                      className='bg-white/20 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/30'
+                    >
+                      <option value='INFO' className='bg-blue-600'>Bilgi</option>
+                      <option value='WARNING' className='bg-orange-600'>Uyarı</option>
+                      <option value='SUCCESS' className='bg-green-600'>Başarı</option>
+                      <option value='ERROR' className='bg-red-600'>Hata</option>
+                    </select>
+                    <button
+                      onClick={addStatusNote}
+                      disabled={!newStatusNote.content.trim()}
+                      className='bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2'
+                    >
+                      <Plus className='w-4 h-4' />
+                      Ekle
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Notes List */}
+              <div className='space-y-3'>
+                {statusNotes.length === 0 ? (
+                  <div className='text-center py-8 text-white/60'>
+                    <MessageSquare className='w-12 h-12 mx-auto mb-3 opacity-50' />
+                    <p>Henüz durum notu eklenmemiş</p>
+                  </div>
+                ) : (
+                  statusNotes.map((note) => (
+                    <div key={note.id} className='bg-white/10 rounded-lg p-4'>
+                      <div className='flex items-start justify-between mb-2'>
+                        <div className='flex items-center gap-2'>
+                          {note.status === 'INFO' && <Clock className='w-4 h-4 text-blue-400' />}
+                          {note.status === 'WARNING' && <AlertCircle className='w-4 h-4 text-orange-400' />}
+                          {note.status === 'SUCCESS' && <Clock className='w-4 h-4 text-green-400' />}
+                          {note.status === 'ERROR' && <AlertCircle className='w-4 h-4 text-red-400' />}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            note.status === 'INFO' ? 'bg-blue-500/30 text-blue-200' :
+                            note.status === 'WARNING' ? 'bg-orange-500/30 text-orange-200' :
+                            note.status === 'SUCCESS' ? 'bg-green-500/30 text-green-200' :
+                            'bg-red-500/30 text-red-200'
+                          }`}>
+                            {note.status === 'INFO' ? 'Bilgi' :
+                             note.status === 'WARNING' ? 'Uyarı' :
+                             note.status === 'SUCCESS' ? 'Başarı' : 'Hata'}
+                          </span>
+                        </div>
+                        <div className='text-xs text-white/60'>
+                          {new Date(note.createdAt).toLocaleString('tr-TR')}
+                        </div>
+                      </div>
+                      <p className='text-white text-sm mb-2'>{note.content}</p>
+                      <div className='flex items-center gap-2 text-xs text-white/60'>
+                        <div className='w-5 h-5 bg-white/30 rounded-full flex items-center justify-center text-white font-bold text-xs'>
+                          {note.createdBy.charAt(0).toUpperCase()}
+                        </div>
+                        <span>{note.createdBy}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

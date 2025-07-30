@@ -197,6 +197,57 @@ function ImprovedEnhancedCalendar({
     })
   }
 
+  // New function to check if a task is overdue
+  const isTaskOverdue = (task: Task, currentDate: Date = new Date()): boolean => {
+    if (!task.endDate || task.status === 'COMPLETED') return false
+    
+    const taskDeadline = new Date(task.endDate)
+    const today = new Date(currentDate)
+    
+    taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
+    today.setHours(0, 0, 0, 0) // Start of current day
+    
+    return today > taskDeadline
+  }
+
+  // Function to get overdue tasks for a specific date
+  const getOverdueTasksForDate = (date: Date): Task[] => {
+    const currentDate = new Date(date)
+    return tasks.filter(task => {
+      if (!task.endDate || task.status === 'COMPLETED') return false
+      
+      const taskDeadline = new Date(task.endDate)
+      taskDeadline.setHours(0, 0, 0, 0)
+      currentDate.setHours(0, 0, 0, 0)
+      
+      // Show overdue tasks on and after their deadline if not completed
+      const isOverdue = currentDate > taskDeadline
+      const statusMatch = statusFilter === 'all' || task.status === statusFilter
+      const priorityMatch = priorityFilter === 'all' || task.priority === priorityFilter
+      
+      return isOverdue && statusMatch && priorityMatch
+    })
+  }
+
+  // Function to check if a date is a deadline for any task
+  const getDeadlineTasksForDate = (date: Date): Task[] => {
+    const checkDate = new Date(date)
+    checkDate.setHours(0, 0, 0, 0)
+    
+    return tasks.filter(task => {
+      if (!task.endDate) return false
+      
+      const taskDeadline = new Date(task.endDate)
+      taskDeadline.setHours(0, 0, 0, 0)
+      
+      const isDeadlineDate = checkDate.getTime() === taskDeadline.getTime()
+      const statusMatch = statusFilter === 'all' || task.status === statusFilter
+      const priorityMatch = priorityFilter === 'all' || task.priority === priorityFilter
+      
+      return isDeadlineDate && statusMatch && priorityMatch
+    })
+  }
+
   const getWorkloadForDate = (date: Date): WorkloadData[] => {
     const dateStr = date.toISOString().split('T')[0]
     return workloadData.filter(w => w.date === dateStr)
@@ -207,9 +258,14 @@ function ImprovedEnhancedCalendar({
   }
 
   const handleDayClick = (date: Date) => {
-    const tasksForDay = getTasksForDate(date)
+    const dayTasks = getTasksForDate(date)
+    const overdueTasks = getOverdueTasksForDate(date)
+    const allDayTasks = [...dayTasks, ...overdueTasks].filter((task, index, self) => 
+      index === self.findIndex(t => t.id === task.id)
+    ) // Remove duplicates
+    
     setSelectedDate(date)
-    setDayTasks(tasksForDay)
+    setDayTasks(allDayTasks)
     setShowDayModal(true)
   }
 
@@ -240,9 +296,23 @@ function ImprovedEnhancedCalendar({
 
   const renderCalendarDay = (date: Date) => {
     const dayTasks = getTasksForDate(date)
+    const overdueTasks = getOverdueTasksForDate(date)
+    const deadlineTasks = getDeadlineTasksForDate(date)
+    const allDayTasks = [...dayTasks, ...overdueTasks].filter((task, index, self) => 
+      index === self.findIndex(t => t.id === task.id)
+    ) // Remove duplicates
+    
     const workload = getWorkloadForDate(date)
     const isToday = date.toDateString() === new Date().toDateString()
     const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString()
+    
+    // Enhanced task categorization
+    const urgentTasks = allDayTasks.filter(t => t.priority === 'URGENT')
+    const highPriorityTasks = allDayTasks.filter(t => t.priority === 'HIGH')
+    const completedTasks = allDayTasks.filter(t => t.status === 'COMPLETED')
+    const blockedTasks = allDayTasks.filter(t => t.status === 'BLOCKED')
+    const overdueTasksNotCompleted = overdueTasks.filter(t => t.status !== 'COMPLETED')
+    const upcomingDeadlines = deadlineTasks.filter(t => t.status !== 'COMPLETED')
     
     // Calculate enhanced workload metrics
     const avgWorkload = workload.length > 0 
@@ -254,14 +324,13 @@ function ImprovedEnhancedCalendar({
       : 0
 
     const overloadedUsers = workload.filter(w => w.workloadPercent > 100).length
-    const isBottleneck = avgWorkload > 80 && dayTasks.length > 0
+    const isBottleneck = avgWorkload > 80 && allDayTasks.length > 0
     const isHighRisk = maxUserWorkload > 120 || overloadedUsers > 1
-
-    // Task categorization
-    const urgentTasks = dayTasks.filter(t => t.priority === 'URGENT')
-    const highPriorityTasks = dayTasks.filter(t => t.priority === 'HIGH')
-    const completedTasks = dayTasks.filter(t => t.status === 'COMPLETED')
-    const blockedTasks = dayTasks.filter(t => t.status === 'BLOCKED')
+    
+    // New: Determine day status based on overdue and deadline awareness
+    const hasOverdueTasks = overdueTasksNotCompleted.length > 0
+    const hasDeadlines = upcomingDeadlines.length > 0
+    const hasUrgentOverdue = overdueTasksNotCompleted.some(t => t.priority === 'URGENT' || t.priority === 'HIGH')
 
     const dayHeight = calendarLayout === 'compact' ? 'min-h-[80px]' : 
                     calendarLayout === 'standard' ? 'min-h-[120px]' : 'min-h-[160px]'
@@ -273,55 +342,90 @@ function ImprovedEnhancedCalendar({
           calendar-day ${dayHeight} p-2 border border-gray-200 cursor-pointer transition-all duration-300 rounded-lg relative overflow-hidden
           ${isToday ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-400 shadow-md' : ''}
           ${isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''}
-          ${isHighRisk ? 'ring-2 ring-red-500 bg-gradient-to-br from-red-50 to-red-100' : ''}
-          ${isBottleneck && !isHighRisk ? 'ring-2 ring-orange-400 bg-gradient-to-br from-orange-50 to-orange-100' : ''}
-          ${dayTasks.length > 0 ? 'hover:shadow-lg hover:scale-[1.02]' : 'hover:bg-gray-50'}
-          ${avgWorkload > 100 ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-300' : ''}
+          ${hasUrgentOverdue ? 'ring-2 ring-red-600 bg-gradient-to-br from-red-100 to-red-200 border-red-400 animate-pulse' : ''}
+          ${hasOverdueTasks && !hasUrgentOverdue ? 'ring-2 ring-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300' : ''}
+          ${hasDeadlines && !hasOverdueTasks ? 'ring-2 ring-yellow-500 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-300' : ''}
+          ${isHighRisk && !hasOverdueTasks ? 'ring-2 ring-red-500 bg-gradient-to-br from-red-50 to-red-100' : ''}
+          ${isBottleneck && !isHighRisk && !hasOverdueTasks && !hasDeadlines ? 'ring-2 ring-orange-400 bg-gradient-to-br from-orange-50 to-orange-100' : ''}
+          ${allDayTasks.length > 0 ? 'hover:shadow-lg hover:scale-[1.02]' : 'hover:bg-gray-50'}
+          ${avgWorkload > 100 && !hasOverdueTasks ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-300' : ''}
         `}
         onClick={() => {
           setSelectedDate(date)
-          if (dayTasks.length > 0) {
+          if (allDayTasks.length > 0) {
             handleDayClick(date)
           }
         }}
-        title={dayTasks.length > 0 ? `${dayTasks.length} görev - Detayları görüntülemek için tıklayın` : ''}
+        title={
+          hasUrgentOverdue ? `⚠️ ${overdueTasksNotCompleted.length} acil gecikmiş görev - Hemen müdahale gerekli!` :
+          hasOverdueTasks ? `⏰ ${overdueTasksNotCompleted.length} gecikmiş görev - İncelemeniz gerekiyor` :
+          hasDeadlines ? `📅 ${upcomingDeadlines.length} görev teslim tarihi - Son gün!` :
+          allDayTasks.length > 0 ? `${allDayTasks.length} görev - Detayları görüntülemek için tıklayın` : ''
+        }
       >
-        {/* Date Header */}
+        {/* Enhanced Date Header with Status Indicators */}
         <div className="flex justify-between items-start mb-2 relative z-10">
           <span className={`text-sm font-semibold ${
             isToday ? 'text-blue-700' : 
+            hasUrgentOverdue ? 'text-red-800 animate-pulse' :
+            hasOverdueTasks ? 'text-orange-700' :
+            hasDeadlines ? 'text-yellow-700' :
             isHighRisk ? 'text-red-700' :
             isBottleneck ? 'text-orange-700' :
             'text-gray-700'
           }`}>
             {date.getDate()}
+            {isToday && <span className="ml-1 text-xs">●</span>}
           </span>
           
-          {/* Day Indicators */}
-          <div className="flex items-center gap-1">
-            {dayTasks.length > 0 && (
+          {/* Enhanced Day Indicators */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {/* Overdue Task Badge */}
+            {hasUrgentOverdue && (
+              <span className="text-xs px-2 py-1 rounded-full font-bold shadow-sm bg-red-600 text-white animate-bounce border-2 border-red-700" 
+                    title={`${overdueTasksNotCompleted.length} acil gecikmiş görev`}>
+                🚨 {overdueTasksNotCompleted.length}
+              </span>
+            )}
+            {hasOverdueTasks && !hasUrgentOverdue && (
+              <span className="text-xs px-2 py-1 rounded-full font-bold shadow-sm bg-orange-500 text-white border-2 border-orange-600" 
+                    title={`${overdueTasksNotCompleted.length} gecikmiş görev`}>
+                ⏰ {overdueTasksNotCompleted.length}
+              </span>
+            )}
+            
+            {/* Deadline Badge */}
+            {hasDeadlines && !hasOverdueTasks && (
+              <span className="text-xs px-2 py-1 rounded-full font-bold shadow-sm bg-yellow-500 text-white border-2 border-yellow-600" 
+                    title={`${upcomingDeadlines.length} görev teslim tarihi`}>
+                📅 {upcomingDeadlines.length}
+              </span>
+            )}
+            
+            {/* Regular Task Count */}
+            {allDayTasks.length > 0 && !hasOverdueTasks && !hasDeadlines && (
               <span className={`text-xs px-2 py-1 rounded-full font-bold shadow-sm ${
                 isHighRisk ? 'bg-red-500 text-white' :
                 isBottleneck ? 'bg-orange-500 text-white' :
-                dayTasks.length > 5 ? 'bg-purple-500 text-white' :
+                allDayTasks.length > 5 ? 'bg-purple-500 text-white' :
                 'bg-blue-500 text-white'
               }`}>
-                {dayTasks.length}
+                {allDayTasks.length}
               </span>
             )}
             
             {/* Risk Indicators */}
-            {isHighRisk && (
+            {isHighRisk && !hasOverdueTasks && (
               <div className="flex items-center gap-1" title={`Yüksek Risk - Aşırı Yük: ${overloadedUsers} kişi`}>
                 <AlertTriangle className="w-3 h-3 text-red-600" />
               </div>
             )}
-            {isBottleneck && !isHighRisk && (
+            {isBottleneck && !isHighRisk && !hasOverdueTasks && !hasDeadlines && (
               <div className="flex items-center gap-1" title={`Darboğaz Günü - İş Yükü: ${avgWorkload}%`}>
                 <TrendingDown className="w-3 h-3 text-orange-600" />
               </div>
             )}
-            {urgentTasks.length > 0 && (
+            {urgentTasks.length > 0 && !hasOverdueTasks && (
               <Zap className="w-3 h-3 text-red-500" />
             )}
           </div>
@@ -393,80 +497,161 @@ function ImprovedEnhancedCalendar({
           </div>
         )}
 
-        {/* Task Preview Cards */}
+        {/* Enhanced Task Preview Cards with Overdue/Deadline Awareness */}
         <div className="space-y-1 relative z-10">
           {calendarLayout === 'detailed' ? (
-            // Detailed task cards
-            dayTasks.slice(0, 3).map(task => (
-              <div
-                key={task.id}
-                className={`task-card text-xs p-2 rounded-md border shadow-sm transition-all duration-200 hover:shadow-md ${
-                  task.status === 'COMPLETED' ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-green-200' :
-                  task.status === 'IN_PROGRESS' ? 'bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border-blue-200' :
-                  task.status === 'REVIEW' ? 'bg-gradient-to-r from-purple-100 to-purple-50 text-purple-800 border-purple-200' :
-                  task.status === 'BLOCKED' ? 'bg-gradient-to-r from-red-100 to-red-50 text-red-800 border-red-200' :
-                  'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-800 border-gray-200'
-                }`}
-                title={task.title}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1">
-                    {getStatusIcon(task.status)}
-                    {getPriorityIcon(task.priority)}
+            // Detailed task cards with enhanced overdue styling
+            allDayTasks.slice(0, 3).map(task => {
+              const isOverdue = isTaskOverdue(task)
+              const isDeadlineToday = deadlineTasks.some(dt => dt.id === task.id)
+              const isUrgentOverdue = isOverdue && (task.priority === 'URGENT' || task.priority === 'HIGH')
+              
+              return (
+                <div
+                  key={task.id}
+                  className={`task-card text-xs p-2 rounded-md border shadow-sm transition-all duration-200 hover:shadow-md relative ${
+                    isUrgentOverdue ? 'bg-gradient-to-r from-red-200 to-red-100 text-red-900 border-red-400 animate-pulse ring-2 ring-red-500' :
+                    isOverdue ? 'bg-gradient-to-r from-orange-200 to-orange-100 text-orange-900 border-orange-400 ring-2 ring-orange-400' :
+                    isDeadlineToday ? 'bg-gradient-to-r from-yellow-200 to-yellow-100 text-yellow-900 border-yellow-400 ring-2 ring-yellow-400' :
+                    task.status === 'COMPLETED' ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-green-200' :
+                    task.status === 'IN_PROGRESS' ? 'bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border-blue-200' :
+                    task.status === 'REVIEW' ? 'bg-gradient-to-r from-purple-100 to-purple-50 text-purple-800 border-purple-200' :
+                    task.status === 'BLOCKED' ? 'bg-gradient-to-r from-red-100 to-red-50 text-red-800 border-red-200' :
+                    'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-800 border-gray-200'
+                  }`}
+                  title={
+                    isUrgentOverdue ? `🚨 ACIL GECİKMİŞ: ${task.title} - Hemen müdahale gerekli!` :
+                    isOverdue ? `⏰ GECİKMİŞ: ${task.title} - Teslim tarihi geçti` :
+                    isDeadlineToday ? `📅 TESLİM TARİHİ: ${task.title} - Bugün son gün!` :
+                    task.title
+                  }
+                >
+                  {/* Enhanced Status Badge */}
+                  {(isUrgentOverdue || isOverdue || isDeadlineToday) && (
+                    <div className="absolute -top-1 -right-1 z-10">
+                      {isUrgentOverdue && (
+                        <span className="bg-red-600 text-white text-xs px-1 py-0.5 rounded-full font-bold animate-bounce shadow-lg">
+                          🚨
+                        </span>
+                      )}
+                      {isOverdue && !isUrgentOverdue && (
+                        <span className="bg-orange-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow-lg">
+                          ⏰
+                        </span>
+                      )}
+                      {isDeadlineToday && !isOverdue && (
+                        <span className="bg-yellow-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow-lg">
+                          📅
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1">
+                      {getStatusIcon(task.status)}
+                      {getPriorityIcon(task.priority)}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {task.estimatedHours && (
+                        <span className="text-xs opacity-75">
+                          {task.estimatedHours}h
+                        </span>
+                      )}
+                      {isOverdue && task.endDate && (
+                        <span className="text-xs font-bold bg-red-100 text-red-700 px-1 rounded">
+                          -{Math.ceil((new Date().getTime() - new Date(task.endDate).getTime()) / (1000 * 60 * 60 * 24))}g
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {task.estimatedHours && (
-                    <span className="text-xs opacity-75">
-                      {task.estimatedHours}h
-                    </span>
+                  <div className={`font-medium truncate ${isUrgentOverdue ? 'font-bold' : ''}`}>
+                    {isUrgentOverdue && '🚨 '}
+                    {isOverdue && !isUrgentOverdue && '⏰ '}
+                    {isDeadlineToday && !isOverdue && '📅 '}
+                    {task.title}
+                  </div>
+                  {task.assignedUsers && task.assignedUsers.length > 0 && (
+                    <div className="mt-1 flex -space-x-1">
+                      {task.assignedUsers.slice(0, 2).map((assignment, idx) => (
+                        <div
+                          key={idx}
+                          className="w-4 h-4 bg-gray-300 rounded-full border border-white text-xs flex items-center justify-center font-bold"
+                          title={assignment.user.name}
+                        >
+                          {assignment.user.name.charAt(0)}
+                        </div>
+                      ))}
+                      {task.assignedUsers.length > 2 && (
+                        <div className="w-4 h-4 bg-gray-400 rounded-full border border-white text-xs flex items-center justify-center font-bold">
+                          +
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-                <div className="font-medium truncate">
-                  {task.title}
-                </div>
-                {task.assignedUsers && task.assignedUsers.length > 0 && (
-                  <div className="mt-1 flex -space-x-1">
-                    {task.assignedUsers.slice(0, 2).map((assignment, idx) => (
-                      <div
-                        key={idx}
-                        className="w-4 h-4 bg-gray-300 rounded-full border border-white text-xs flex items-center justify-center font-bold"
-                        title={assignment.user.name}
-                      >
-                        {assignment.user.name.charAt(0)}
-                      </div>
-                    ))}
-                    {task.assignedUsers.length > 2 && (
-                      <div className="w-4 h-4 bg-gray-400 rounded-full border border-white text-xs flex items-center justify-center font-bold">
-                        +
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
+              )
+            })
           ) : (
-            // Compact task indicators
-            dayTasks.slice(0, calendarLayout === 'compact' ? 2 : 4).map(task => (
-              <div
-                key={task.id}
-                className={`text-xs p-1 rounded truncate flex items-center gap-1 ${
-                  task.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                  task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
-                  task.status === 'REVIEW' ? 'bg-purple-100 text-purple-800' :
-                  task.status === 'BLOCKED' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}
-                title={task.title}
-              >
-                {getStatusIcon(task.status)}
-                <span className="truncate flex-1">{task.title}</span>
-                {task.priority === 'URGENT' && <Zap className="w-2 h-2 text-red-500" />}
-              </div>
-            ))
+            // Compact task indicators with overdue awareness
+            allDayTasks.slice(0, calendarLayout === 'compact' ? 2 : 4).map(task => {
+              const isOverdue = isTaskOverdue(task)
+              const isDeadlineToday = deadlineTasks.some(dt => dt.id === task.id)
+              const isUrgentOverdue = isOverdue && (task.priority === 'URGENT' || task.priority === 'HIGH')
+              
+              return (
+                <div
+                  key={task.id}
+                  className={`text-xs p-1 rounded truncate flex items-center gap-1 relative ${
+                    isUrgentOverdue ? 'bg-red-200 text-red-900 border border-red-400 animate-pulse' :
+                    isOverdue ? 'bg-orange-200 text-orange-900 border border-orange-400' :
+                    isDeadlineToday ? 'bg-yellow-200 text-yellow-900 border border-yellow-400' :
+                    task.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                    task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
+                    task.status === 'REVIEW' ? 'bg-purple-100 text-purple-800' :
+                    task.status === 'BLOCKED' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}
+                  title={
+                    isUrgentOverdue ? `🚨 ACIL GECİKMİŞ: ${task.title}` :
+                    isOverdue ? `⏰ GECİKMİŞ: ${task.title}` :
+                    isDeadlineToday ? `📅 TESLİM TARİHİ: ${task.title}` :
+                    task.title
+                  }
+                >
+                  {/* Compact Status Indicator */}
+                  {isUrgentOverdue && (
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-3 h-3 rounded-full flex items-center justify-center animate-bounce">
+                      !
+                    </span>
+                  )}
+                  {isOverdue && !isUrgentOverdue && (
+                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-3 h-3 rounded-full flex items-center justify-center">
+                      ⏰
+                    </span>
+                  )}
+                  {isDeadlineToday && !isOverdue && (
+                    <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs w-3 h-3 rounded-full flex items-center justify-center">
+                      📅
+                    </span>
+                  )}
+                  
+                  {getStatusIcon(task.status)}
+                  <span className="truncate flex-1">
+                    {isUrgentOverdue && '🚨 '}
+                    {isOverdue && !isUrgentOverdue && '⏰ '}
+                    {isDeadlineToday && !isOverdue && '📅 '}
+                    {task.title}
+                  </span>
+                  {task.priority === 'URGENT' && <Zap className="w-2 h-2 text-red-500" />}
+                </div>
+              )
+            })
           )}
           
-          {dayTasks.length > (calendarLayout === 'compact' ? 2 : calendarLayout === 'standard' ? 4 : 3) && (
+          {allDayTasks.length > (calendarLayout === 'compact' ? 2 : calendarLayout === 'standard' ? 4 : 3) && (
             <div className="text-xs text-gray-600 font-medium bg-gray-100 rounded px-2 py-1 text-center">
-              +{dayTasks.length - (calendarLayout === 'compact' ? 2 : calendarLayout === 'standard' ? 4 : 3)} daha...
+              +{allDayTasks.length - (calendarLayout === 'compact' ? 2 : calendarLayout === 'standard' ? 4 : 3)} daha...
             </div>
           )}
         </div>
@@ -1056,119 +1241,139 @@ function ImprovedEnhancedCalendar({
                 )
               })()}
 
-              {/* Enhanced Tasks Section */}
+              {/* Enhanced Tasks Section with Overdue Awareness */}
               <div className="space-y-6">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                  Günün Görevleri ({dayTasks.length})
-                </h3>
-                
-                {/* Task Categories */}
-                {[
-                  { title: 'Acil Görevler', tasks: dayTasks.filter(t => t.priority === 'URGENT'), color: 'red' },
-                  { title: 'Yüksek Öncelikli', tasks: dayTasks.filter(t => t.priority === 'HIGH'), color: 'orange' },
-                  { title: 'Devam Eden', tasks: dayTasks.filter(t => t.status === 'IN_PROGRESS'), color: 'blue' },
-                  { title: 'İncelemede', tasks: dayTasks.filter(t => t.status === 'REVIEW'), color: 'purple' },
-                  { title: 'Engellenmiş', tasks: dayTasks.filter(t => t.status === 'BLOCKED'), color: 'red' },
-                  { title: 'Tamamlanmış', tasks: dayTasks.filter(t => t.status === 'COMPLETED'), color: 'green' }
-                ].map(category => 
-                  category.tasks.length > 0 && (
-                    <div key={category.title} className="space-y-3">
-                      <h4 className={`font-medium text-${category.color}-700 bg-${category.color}-50 px-3 py-1 rounded-lg inline-block`}>
-                        {category.title} ({category.tasks.length})
-                      </h4>
-                      {category.tasks.map((task) => (
-                        <div key={task.id} className="border rounded-xl p-4 hover:shadow-lg transition-all bg-white">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <h3 className="font-medium text-gray-900 text-lg flex items-center gap-2">
-                                {getStatusIcon(task.status)}
-                                {task.title}
-                                {getPriorityIcon(task.priority)}
-                              </h3>
-                              {task.description && (
-                                <p className="text-gray-600 text-sm mt-1">{task.description}</p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-500 font-medium">Durum:</span>
-                              <div className="mt-1">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  task.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                                  task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
-                                  task.status === 'REVIEW' ? 'bg-purple-100 text-purple-700' :
-                                  task.status === 'BLOCKED' ? 'bg-red-100 text-red-700' :
-                                  'bg-gray-100 text-gray-700'
-                                }`}>
-                                  {task.status === 'TODO' ? 'Yapılacak' :
-                                   task.status === 'IN_PROGRESS' ? 'Devam Ediyor' :
-                                   task.status === 'REVIEW' ? 'İncelemede' :
-                                   task.status === 'BLOCKED' ? 'Engellenmiş' : 'Tamamlandı'}
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <span className="text-gray-500 font-medium">Öncelik:</span>
-                              <div className="mt-1">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  task.priority === 'URGENT' ? 'bg-red-100 text-red-700' :
-                                  task.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
-                                  task.priority === 'MEDIUM' ? 'bg-blue-100 text-blue-700' :
-                                  'bg-gray-100 text-gray-700'
-                                }`}>
-                                  {task.priority === 'HIGH' ? 'Yüksek' :
-                                   task.priority === 'URGENT' ? 'Acil' :
-                                   task.priority === 'MEDIUM' ? 'Orta' : 'Düşük'}
-                                </span>
-                              </div>
-                            </div>
-
-                            {task.estimatedHours && (
-                              <div>
-                                <span className="text-gray-500 font-medium">Tahmini:</span>
-                                <div className="mt-1 flex items-center gap-1">
-                                  <Clock className="w-3 h-3 text-gray-400" />
-                                  <span className="font-medium text-gray-900">
-                                    {task.estimatedHours} saat
-                                  </span>
+                {(() => {
+                  const regularTasks = dayTasks.filter(task => !isTaskOverdue(task) && !getDeadlineTasksForDate(selectedDate).some(dt => dt.id === task.id))
+                  const overdueTasks = dayTasks.filter(task => isTaskOverdue(task))
+                  const deadlineToday = getDeadlineTasksForDate(selectedDate).filter(task => !isTaskOverdue(task))
+                  
+                  return (
+                    <>
+                      {/* Urgent Overdue Tasks Section */}
+                      {overdueTasks.length > 0 && (
+                        <div className="bg-gradient-to-r from-red-100 to-red-50 border-2 border-red-300 rounded-xl p-4 animate-pulse">
+                          <h4 className="font-bold text-red-800 mb-3 flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                            🚨 Gecikmiş Görevler ({overdueTasks.length})
+                          </h4>
+                          <p className="text-red-700 text-sm mb-3">Bu görevler teslim tarihini geçmiştir ve acil müdahale gerektirmektedir!</p>
+                          <div className="space-y-3">
+                            {overdueTasks.map(task => {
+                              const daysOverdue = task.endDate ? Math.ceil((new Date().getTime() - new Date(task.endDate).getTime()) / (1000 * 60 * 60 * 24)) : 0
+                              const isUrgentOverdue = task.priority === 'URGENT' || task.priority === 'HIGH'
+                              
+                              return (
+                                <div key={task.id} className={`bg-white border-2 rounded-lg p-4 shadow-sm ${isUrgentOverdue ? 'border-red-500 animate-bounce' : 'border-red-300'}`}>
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      {isUrgentOverdue && <span className="text-red-600 font-bold text-lg">🚨</span>}
+                                      <h5 className="font-semibold text-red-800">{task.title}</h5>
+                                      <span className="bg-red-200 text-red-800 text-xs px-2 py-1 rounded-full font-bold">
+                                        {daysOverdue} gün gecikmiş
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {getPriorityIcon(task.priority)}
+                                      {getStatusIcon(task.status)}
+                                    </div>
+                                  </div>
+                                  {task.description && (
+                                    <p className="text-red-700 text-sm mb-2">{task.description}</p>
+                                  )}
+                                  <div className="flex items-center justify-between text-xs text-red-600">
+                                    <span>Teslim tarihi: {task.endDate ? new Date(task.endDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</span>
+                                    {task.assignedUser && <span>Sorumlu: {task.assignedUser.name}</span>}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-
-                            {(task as any).assignedUsers && (task as any).assignedUsers.length > 0 ? (
-                              <div>
-                                <span className="text-gray-500 font-medium">Takım:</span>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {(task as any).assignedUsers.map((assignment: any) => (
-                                    <span 
-                                      key={assignment.user.id}
-                                      className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium"
-                                    >
-                                      {assignment.user.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : task.assignedUser && (
-                              <div>
-                                <span className="text-gray-500 font-medium">Atanan:</span>
-                                <div className="mt-1">
-                                  <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-medium">
-                                    {task.assignedUser.name}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
+                              )
+                            })}
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      )}
+
+                      {/* Today's Deadlines Section */}
+                      {deadlineToday.length > 0 && (
+                        <div className="bg-gradient-to-r from-yellow-100 to-yellow-50 border-2 border-yellow-300 rounded-xl p-4">
+                          <h4 className="font-bold text-yellow-800 mb-3 flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-yellow-600" />
+                            📅 Bugün Teslim Edilecek Görevler ({deadlineToday.length})
+                          </h4>
+                          <p className="text-yellow-700 text-sm mb-3">Bu görevlerin teslim tarihi bugündür - son gün!</p>
+                          <div className="space-y-3">
+                            {deadlineToday.map(task => (
+                              <div key={task.id} className="bg-white border-2 border-yellow-400 rounded-lg p-4 shadow-sm">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-yellow-600 font-bold">📅</span>
+                                    <h5 className="font-semibold text-yellow-800">{task.title}</h5>
+                                    <span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold">
+                                      Son gün!
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {getPriorityIcon(task.priority)}
+                                    {getStatusIcon(task.status)}
+                                  </div>
+                                </div>
+                                {task.description && (
+                                  <p className="text-yellow-700 text-sm mb-2">{task.description}</p>
+                                )}
+                                <div className="flex items-center justify-between text-xs text-yellow-600">
+                                  <span>Teslim tarihi: Bugün</span>
+                                  {task.assignedUser && <span>Sorumlu: {task.assignedUser.name}</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Regular Tasks Section */}
+                      {regularTasks.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-blue-600" />
+                            Günün Diğer Görevleri ({regularTasks.length})
+                          </h4>
+                          <div className="space-y-3">
+                            {regularTasks.map(task => (
+                              <div key={task.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div className="flex items-start justify-between mb-2">
+                                  <h5 className="font-semibold text-gray-800">{task.title}</h5>
+                                  <div className="flex items-center gap-2">
+                                    {getPriorityIcon(task.priority)}
+                                    {getStatusIcon(task.status)}
+                                  </div>
+                                </div>
+                                {task.description && (
+                                  <p className="text-gray-600 text-sm mb-2">{task.description}</p>
+                                )}
+                                <div className="flex items-center justify-between text-xs text-gray-500">
+                                  <span>
+                                    {task.startDate && task.endDate ? 
+                                      `${new Date(task.startDate).toLocaleDateString('tr-TR')} - ${new Date(task.endDate).toLocaleDateString('tr-TR')}` :
+                                      'Tarih belirtilmemiş'
+                                    }
+                                  </span>
+                                  {task.assignedUser && <span>Sorumlu: {task.assignedUser.name}</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No Tasks Message */}
+                      {dayTasks.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                          <Calendar className="w-16 h-16 mx-auto mb-4 opacity-40" />
+                          <p>Bu tarihte görev bulunmuyor.</p>
+                        </div>
+                      )}
+                    </>
                   )
-                )}
+                })()}
               </div>
             </div>
           </div>
