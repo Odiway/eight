@@ -24,7 +24,10 @@ interface StatusNote {
   id: string
   content: string
   createdAt: string
-  createdBy: string
+  createdBy: {
+    id: string
+    name: string
+  }
   status: string
 }
 
@@ -360,31 +363,19 @@ export default function TaskCreationModal({
 
   // Load status notes for a task
   const loadStatusNotes = async (taskId: string) => {
-    // Mock data - in real app, this would be an API call
-    const mockNotes: StatusNote[] = [
-      {
-        id: '1',
-        content: 'Görev başlatıldı ve ilk adımlar tamamlandı.',
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        createdBy: 'Ahmet Yılmaz',
-        status: 'IN_PROGRESS'
-      },
-      {
-        id: '2',
-        content: 'Tasarım aşaması tamamlandı, geliştirme başlıyor.',
-        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        createdBy: 'Mehmet Demir',
-        status: 'IN_PROGRESS'
-      },
-      {
-        id: '3',
-        content: 'Test aşamasına geçildi, birkaç küçük hata bulundu.',
-        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-        createdBy: 'Ayşe Kaya',
-        status: 'REVIEW'
-      }
-    ]
-    setStatusNotes(mockNotes)
+    // In real app, fetch from API: `/api/tasks/${taskId}/status-notes`
+    try {
+      // Simulating API call - replace with actual fetch
+      // const response = await fetch(`/api/tasks/${taskId}/status-notes`)
+      // const notes = await response.json()
+      // setStatusNotes(notes)
+      
+      // Start with empty array - fully dynamic system
+      setStatusNotes([])
+    } catch (error) {
+      console.error('Error loading status notes:', error)
+      setStatusNotes([])
+    }
   }
 
   // Add new status note
@@ -395,7 +386,7 @@ export default function TaskCreationModal({
       id: Date.now().toString(),
       content: newStatusNote.content.trim(),
       createdAt: new Date().toISOString(),
-      createdBy: 'Mevcut Kullanıcı', // In real app, get from current user
+      createdBy: { id: 'current-user', name: 'Mevcut Kullanıcı' }, // In real app, get from current user
       status: newStatusNote.status
     }
 
@@ -890,7 +881,7 @@ export default function TaskCreationModal({
                       {statusNotes[0]?.content.length > 60 ? '...' : ''}"
                     </div>
                     <div className='text-xs opacity-70 mt-1'>
-                      {statusNotes[0]?.createdBy} • {new Date(statusNotes[0]?.createdAt).toLocaleDateString('tr-TR')}
+                      {statusNotes[0]?.createdBy.name} • {new Date(statusNotes[0]?.createdAt).toLocaleDateString('tr-TR')}
                     </div>
                   </div>
                 )}
@@ -1504,9 +1495,9 @@ export default function TaskCreationModal({
                       <p className='text-white text-sm mb-2'>{note.content}</p>
                       <div className='flex items-center gap-2 text-xs text-white/60'>
                         <div className='w-5 h-5 bg-white/30 rounded-full flex items-center justify-center text-white font-bold text-xs'>
-                          {note.createdBy.charAt(0).toUpperCase()}
+                          {note.createdBy.name.charAt(0).toUpperCase()}
                         </div>
-                        <span>{note.createdBy}</span>
+                        <span>{note.createdBy.name}</span>
                       </div>
                     </div>
                   ))

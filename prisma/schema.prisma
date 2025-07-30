@@ -33,6 +33,7 @@ model User {
   taskAssignments TaskAssignment[]
   notifications Notification[]
   workloadAnalysis WorkloadAnalysis[]
+  createdStatusNotes TaskStatusNote[] @relation("TaskStatusNoteCreator")
 }
 
 model Project {
@@ -118,6 +119,19 @@ model Task {
   assignedUsers TaskAssignment[]
   notifications Notification[]
   timeTracking  TaskTimeTracking[]
+  statusNotes   TaskStatusNote[]
+}
+
+model TaskStatusNote {
+  id          String   @id @default(cuid())
+  content     String
+  status      TaskNoteStatus @default(INFO)
+  taskId      String
+  createdById String?
+  createdAt   DateTime @default(now())
+  
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("TaskStatusNoteCreator", fields: [createdById], references: [id])
 }
 
 model TaskAssignment {
@@ -270,4 +284,11 @@ model WorkloadAnalysis {
 enum TaskType {
   INDIVIDUAL  // Single standalone task
   GROUP      // Task that is part of a group/tree
+}
+
+enum TaskNoteStatus {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
 }

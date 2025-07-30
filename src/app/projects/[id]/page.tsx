@@ -44,7 +44,10 @@ interface StatusNote {
   id: string
   content: string
   createdAt: string
-  createdBy: string
+  createdBy: {
+    id: string
+    name: string
+  }
   status: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
 }
 
@@ -71,6 +74,9 @@ export default function ProjectDetailsPage() {
   // Status Notes state for task details modal
   const [taskStatusNotes, setTaskStatusNotes] = useState<StatusNote[]>([])
   const [showStatusNotesModal, setShowStatusNotesModal] = useState(false)
+  const [newStatusNoteContent, setNewStatusNoteContent] = useState('')
+  const [newStatusNoteType, setNewStatusNoteType] = useState<'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'>('INFO')
+  const [isAddingNote, setIsAddingNote] = useState(false)
 
   // Task status change handler
   const handleTaskStatusChange = async (taskId: string, newStatus: string) => {
@@ -216,31 +222,50 @@ export default function ProjectDetailsPage() {
 
   // Load status notes for a task
   const loadTaskStatusNotes = async (taskId: string) => {
-    // Mock data for now - in real app, fetch from API
-    const mockNotes: StatusNote[] = [
-      {
-        id: '1',
-        content: 'Görev başlatıldı ve ilk aşama tamamlandı.',
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        createdBy: 'Ahmet Yılmaz',
-        status: 'INFO'
-      },
-      {
-        id: '2',
-        content: 'Tasarım kısmında bazı revizyonlar gerekiyor.',
-        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        createdBy: 'Mete Kuşdemir',
-        status: 'WARNING'
-      },
-      {
-        id: '3',
-        content: 'Müşteri onayı alındı, projeye devam ediliyor.',
-        createdAt: new Date().toISOString(),
-        createdBy: 'Murat Kara',
-        status: 'SUCCESS'
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/status-notes`)
+      if (response.ok) {
+        const notes = await response.json()
+        setTaskStatusNotes(notes)
+      } else {
+        console.error('Failed to load status notes')
+        setTaskStatusNotes([])
       }
-    ]
-    setTaskStatusNotes(mockNotes)
+    } catch (error) {
+      console.error('Error loading status notes:', error)
+      setTaskStatusNotes([])
+    }
+  }
+
+  // Add new status note to a task
+  const addTaskStatusNote = async (taskId: string, content: string, status: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR') => {
+    if (!content.trim()) return
+
+    setIsAddingNote(true)
+    
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/status-notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: content.trim(), status })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to save note')
+      }
+
+      const savedNote = await response.json()
+      
+      // Update local state with the saved note
+      setTaskStatusNotes(prev => [savedNote, ...prev])
+      return true
+    } catch (error) {
+      console.error('Error adding status note:', error)
+      alert('Not kaydedilemedi. Lütfen tekrar deneyin.')
+      return false
+    } finally {
+      setIsAddingNote(false)
+    }
   }
 
   // Handle project reschedule
@@ -1805,12 +1830,14 @@ export default function ProjectDetailsPage() {
                           {taskStatusNotes.length}
                         </span>
                       </h5>
-                      <button
-                        onClick={() => setShowStatusNotesModal(true)}
-                        className='text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors'
-                      >
-                        Tümünü Gör
-                      </button>
+                      <div className='flex gap-2'>
+                        <button
+                          onClick={() => setShowStatusNotesModal(true)}
+                          className='text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors'
+                        >
+                          {taskStatusNotes.length > 0 ? 'Tümünü Gör' : 'Not Ekle'}
+                        </button>
+                      </div>
                     </div>
                     
                     {taskStatusNotes.length > 0 ? (
@@ -1835,9 +1862,9 @@ export default function ProjectDetailsPage() {
                             <p className='text-sm text-gray-700 mb-2'>{note.content}</p>
                             <div className='flex items-center gap-2'>
                               <div className='w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold text-gray-600'>
-                                {note.createdBy.charAt(0)}
+                                {note.createdBy.name.charAt(0)}
                               </div>
-                              <span className='text-xs text-gray-600'>{note.createdBy}</span>
+                              <span className='text-xs text-gray-600'>{note.createdBy.name}</span>
                             </div>
                           </div>
                         ))}
@@ -1850,7 +1877,8 @@ export default function ProjectDetailsPage() {
                     ) : (
                       <div className='text-center py-4'>
                         <MessageSquare className='w-8 h-8 mx-auto text-blue-300 mb-2' />
-                        <p className='text-sm text-blue-600'>Henüz durum notu eklenmemiş</p>
+                        <p className='text-sm text-blue-600 mb-2'>Bu görev için henüz durum notu yok</p>
+                        <p className='text-xs text-blue-500'>İlerleme kaydetmek için not ekleyebilirsiniz</p>
                       </div>
                     )}
                   </div>
@@ -2052,7 +2080,12 @@ export default function ProjectDetailsPage() {
                   </span>
                 </div>
                 <button
-                  onClick={() => setShowStatusNotesModal(false)}
+                  onClick={() => {
+                    setShowStatusNotesModal(false)
+                    setNewStatusNoteContent('')
+                    setNewStatusNoteType('INFO')
+                    setIsAddingNote(false)
+                  }}
                   className='text-white/70 hover:text-white transition-colors'
                 >
                   <X className='w-6 h-6' />
@@ -2067,12 +2100,71 @@ export default function ProjectDetailsPage() {
 
             {/* Status Notes Content */}
             <div className='p-6 overflow-y-auto max-h-[60vh]'>
+              {/* Add New Status Note Form */}
+              <div className='mb-6 bg-white/10 rounded-xl p-5 backdrop-blur-sm border border-white/20'>
+                <div className='flex items-center gap-2 mb-4'>
+                  <MessageSquare className='w-5 h-5 text-white' />
+                  <span className='text-white font-bold'>Yeni Durum Notu Ekle</span>
+                </div>
+                <div className='space-y-4'>
+                  <textarea
+                    value={newStatusNoteContent}
+                    onChange={(e) => setNewStatusNoteContent(e.target.value)}
+                    placeholder='Durum notu yazın...'
+                    className='w-full bg-white/20 text-white placeholder-white/60 rounded-lg p-4 resize-none focus:outline-none focus:ring-2 focus:ring-white/30 border border-white/20'
+                    rows={3}
+                  />
+                  <div className='flex items-center justify-between'>
+                    <select
+                      value={newStatusNoteType}
+                      onChange={(e) => setNewStatusNoteType(e.target.value as any)}
+                      className='bg-white/20 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white/30 border border-white/20'
+                    >
+                      <option value='INFO' className='bg-blue-600 text-white'>📋 Bilgi</option>
+                      <option value='WARNING' className='bg-orange-600 text-white'>⚠️ Uyarı</option>
+                      <option value='SUCCESS' className='bg-green-600 text-white'>✅ Başarı</option>
+                      <option value='ERROR' className='bg-red-600 text-white'>❌ Hata</option>
+                    </select>
+                    <button
+                      onClick={async () => {
+                        if (selectedTaskDetails && newStatusNoteContent.trim()) {
+                          const success = await addTaskStatusNote(
+                            selectedTaskDetails.id,
+                            newStatusNoteContent,
+                            newStatusNoteType
+                          )
+                          if (success !== false) {
+                            setNewStatusNoteContent('')
+                            setNewStatusNoteType('INFO')
+                          }
+                        }
+                      }}
+                      disabled={!newStatusNoteContent.trim() || isAddingNote}
+                      className='bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium'
+                    >
+                      {isAddingNote ? (
+                        <>
+                          <div className='w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin'></div>
+                          Ekleniyor...
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare className='w-4 h-4' />
+                          Notu Ekle
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className='space-y-4'>
                 {taskStatusNotes.length === 0 ? (
                   <div className='text-center py-12 text-white/60'>
                     <MessageSquare className='w-16 h-16 mx-auto mb-4 opacity-50' />
-                    <p className='text-lg mb-2'>Henüz durum notu eklenmemiş</p>
-                    <p className='text-sm'>Bu görev için henüz hiç durum notu bulunmuyor.</p>
+                    <p className='text-lg mb-2'>Bu görev için henüz durum notu yok</p>
+                    <p className='text-sm mb-4'>Yukarıdaki formu kullanarak görevin ilerlemesi hakkında notlar ekleyebilirsiniz.</p>
+                    <p className='text-xs opacity-75'>Not tipleri: Bilgi, Uyarı, Başarı, Hata</p>
                   </div>
                 ) : (
                   taskStatusNotes.map((note, index) => (
@@ -2116,10 +2208,10 @@ export default function ProjectDetailsPage() {
                       
                       <div className='flex items-center gap-3'>
                         <div className='w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold'>
-                          {note.createdBy.charAt(0).toUpperCase()}
+                          {note.createdBy.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className='text-white font-medium text-sm'>{note.createdBy}</div>
+                          <div className='text-white font-medium text-sm'>{note.createdBy.name}</div>
                           <div className='text-white/60 text-xs'>Durum Notu Ekleyen</div>
                         </div>
                       </div>
@@ -2136,7 +2228,12 @@ export default function ProjectDetailsPage() {
                   Toplam {taskStatusNotes.length} durum notu
                 </div>
                 <button
-                  onClick={() => setShowStatusNotesModal(false)}
+                  onClick={() => {
+                    setShowStatusNotesModal(false)
+                    setNewStatusNoteContent('')
+                    setNewStatusNoteType('INFO')
+                    setIsAddingNote(false)
+                  }}
                   className='bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2'
                 >
                   <X className='w-4 h-4' />
