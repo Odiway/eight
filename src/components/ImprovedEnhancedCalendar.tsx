@@ -214,15 +214,15 @@ function ImprovedEnhancedCalendar({
 
   // Function to get overdue tasks for a specific date
   const getOverdueTasksForDate = (date: Date): Task[] => {
-    const currentDate = new Date(date)
+    // Always use the actual current date/time for overdue comparison, not the calendar cell date
+    const currentDate = new Date() // This should always be "now"
     return tasks.filter(task => {
       if (!task.endDate || task.status === 'COMPLETED') return false
       
       const taskDeadline = new Date(task.endDate)
       
-      // Set deadline to end of deadline day and current date to end of current day
+      // Set deadline to end of deadline day
       taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
-      currentDate.setHours(23, 59, 59, 999) // End of current day
       
       // Show overdue tasks only when current date is completely past the deadline
       // This means if today is 30.07.2025 and deadline is 31.07.2025, it's NOT overdue

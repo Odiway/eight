@@ -429,10 +429,15 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
               const statusColor = getTaskStatusColor(task.status)
               const priorityColor = getTaskPriorityColor(task.priority)
               const today = new Date()
-              const isOverdue =
-                task.endDate &&
-                new Date(task.endDate) < today &&
-                task.status !== 'COMPLETED'
+              // Fixed overdue logic: task is overdue only after the deadline day has completely passed
+              const isOverdue = (() => {
+                if (!task.endDate || task.status === 'COMPLETED') return false
+                
+                const taskDeadline = new Date(task.endDate)
+                taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
+                
+                return today > taskDeadline
+              })()
 
               return (
                 <div
@@ -1028,10 +1033,15 @@ const CalendarClient: React.FC<CalendarClientProps> = ({
                   const priorityColor = getTaskPriorityColor(task.priority)
                   const typeColor = getTaskTypeColor(task, selectedDate)
                   const today = new Date()
-                  const isOverdue =
-                    task.endDate &&
-                    new Date(task.endDate) < today &&
-                    task.status !== 'COMPLETED'
+                  // Fixed overdue logic: task is overdue only after the deadline day has completely passed
+                  const isOverdue = (() => {
+                    if (!task.endDate || task.status === 'COMPLETED') return false
+                    
+                    const taskDeadline = new Date(task.endDate)
+                    taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
+                    
+                    return today > taskDeadline
+                  })()
 
                   return (
                     <div
