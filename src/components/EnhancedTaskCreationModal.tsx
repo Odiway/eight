@@ -21,8 +21,11 @@ interface TaskCreationModalProps {
   onClose: () => void
   onCreateTask: (taskData: any) => void
   onCreateTaskGroup: (groupData: any) => void
+  onUpdateTask?: (taskId: string, taskData: any) => void
   projectId: string
   users: any[]
+  editingTask?: any // Task data for editing mode
+  mode?: 'create' | 'edit' // Modal mode
 }
 
 interface UserSearchSelectProps {
@@ -257,8 +260,11 @@ export default function TaskCreationModal({
   onClose,
   onCreateTask,
   onCreateTaskGroup,
+  onUpdateTask,
   projectId,
   users,
+  editingTask,
+  mode = 'create',
 }: TaskCreationModalProps) {
   const [creationType, setCreationType] = useState<'individual' | 'group'>(
     'individual'
@@ -297,6 +303,36 @@ export default function TaskCreationModal({
   // Refs for auto-scrolling
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const workloadSectionRef = useRef<HTMLDivElement>(null)
+
+  // Populate form when editing a task
+  useEffect(() => {
+    if (mode === 'edit' && editingTask) {
+      setTaskData({
+        title: editingTask.title || '',
+        description: editingTask.description || '',
+        assignedId: editingTask.assignedId || '',
+        assignedUserIds: editingTask.assignedUserIds || [],
+        priority: editingTask.priority || 'MEDIUM',
+        estimatedHours: editingTask.estimatedHours?.toString() || '',
+        maxDailyHours: editingTask.maxDailyHours?.toString() || '',
+        startDate: editingTask.startDate ? new Date(editingTask.startDate).toISOString().split('T')[0] : '',
+        endDate: editingTask.endDate ? new Date(editingTask.endDate).toISOString().split('T')[0] : '',
+      })
+    } else {
+      // Reset form for create mode
+      setTaskData({
+        title: '',
+        description: '',
+        assignedId: '',
+        assignedUserIds: [] as string[],
+        priority: 'MEDIUM',
+        estimatedHours: '',
+        maxDailyHours: '',
+        startDate: '',
+        endDate: '',
+      })
+    }
+  }, [mode, editingTask, isOpen])
 
   // Auto-scroll to workload section when users are selected
   useEffect(() => {
@@ -538,101 +574,128 @@ export default function TaskCreationModal({
   }
 
   const handleSubmit = () => {
-    const errors =
-      creationType === 'individual'
-        ? validateIndividualTask()
-        : validateTaskGroup()
+    // Only validate for create mode or individual tasks in edit mode
+    if (mode === 'create') {
+      const errors =
+        creationType === 'individual'
+          ? validateIndividualTask()
+          : validateTaskGroup()
 
-    if (errors.length > 0) {
-      alert('Lütfen aşağıdaki hataları düzeltin:\\n\\n' + errors.join('\\n'))
-      return
+      if (errors.length > 0) {
+        alert('Lütfen aşağıdaki hataları düzeltin:\n\n' + errors.join('\n'))
+        return
+      }
+    } else {
+      // For edit mode, only validate individual task
+      const errors = validateIndividualTask()
+      if (errors.length > 0) {
+        alert('Lütfen aşağıdaki hataları düzeltin:\n\n' + errors.join('\n'))
+        return
+      }
     }
 
-    if (creationType === 'individual') {
-      // Enhanced task data with all required fields for workload visualization
-      const enhancedTaskData = {
+    if (mode === 'edit' && editingTask && onUpdateTask) {
+      // Update existing task
+      const updatedTaskData = {
         ...taskData,
-        projectId,
-        taskType: 'INDIVIDUAL',
-        isGroupParent: false,
-        parentTaskId: null,
-        groupOrder: 0,
-        estimatedHours: parseInt(taskData.estimatedHours),
-        maxDailyHours: parseInt(taskData.maxDailyHours),
-        actualHours: null,
-        delayReason: null,
-        delayDays: 0,
-        workloadPercentage: 0,
-        isBottleneck: false,
-        originalEndDate: taskData.endDate ? new Date(taskData.endDate) : null,
-        // Ensure dates are properly formatted
-        startDate: taskData.startDate ? new Date(taskData.startDate) : null,
-        endDate: taskData.endDate ? new Date(taskData.endDate) : null,
-        // Use the new assignment system
+        estimatedHours: taskData.estimatedHours ? parseInt(taskData.estimatedHours) : null,
+        maxDailyHours: taskData.maxDailyHours ? parseInt(taskData.maxDailyHours) : null,
+        startDate: taskData.startDate ? new Date(taskData.startDate).toISOString() : null,
+        endDate: taskData.endDate ? new Date(taskData.endDate).toISOString() : null,
+        assignedId: taskData.assignedUserIds.length > 0 ? taskData.assignedUserIds[0] : null,
         assignedUserIds: taskData.assignedUserIds,
       }
 
-      onCreateTask(enhancedTaskData)
-    } else {
-      // Enhanced group data with proper task structure
-      const enhancedGroupData = {
-        ...groupData,
-        projectId,
-        tasks: groupData.tasks.map((task, index) => ({
-          ...task,
-          estimatedHours: parseInt(task.estimatedHours),
-          maxDailyHours: parseInt(task.maxDailyHours),
-          taskType: 'GROUP',
-          isGroupParent: index === 0,
-          parentTaskId: index > 0 ? 'GROUP_PARENT' : null,
-          groupOrder: index,
+      onUpdateTask(editingTask.id, updatedTaskData)
+    } else if (mode === 'create') {
+      if (creationType === 'individual') {
+        // Enhanced task data with all required fields for workload visualization
+        const enhancedTaskData = {
+          ...taskData,
+          projectId,
+          taskType: 'INDIVIDUAL',
+          isGroupParent: false,
+          parentTaskId: null,
+          groupOrder: 0,
+          estimatedHours: parseInt(taskData.estimatedHours),
+          maxDailyHours: parseInt(taskData.maxDailyHours),
           actualHours: null,
           delayReason: null,
           delayDays: 0,
           workloadPercentage: 0,
           isBottleneck: false,
-          originalEndDate: task.endDate ? new Date(task.endDate) : null,
+          originalEndDate: taskData.endDate ? new Date(taskData.endDate) : null,
           // Ensure dates are properly formatted
-          startDate: task.startDate ? new Date(task.startDate) : null,
-          endDate: task.endDate ? new Date(task.endDate) : null,
-          assignedUserIds: task.assignedUserIds,
-        })),
-      }
+          startDate: taskData.startDate ? new Date(taskData.startDate) : null,
+          endDate: taskData.endDate ? new Date(taskData.endDate) : null,
+          // Use the new assignment system
+          assignedUserIds: taskData.assignedUserIds,
+        }
 
-      onCreateTaskGroup(enhancedGroupData)
+        onCreateTask(enhancedTaskData)
+      } else {
+        // Enhanced group data with proper task structure
+        const enhancedGroupData = {
+          ...groupData,
+          projectId,
+          tasks: groupData.tasks.map((task, index) => ({
+            ...task,
+            estimatedHours: parseInt(task.estimatedHours),
+            maxDailyHours: parseInt(task.maxDailyHours),
+            taskType: 'GROUP',
+            isGroupParent: index === 0,
+            parentTaskId: index > 0 ? 'GROUP_PARENT' : null,
+            groupOrder: index,
+            actualHours: null,
+            delayReason: null,
+            delayDays: 0,
+            workloadPercentage: 0,
+            isBottleneck: false,
+            originalEndDate: task.endDate ? new Date(task.endDate) : null,
+            // Ensure dates are properly formatted
+            startDate: task.startDate ? new Date(task.startDate) : null,
+            endDate: task.endDate ? new Date(task.endDate) : null,
+            assignedUserIds: task.assignedUserIds,
+          })),
+        }
+
+        onCreateTaskGroup(enhancedGroupData)
+      }
     }
 
-    // Reset form
-    setTaskData({
-      title: '',
-      description: '',
-      assignedId: '',
-      assignedUserIds: [],
-      priority: 'MEDIUM',
-      estimatedHours: '',
-      maxDailyHours: '',
-      startDate: '',
-      endDate: '',
-    })
+    // Reset form only in create mode
+    if (mode === 'create') {
+      setTaskData({
+        title: '',
+        description: '',
+        assignedId: '',
+        assignedUserIds: [],
+        priority: 'MEDIUM',
+        estimatedHours: '',
+        maxDailyHours: '',
+        startDate: '',
+        endDate: '',
+      })
 
-    setGroupData({
-      groupTitle: '',
-      groupDescription: '',
-      tasks: [
-        {
-          title: '',
-          description: '',
-          assignedId: '',
-          assignedUserIds: [],
-          priority: 'MEDIUM',
-          estimatedHours: '',
-          maxDailyHours: '',
-          startDate: '',
-          endDate: '',
-          order: 1,
-        },
-      ],
-    })
+      setGroupData({
+        groupTitle: '',
+        groupDescription: '',
+        tasks: [
+          {
+            title: '',
+            description: '',
+            assignedId: '',
+            assignedUserIds: [] as string[],
+            priority: 'MEDIUM',
+            estimatedHours: '',
+            maxDailyHours: '',
+            startDate: '',
+            endDate: '',
+            order: 1,
+          },
+        ],
+      })
+    }
 
     onClose()
   }
@@ -645,7 +708,7 @@ export default function TaskCreationModal({
           <div className='flex items-center justify-between'>
             <h2 className='text-xl font-bold text-white flex items-center gap-2'>
               <Plus className='w-5 h-5' />
-              Yeni Görev Oluştur
+              {mode === 'edit' ? 'Görev Düzenle' : 'Yeni Görev Oluştur'}
             </h2>
             <button
               onClick={onClose}
@@ -654,40 +717,99 @@ export default function TaskCreationModal({
               <X className='w-6 h-6' />
             </button>
           </div>
+          {/* Current Task Information for Edit Mode */}
+          {mode === 'edit' && editingTask && (
+            <div className='mt-3 bg-white/10 rounded-lg p-3'>
+              <div className='flex items-center justify-between text-white text-sm'>
+                <div className='flex items-center gap-4'>
+                  <div className='flex items-center gap-2'>
+                    <span className='opacity-80'>Mevcut Durum:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      editingTask.status === 'COMPLETED'
+                        ? 'bg-green-500 text-white'
+                        : editingTask.status === 'IN_PROGRESS'
+                        ? 'bg-blue-500 text-white'
+                        : editingTask.status === 'REVIEW'
+                        ? 'bg-purple-500 text-white'
+                        : editingTask.status === 'BLOCKED'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-500 text-white'
+                    }`}>
+                      {editingTask.status === 'TODO' ? 'Yapılacak' :
+                       editingTask.status === 'IN_PROGRESS' ? 'Devam Ediyor' :
+                       editingTask.status === 'REVIEW' ? 'İncelemede' :
+                       editingTask.status === 'COMPLETED' ? 'Tamamlandı' :
+                       editingTask.status === 'BLOCKED' ? 'Engellenmiş' : editingTask.status}
+                    </span>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <span className='opacity-80'>Öncelik:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      editingTask.priority === 'URGENT'
+                        ? 'bg-red-400 text-white'
+                        : editingTask.priority === 'HIGH'
+                        ? 'bg-orange-400 text-white'
+                        : editingTask.priority === 'MEDIUM'
+                        ? 'bg-yellow-400 text-white'
+                        : 'bg-green-400 text-white'
+                    }`}>
+                      {editingTask.priority === 'URGENT' ? 'Acil' :
+                       editingTask.priority === 'HIGH' ? 'Yüksek' :
+                       editingTask.priority === 'MEDIUM' ? 'Orta' :
+                       editingTask.priority === 'LOW' ? 'Düşük' : editingTask.priority}
+                    </span>
+                  </div>
+                  {editingTask.assignedUser && (
+                    <div className='flex items-center gap-2'>
+                      <span className='opacity-80'>Atanan:</span>
+                      <span className='bg-white/20 px-2 py-1 rounded-full text-xs font-medium'>
+                        {editingTask.assignedUser.name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className='text-xs opacity-80'>
+                  Oluşturulma: {editingTask.createdAt ? new Date(editingTask.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Creation Type Toggle */}
-        <div className='px-6 py-4 border-b border-gray-200 bg-gray-50 flex-shrink-0'>
-          <div className='flex space-x-1 bg-white rounded-lg p-1 border border-gray-200'>
-            <button
-              onClick={() => setCreationType('individual')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                creationType === 'individual'
-                  ? 'bg-blue-600 text-white shadow-sm'
+        {/* Creation Type Toggle - Only show in create mode */}
+        {mode === 'create' && (
+          <div className='px-6 py-4 border-b border-gray-200 bg-gray-50 flex-shrink-0'>
+            <div className='flex space-x-1 bg-white rounded-lg p-1 border border-gray-200'>
+              <button
+                onClick={() => setCreationType('individual')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  creationType === 'individual'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <CheckSquare className='w-4 h-4' />
+                Tekil Görev
+              </button>
+              <button
+                onClick={() => setCreationType('group')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  creationType === 'group'
+                    ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              <CheckSquare className='w-4 h-4' />
-              Tekil Görev
-            </button>
-            <button
-              onClick={() => setCreationType('group')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                creationType === 'group'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              <List className='w-4 h-4' />
-              Görev Grubu
-            </button>
+                }`}
+              >
+                <List className='w-4 h-4' />
+                Görev Grubu
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Content Area - Make scrollable */}
         <div ref={scrollContainerRef} className='flex-1 overflow-y-auto'>
           <div className='p-6'>
-            {creationType === 'individual' ? (
+            {(mode === 'create' && creationType === 'individual') || mode === 'edit' ? (
               // Individual Task Form
               <div className='space-y-6'>
                 <div>
@@ -1153,7 +1275,12 @@ export default function TaskCreationModal({
             className='flex items-center gap-2 px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors'
           >
             <CheckSquare className='w-4 h-4' />
-            {creationType === 'individual' ? 'Görev Oluştur' : 'Grup Oluştur'}
+            {mode === 'edit' 
+              ? 'Görevi Güncelle'
+              : creationType === 'individual' 
+              ? 'Görev Oluştur' 
+              : 'Grup Oluştur'
+            }
           </button>
         </div>
       </div>

@@ -52,73 +52,14 @@ export default function ProjectDetailsPage() {
     'overview' | 'calendar' | 'analytics'
   >('overview')
   const [showTaskModal, setShowTaskModal] = useState(false)
-  const [editingTask, setEditingTask] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<any>({})
   const [draggedTask, setDraggedTask] = useState<string | null>(null)
-  const [savingTask, setSavingTask] = useState<string | null>(null)
   const [selectedTaskDetails, setSelectedTaskDetails] =
     useState<ExtendedTask | null>(null)
   const [showTaskDetailsModal, setShowTaskDetailsModal] = useState(false)
+  const [editingTaskData, setEditingTaskData] = useState<ExtendedTask | null>(null)
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
 
-  // Task management handlers
-  const handleTaskEdit = (taskId: string) => {
-    const task = project?.tasks.find((t) => t.id === taskId)
-    if (task) {
-      setEditingTask(taskId)
-      setEditForm({
-        title: task.title,
-        description: task.description || '',
-        status: task.status,
-        priority: task.priority,
-        estimatedHours: task.estimatedHours || 0,
-        assignedToId: task.assignedId || '',
-      })
-    }
-  }
-
-  const handleTaskSave = async (taskId: string) => {
-    try {
-      // Validate required fields
-      if (!editForm.title?.trim()) {
-        alert('Görev başlığı boş olamaz')
-        return
-      }
-
-      setSavingTask(taskId)
-
-      // Map form fields to API fields
-      const updateData = {
-        title: editForm.title.trim(),
-        description: editForm.description?.trim() || '',
-        status: editForm.status,
-        priority: editForm.priority,
-        estimatedHours: editForm.estimatedHours,
-        assignedId: editForm.assignedToId || null,
-      }
-
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      })
-
-      if (response.ok) {
-        await fetchProject()
-        setEditingTask(null)
-        setEditForm({})
-      } else {
-        const errorData = await response.json()
-        console.error('Task update failed:', errorData)
-        alert('Görev güncellenemedi: ' + (errorData.error || 'Bilinmeyen hata'))
-      }
-    } catch (error) {
-      console.error('Error updating task:', error)
-      alert('Görev güncellenirken bir hata oluştu')
-    } finally {
-      setSavingTask(null)
-    }
-  }
-
+  // Task status change handler
   const handleTaskStatusChange = async (taskId: string, newStatus: string) => {
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
@@ -315,10 +256,49 @@ export default function ProjectDetailsPage() {
       }
 
       // Reload project data
-      window.location.reload()
+      await fetchProject()
+      setShowTaskModal(false)
+      setModalMode('create')
+      setEditingTaskData(null)
     } catch (err) {
       console.error('Görev oluşturulurken hata:', err)
     }
+  }
+
+  // Handle task update
+  const handleUpdateTask = async (taskId: string, taskData: any) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...taskData,
+          estimatedHours: taskData.estimatedHours || null,
+          maxDailyHours: taskData.maxDailyHours || null,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Görev güncellenemedi')
+      }
+
+      // Reload project data
+      await fetchProject()
+      setShowTaskModal(false)
+      setModalMode('create')
+      setEditingTaskData(null)
+    } catch (err) {
+      console.error('Görev güncellenirken hata:', err)
+    }
+  }
+
+  // Handle opening edit modal
+  const handleEditTask = (task: ExtendedTask) => {
+    setEditingTaskData(task)
+    setModalMode('edit')
+    setShowTaskModal(true)
   }
 
   // Handle task group creation
@@ -695,7 +675,6 @@ export default function ProjectDetailsPage() {
 
   // Enhanced Task Card Component
   function TaskCard({ task }: { task: ExtendedTask }) {
-    const isEditing = editingTask === task.id
     const isOverdue =
       task.endDate &&
       new Date(task.endDate) < new Date() &&
@@ -769,110 +748,7 @@ export default function ProjectDetailsPage() {
         {/* Subtle background pattern */}
         <div className="absolute inset-0 opacity-[0.02] bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Cg fill-rule=%22evenodd%22%3E%3Cg fill=%22%23000%22 fill-opacity=%220.4%22 fill-rule=%22nonzero%22%3E%3Cpath d=%22m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
 
-        {isEditing ? (
-          <div className='space-y-4 relative z-10'>
-            <input
-              type='text'
-              value={editForm.title}
-              onChange={(e) =>
-                setEditForm({ ...editForm, title: e.target.value })
-              }
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.shiftKey === false) {
-                  e.preventDefault()
-                  handleTaskSave(task.id)
-                } else if (e.key === 'Escape') {
-                  setEditingTask(null)
-                  setEditForm({})
-                }
-              }}
-              className='w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all'
-              placeholder='Görev başlığı'
-              autoFocus
-            />
-            <textarea
-              value={editForm.description}
-              onChange={(e) =>
-                setEditForm({ ...editForm, description: e.target.value })
-              }
-              className='w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all resize-none'
-              placeholder='Açıklama'
-              rows={3}
-            />
-            <div className='grid grid-cols-2 gap-3'>
-              <select
-                value={editForm.priority}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, priority: e.target.value })
-                }
-                className='p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all'
-              >
-                <option value='LOW'>🟢 Düşük</option>
-                <option value='MEDIUM'>🟡 Orta</option>
-                <option value='HIGH'>🟠 Yüksek</option>
-                <option value='URGENT'>🔴 Acil</option>
-              </select>
-              <input
-                type='number'
-                value={editForm.estimatedHours}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    estimatedHours: parseInt(e.target.value) || 0,
-                  })
-                }
-                className='p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all'
-                placeholder='⏱️ Saat'
-                min='0'
-              />
-            </div>
-            <select
-              value={editForm.assignedToId}
-              onChange={(e) =>
-                setEditForm({ ...editForm, assignedToId: e.target.value })
-              }
-              className='w-full p-3 border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all'
-            >
-              <option value=''>👤 Atanmamış</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  👨‍💼 {user.name}
-                </option>
-              ))}
-            </select>
-            <div className='flex gap-3'>
-              <button
-                onClick={() => handleTaskSave(task.id)}
-                disabled={savingTask === task.id}
-                className='flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-3 rounded-lg hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium shadow-lg hover:shadow-xl'
-              >
-                {savingTask === task.id ? (
-                  <>
-                    <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2'></div>
-                    Kaydediliyor...
-                  </>
-                ) : (
-                  <>
-                    <Save className='w-5 h-5 mr-2' />
-                    Kaydet
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setEditingTask(null)
-                  setEditForm({})
-                }}
-                disabled={savingTask === task.id}
-                className='flex-1 bg-gradient-to-r from-slate-500 to-slate-600 text-white p-3 rounded-lg hover:from-slate-600 hover:to-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium shadow-lg hover:shadow-xl'
-              >
-                <X className='w-5 h-5 mr-2' />
-                İptal
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className='relative z-10'>
+        <div className='relative z-10'>
             {/* Header with status and actions */}
             <div className='flex items-start justify-between mb-3'>
               <div className='flex items-center gap-3 flex-1'>
@@ -892,14 +768,16 @@ export default function ProjectDetailsPage() {
               </div>
               <div className='flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
                 <button
-                  onClick={() => handleTaskEdit(task.id)}
+                  onClick={() => handleEditTask(task)}
                   className='p-2 text-slate-500 hover:text-blue-600 hover:bg-white/80 rounded-lg transition-all duration-200'
+                  title='Görevi Düzenle'
                 >
                   <Edit className='w-4 h-4' />
                 </button>
                 <button
                   onClick={() => handleTaskDelete(task.id)}
                   className='p-2 text-slate-500 hover:text-red-600 hover:bg-white/80 rounded-lg transition-all duration-200'
+                  title='Görevi Sil'
                 >
                   <Trash2 className='w-4 h-4' />
                 </button>
@@ -1014,7 +892,6 @@ export default function ProjectDetailsPage() {
               ></div>
             </div>
           </div>
-        )}
       </div>
     )
   }
@@ -1068,7 +945,11 @@ export default function ProjectDetailsPage() {
             </div>
             <div className='flex items-center gap-3'>
               <button
-                onClick={() => setShowTaskModal(true)}
+                onClick={() => {
+                  setModalMode('create')
+                  setEditingTaskData(null)
+                  setShowTaskModal(true)
+                }}
                 className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
               >
                 <Plus className='w-4 h-4' />
@@ -2017,7 +1898,7 @@ export default function ProjectDetailsPage() {
                     <div className='space-y-2'>
                       <button
                         onClick={() => {
-                          handleTaskEdit(selectedTaskDetails.id)
+                          handleEditTask(selectedTaskDetails)
                           setShowTaskDetailsModal(false)
                         }}
                         className='w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
@@ -2053,11 +1934,18 @@ export default function ProjectDetailsPage() {
       {/* Enhanced Task Creation Modal */}
       <EnhancedTaskCreationModal
         isOpen={showTaskModal}
-        onClose={() => setShowTaskModal(false)}
+        onClose={() => {
+          setShowTaskModal(false)
+          setModalMode('create')
+          setEditingTaskData(null)
+        }}
         onCreateTask={handleCreateTask}
         onCreateTaskGroup={handleCreateTaskGroup}
+        onUpdateTask={handleUpdateTask}
         projectId={projectId}
         users={users}
+        editingTask={editingTaskData}
+        mode={modalMode}
       />
     </div>
   )
