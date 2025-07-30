@@ -1820,185 +1820,106 @@ export default function ProjectDetailsPage() {
                     </div>
                   </div>
 
-                  {/* Task Assigned Users Section */}
+                  {/* Task Assigned Users Section - Fixed Duplication */}
                   <div className='bg-purple-50 p-4 rounded-lg'>
                     <h5 className='font-semibold text-purple-700 mb-3 flex items-center'>
                       <Users className='w-4 h-4 mr-1' />
                       Bu Göreve Atanan Kişiler
                       <span className='ml-2 bg-purple-200 text-purple-800 px-2 py-1 rounded-full text-xs font-bold'>
-                        {((selectedTaskDetails.assignedUsers?.length || 0) + (selectedTaskDetails.assignedUser && !selectedTaskDetails.assignedUsers?.some(a => a.user.id === selectedTaskDetails.assignedUser?.id) ? 1 : 0))}
+                        {(() => {
+                          // Calculate unique assigned users
+                          const uniqueUsers = new Set();
+                          if (selectedTaskDetails.assignedUser) {
+                            uniqueUsers.add(selectedTaskDetails.assignedUser.id);
+                          }
+                          selectedTaskDetails.assignedUsers?.forEach(assignment => {
+                            uniqueUsers.add(assignment.user.id);
+                          });
+                          return uniqueUsers.size;
+                        })()}
                       </span>
                     </h5>
                     
-                    {/* Main Assigned User (Legacy assignedUser field) */}
-                    {selectedTaskDetails.assignedUser && (
-                      <div className='mb-4'>
-                        <h6 className='text-sm font-medium text-purple-600 mb-2 flex items-center'>
-                          <Target className='w-3 h-3 mr-1' />
-                          Ana Sorumlu
-                        </h6>
-                        <div className='flex items-center gap-3 bg-white p-3 rounded-lg border border-purple-200'>
-                          <div className='w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-full flex items-center justify-center font-bold'>
-                            {selectedTaskDetails.assignedUser.name.charAt(0)}
+                    {(() => {
+                      // Create unique list of assigned users
+                      const assignedUsers = [];
+                      const addedUserIds = new Set();
+                      
+                      // Add main assigned user first if exists
+                      if (selectedTaskDetails.assignedUser && !addedUserIds.has(selectedTaskDetails.assignedUser.id)) {
+                        assignedUsers.push({
+                          user: selectedTaskDetails.assignedUser,
+                          isMain: true,
+                          assignedAt: null
+                        });
+                        addedUserIds.add(selectedTaskDetails.assignedUser.id);
+                      }
+                      
+                      // Add task assignments, skipping duplicates
+                      selectedTaskDetails.assignedUsers?.forEach(assignment => {
+                        if (!addedUserIds.has(assignment.user.id)) {
+                          assignedUsers.push({
+                            user: assignment.user,
+                            isMain: false,
+                            assignedAt: assignment.assignedAt
+                          });
+                          addedUserIds.add(assignment.user.id);
+                        }
+                      });
+                      
+                      if (assignedUsers.length === 0) {
+                        return (
+                          <div className='text-center py-6'>
+                            <Users className='w-8 h-8 mx-auto text-purple-300 mb-2' />
+                            <p className='text-sm text-purple-600 mb-1'>Bu göreve henüz kimse atanmamış</p>
+                            <p className='text-xs text-purple-500'>Görev düzenleme modalından kişi atayabilirsiniz</p>
                           </div>
-                          <div className='flex-1'>
-                            <p className='font-medium text-gray-900'>
-                              {selectedTaskDetails.assignedUser.name}
-                            </p>
-                            <p className='text-sm text-gray-600'>
-                              {selectedTaskDetails.assignedUser.email}
-                            </p>
-                          </div>
-                          <div className='text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full font-medium'>
-                            Ana Sorumlu
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Task Assignments (from TaskAssignment table) */}
-                    {selectedTaskDetails.assignedUsers && selectedTaskDetails.assignedUsers.length > 0 && (
-                      <div>
-                        <h6 className='text-sm font-medium text-purple-600 mb-2 flex items-center'>
-                          <Users className='w-3 h-3 mr-1' />
-                          {selectedTaskDetails.assignedUser ? 'Ek Atananlar' : 'Atanan Kişiler'}
-                        </h6>
-                        <div className='space-y-2 max-h-48 overflow-y-auto'>
-                          {selectedTaskDetails.assignedUsers.map((assignment) => {
-                            // Skip if this user is already shown as main assigned user
-                            const isMainAssigned = selectedTaskDetails.assignedUser?.id === assignment.user.id;
-                            if (isMainAssigned) return null;
-                            
-                            return (
-                              <div
-                                key={assignment.id}
-                                className='flex items-center gap-3 p-3 rounded-lg border bg-white border-gray-200 hover:border-purple-200 transition-colors'
-                              >
-                                <div className='w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm'>
-                                  {assignment.user.name.charAt(0)}
-                                </div>
-                                <div className='flex-1 min-w-0'>
-                                  <p className='font-medium truncate text-gray-900'>
-                                    {assignment.user.name}
-                                  </p>
-                                  <p className='text-sm truncate text-gray-600'>
-                                    {assignment.user.email}
-                                  </p>
+                        );
+                      }
+                      
+                      return (
+                        <div className='space-y-2 max-h-64 overflow-y-auto'>
+                          {assignedUsers.map((item, index) => (
+                            <div
+                              key={`${item.user.id}-${index}`}
+                              className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                                item.isMain 
+                                  ? 'bg-white border-purple-200 hover:border-purple-300' 
+                                  : 'bg-white border-gray-200 hover:border-purple-200'
+                              }`}
+                            >
+                              <div className={`w-10 h-10 ${
+                                item.isMain 
+                                  ? 'bg-gradient-to-br from-purple-600 to-purple-700' 
+                                  : 'bg-gradient-to-br from-blue-500 to-blue-600'
+                              } text-white rounded-full flex items-center justify-center font-bold`}>
+                                {item.user.name.charAt(0)}
+                              </div>
+                              <div className='flex-1 min-w-0'>
+                                <p className='font-medium truncate text-gray-900'>
+                                  {item.user.name}
+                                </p>
+                                <p className='text-sm truncate text-gray-600'>
+                                  {item.user.email}
+                                </p>
+                                {item.assignedAt && (
                                   <p className='text-xs text-blue-600'>
-                                    {new Date(assignment.assignedAt).toLocaleDateString('tr-TR')} tarihinde atandı
+                                    {new Date(item.assignedAt).toLocaleDateString('tr-TR')} tarihinde atandı
                                   </p>
-                                </div>
-                                <div className='text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full font-medium shrink-0'>
-                                  Atanan
-                                </div>
+                                )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Show all assigned users when no main assigned user */}
-                    {!selectedTaskDetails.assignedUser && selectedTaskDetails.assignedUsers && selectedTaskDetails.assignedUsers.length > 0 && (
-                      <div className='space-y-2'>
-                        {selectedTaskDetails.assignedUsers.map((assignment) => (
-                          <div
-                            key={assignment.id}
-                            className='flex items-center gap-3 p-3 rounded-lg border bg-white border-purple-200 hover:border-purple-300 transition-colors'
-                          >
-                            <div className='w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-full flex items-center justify-center font-bold'>
-                              {assignment.user.name.charAt(0)}
-                            </div>
-                            <div className='flex-1 min-w-0'>
-                              <p className='font-medium truncate text-gray-900'>
-                                {assignment.user.name}
-                              </p>
-                              <p className='text-sm truncate text-gray-600'>
-                                {assignment.user.email}
-                              </p>
-                              <p className='text-xs text-purple-600'>
-                                {new Date(assignment.assignedAt).toLocaleDateString('tr-TR')} tarihinde atandı
-                              </p>
-                            </div>
-                            <div className='text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full font-medium shrink-0'>
-                              Atanan
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Empty State - No one assigned */}
-                    {!selectedTaskDetails.assignedUser && (!selectedTaskDetails.assignedUsers || selectedTaskDetails.assignedUsers.length === 0) && (
-                      <div className='text-center py-6'>
-                        <Users className='w-8 h-8 mx-auto text-purple-300 mb-2' />
-                        <p className='text-sm text-purple-600 mb-1'>Bu göreve henüz kimse atanmamış</p>
-                        <p className='text-xs text-purple-500'>Görev düzenleme modalından kişi atayabilirsiniz</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Status Notes Section */}
-                  <div className='bg-blue-50 p-4 rounded-lg'>
-                    <div className='flex items-center justify-between mb-3'>
-                      <h5 className='font-semibold text-blue-700 flex items-center'>
-                        <MessageSquare className='w-4 h-4 mr-1' />
-                        Durum Notları
-                        <span className='ml-2 bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-bold'>
-                          {taskStatusNotes?.length || 0}
-                        </span>
-                      </h5>
-                      <div className='flex gap-2'>
-                        <button
-                          onClick={() => setShowStatusNotesModal(true)}
-                          className='text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors'
-                        >
-                          {(taskStatusNotes?.length || 0) > 0 ? 'Tümünü Gör' : 'Not Ekle'}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {(taskStatusNotes && taskStatusNotes.length > 0) ? (
-                      <div className='space-y-2'>
-                        {taskStatusNotes.slice(0, 2).map((note) => (
-                          <div key={note.id} className='bg-white p-3 rounded-lg border border-blue-200'>
-                            <div className='flex items-start justify-between mb-1'>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                note.status === 'INFO' ? 'bg-blue-100 text-blue-700' :
-                                note.status === 'WARNING' ? 'bg-orange-100 text-orange-700' :
-                                note.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
-                                'bg-red-100 text-red-700'
+                              <div className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${
+                                item.isMain
+                                  ? 'text-purple-600 bg-purple-100'
+                                  : 'text-blue-600 bg-blue-100'
                               }`}>
-                                {note.status === 'INFO' ? 'Bilgi' :
-                                 note.status === 'WARNING' ? 'Uyarı' :
-                                 note.status === 'SUCCESS' ? 'Başarı' : 'Hata'}
-                              </span>
-                              <span className='text-xs text-gray-500'>
-                                {new Date(note.createdAt).toLocaleDateString('tr-TR')}
-                              </span>
-                            </div>
-                            <p className='text-sm text-gray-700 mb-2'>{note.content}</p>
-                            <div className='flex items-center gap-2'>
-                              <div className='w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold text-gray-600'>
-                                {note.createdBy?.name?.charAt(0) || 'U'}
+                                {item.isMain ? 'Ana Sorumlu' : 'Atanan'}
                               </div>
-                              <span className='text-xs text-gray-600'>{note.createdBy?.name || 'Unknown User'}</span>
                             </div>
-                          </div>
-                        ))}
-                        {taskStatusNotes.length > 2 && (
-                          <p className='text-xs text-gray-500 text-center'>
-                            +{taskStatusNotes.length - 2} daha fazla not
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className='text-center py-4'>
-                        <MessageSquare className='w-8 h-8 mx-auto text-blue-300 mb-2' />
-                        <p className='text-sm text-blue-600 mb-2'>Bu görev için henüz durum notu yok</p>
-                        <p className='text-xs text-blue-500'>İlerleme kaydetmek için not ekleyebilirsiniz</p>
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -2175,6 +2096,69 @@ export default function ProjectDetailsPage() {
                         Sil
                       </button>
                     </div>
+                  </div>
+
+                  {/* Status Notes Section - Moved to Right Bottom */}
+                  <div className='bg-blue-50 p-4 rounded-lg'>
+                    <div className='flex items-center justify-between mb-3'>
+                      <h5 className='font-semibold text-blue-700 flex items-center'>
+                        <MessageSquare className='w-4 h-4 mr-1' />
+                        Durum Notları
+                        <span className='ml-2 bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-bold'>
+                          {taskStatusNotes?.length || 0}
+                        </span>
+                      </h5>
+                      <div className='flex gap-2'>
+                        <button
+                          onClick={() => setShowStatusNotesModal(true)}
+                          className='text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors'
+                        >
+                          {(taskStatusNotes?.length || 0) > 0 ? 'Tümünü Gör' : 'Not Ekle'}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {(taskStatusNotes && taskStatusNotes.length > 0) ? (
+                      <div className='space-y-2'>
+                        {taskStatusNotes.slice(0, 2).map((note) => (
+                          <div key={note.id} className='bg-white p-3 rounded-lg border border-blue-200'>
+                            <div className='flex items-start justify-between mb-1'>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                note.status === 'INFO' ? 'bg-blue-100 text-blue-700' :
+                                note.status === 'WARNING' ? 'bg-orange-100 text-orange-700' :
+                                note.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {note.status === 'INFO' ? 'Bilgi' :
+                                 note.status === 'WARNING' ? 'Uyarı' :
+                                 note.status === 'SUCCESS' ? 'Başarı' : 'Hata'}
+                              </span>
+                              <span className='text-xs text-gray-500'>
+                                {new Date(note.createdAt).toLocaleDateString('tr-TR')}
+                              </span>
+                            </div>
+                            <p className='text-sm text-gray-700 mb-2'>{note.content}</p>
+                            <div className='flex items-center gap-2'>
+                              <div className='w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold text-gray-600'>
+                                {note.createdBy?.name?.charAt(0) || 'U'}
+                              </div>
+                              <span className='text-xs text-gray-600'>{note.createdBy?.name || 'Unknown User'}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {taskStatusNotes.length > 2 && (
+                          <p className='text-xs text-gray-500 text-center'>
+                            +{taskStatusNotes.length - 2} daha fazla not
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className='text-center py-4'>
+                        <MessageSquare className='w-8 h-8 mx-auto text-blue-300 mb-2' />
+                        <p className='text-sm text-blue-600 mb-2'>Bu görev için henüz durum notu yok</p>
+                        <p className='text-xs text-blue-500'>İlerleme kaydetmek için not ekleyebilirsiniz</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
