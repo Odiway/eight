@@ -46,10 +46,12 @@ async function getGeneralReportsData() {
     const totalTasks = tasks.length
     const completedTasks = tasks.filter((t) => t.status === 'COMPLETED').length
     const overdueTasks = tasks.filter(
-      (t) =>
-        t.endDate &&
-        new Date(t.endDate) < new Date() &&
-        t.status !== 'COMPLETED'
+      (t) => {
+        if (!t.endDate || t.status === 'COMPLETED') return false
+        const taskEndDate = new Date(t.endDate)
+        taskEndDate.setHours(23, 59, 59, 999) // End of the day
+        return taskEndDate < new Date()
+      }
     ).length
     const totalUsers = users.length
 

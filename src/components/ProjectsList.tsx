@@ -300,17 +300,19 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
           ).length
           const overdueTasks = project.tasks.filter(
             (task: Project['tasks'][0]) => {
-              if (!task.endDate) return false
-              return (
-                new Date(task.endDate) < new Date() &&
-                task.status !== 'COMPLETED'
-              )
+              if (!task.endDate || task.status === 'COMPLETED') return false
+              const taskEndDate = new Date(task.endDate)
+              taskEndDate.setHours(23, 59, 59, 999) // End of the day
+              return taskEndDate < new Date()
             }
           ).length
 
           const isOverdue =
-            project.endDate &&
-            new Date(project.endDate) < new Date() &&
+            project.endDate && (() => {
+              const projectEndDate = new Date(project.endDate)
+              projectEndDate.setHours(23, 59, 59, 999) // End of the day
+              return projectEndDate < new Date()
+            })() &&
             project.status !== 'COMPLETED'
 
           return (

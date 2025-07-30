@@ -204,9 +204,11 @@ function ImprovedEnhancedCalendar({
     const taskDeadline = new Date(task.endDate)
     const today = new Date(currentDate)
     
+    // Set both dates to the start of their respective days for accurate comparison
     taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
-    today.setHours(0, 0, 0, 0) // Start of current day
+    today.setHours(23, 59, 59, 999) // End of current day
     
+    // A task is overdue only if the current day is completely past the deadline
     return today > taskDeadline
   }
 
@@ -217,10 +219,14 @@ function ImprovedEnhancedCalendar({
       if (!task.endDate || task.status === 'COMPLETED') return false
       
       const taskDeadline = new Date(task.endDate)
-      taskDeadline.setHours(0, 0, 0, 0)
-      currentDate.setHours(0, 0, 0, 0)
       
-      // Show overdue tasks on and after their deadline if not completed
+      // Set deadline to end of deadline day and current date to end of current day
+      taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
+      currentDate.setHours(23, 59, 59, 999) // End of current day
+      
+      // Show overdue tasks only when current date is completely past the deadline
+      // This means if today is 30.07.2025 and deadline is 31.07.2025, it's NOT overdue
+      // Only becomes overdue from 01.08.2025 onwards
       const isOverdue = currentDate > taskDeadline
       const statusMatch = statusFilter === 'all' || task.status === statusFilter
       const priorityMatch = priorityFilter === 'all' || task.priority === priorityFilter

@@ -239,7 +239,9 @@ async function getWorkloadData() {
       const reviewTasks = uniqueTasks.filter((task) => task.status === 'REVIEW')
       const overdueTasks = uniqueTasks.filter((task) => {
         if (!task.endDate || task.status === 'COMPLETED') return false
-        return new Date(task.endDate) < new Date()
+        const taskEndDate = new Date(task.endDate)
+        taskEndDate.setHours(23, 59, 59, 999) // End of the day
+        return taskEndDate < new Date()
       })
 
       // Get all active projects this user is involved in
@@ -348,15 +350,23 @@ async function getWorkloadData() {
   // Global metrics
   const totalOverdueTasks = tasks.filter((t) => {
     if (!t.endDate || t.status === 'COMPLETED') return false
-    return new Date(t.endDate) < new Date()
+    const taskEndDate = new Date(t.endDate)
+    taskEndDate.setHours(23, 59, 59, 999) // End of the day
+    return taskEndDate < new Date()
   }).length
 
   const criticalProjects = projects.filter((p) => {
     const overdue =
-      p.endDate && new Date(p.endDate) < new Date() && p.status !== 'COMPLETED'
+      p.endDate && (() => {
+        const projectEndDate = new Date(p.endDate)
+        projectEndDate.setHours(23, 59, 59, 999) // End of the day
+        return projectEndDate < new Date()
+      })() && p.status !== 'COMPLETED'
     const highRiskTasks = p.tasks.filter((t) => {
       if (!t.endDate || t.status === 'COMPLETED') return false
-      return new Date(t.endDate) < new Date()
+      const taskEndDate = new Date(t.endDate)
+      taskEndDate.setHours(23, 59, 59, 999) // End of the day
+      return taskEndDate < new Date()
     }).length
     return overdue || highRiskTasks >= 3
   }).length

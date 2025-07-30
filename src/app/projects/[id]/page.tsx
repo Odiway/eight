@@ -681,10 +681,20 @@ export default function ProjectDetailsPage() {
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
             {sortedTasks.map((task) => {
               const assignedUser = users.find((u) => u.id === task.assignedId)
-              const isOverdue =
-                task.endDate &&
-                new Date(task.endDate) < new Date() &&
-                task.status !== 'COMPLETED'
+              // Fixed overdue logic: task is overdue only after the deadline day has completely passed
+              const isOverdue = (() => {
+                if (!task.endDate || task.status === 'COMPLETED') return false
+                
+                const taskDeadline = new Date(task.endDate)
+                const today = new Date()
+                
+                // Set deadline to end of deadline day and current date to end of current day
+                taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
+                today.setHours(23, 59, 59, 999) // End of current day
+                
+                // Task is overdue only when current day is completely past the deadline
+                return today > taskDeadline
+              })()
 
               return (
                 <div
@@ -768,10 +778,20 @@ export default function ProjectDetailsPage() {
 
   // Enhanced Task Card Component
   function TaskCard({ task }: { task: ExtendedTask }) {
-    const isOverdue =
-      task.endDate &&
-      new Date(task.endDate) < new Date() &&
-      task.status !== 'COMPLETED'
+    // Fixed overdue logic: task is overdue only after the deadline day has completely passed
+    const isOverdue = (() => {
+      if (!task.endDate || task.status === 'COMPLETED') return false
+      
+      const taskDeadline = new Date(task.endDate)
+      const today = new Date()
+      
+      // Set deadline to end of deadline day and current date to end of current day
+      taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
+      today.setHours(23, 59, 59, 999) // End of current day
+      
+      // Task is overdue only when current day is completely past the deadline
+      return today > taskDeadline
+    })()
 
     // Get status-specific styling
     const getStatusStyling = (status: string) => {

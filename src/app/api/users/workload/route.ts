@@ -46,7 +46,9 @@ export async function POST(request: NextRequest) {
 
       const overdueTasks = userTasks.filter(task => {
         if (!task.endDate || task.status === 'COMPLETED') return false
-        return new Date(task.endDate) < new Date()
+        const taskEndDate = new Date(task.endDate)
+        taskEndDate.setHours(23, 59, 59, 999) // End of the day
+        return taskEndDate < new Date()
       })
 
       // Calculate weekly hours from active tasks
