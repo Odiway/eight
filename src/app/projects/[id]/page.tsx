@@ -76,6 +76,7 @@ export default function ProjectDetailsPage() {
   const [showStatusNotesModal, setShowStatusNotesModal] = useState(false)
   const [newStatusNoteContent, setNewStatusNoteContent] = useState('')
   const [newStatusNoteType, setNewStatusNoteType] = useState<'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'>('INFO')
+  const [selectedNoteCreator, setSelectedNoteCreator] = useState<string>('')
   const [isAddingNote, setIsAddingNote] = useState(false)
 
   // Task status change handler
@@ -218,6 +219,10 @@ export default function ProjectDetailsPage() {
     setSelectedTaskDetails(task)
     setShowTaskDetailsModal(true)
     loadTaskStatusNotes(task.id)
+    // Reset note creator selection
+    setSelectedNoteCreator('')
+    setNewStatusNoteContent('')
+    setNewStatusNoteType('INFO')
   }
 
   // Load status notes for a task
@@ -239,7 +244,7 @@ export default function ProjectDetailsPage() {
   }
 
   // Add new status note to a task
-  const addTaskStatusNote = async (taskId: string, content: string, status: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR') => {
+  const addTaskStatusNote = async (taskId: string, content: string, status: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR', createdById?: string) => {
     if (!content.trim()) return
 
     setIsAddingNote(true)
@@ -248,7 +253,11 @@ export default function ProjectDetailsPage() {
       const response = await fetch(`/api/tasks/${taskId}/status-notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content.trim(), status })
+        body: JSON.stringify({ 
+          content: content.trim(), 
+          status,
+          createdById: createdById || undefined
+        })
       })
       
       if (!response.ok) {
@@ -2101,6 +2110,39 @@ export default function ProjectDetailsPage() {
 
             {/* Status Notes Content */}
             <div className='p-6 overflow-y-auto max-h-[60vh]'>
+              {/* Task Team Members Section */}
+              <div className='mb-6 bg-white/10 rounded-xl p-5 backdrop-blur-sm border border-white/20'>
+                <div className='flex items-center gap-2 mb-4'>
+                  <Users className='w-5 h-5 text-white' />
+                  <span className='text-white font-bold'>Bu Görevde Çalışanlar</span>
+                </div>
+                <div className='flex flex-wrap gap-3'>
+                  {selectedTaskDetails?.assignedUser && (
+                    <div className='flex items-center gap-2 bg-white/20 rounded-lg px-3 py-2'>
+                      <div className='w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm'>
+                        {selectedTaskDetails.assignedUser.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className='text-white text-sm font-medium'>{selectedTaskDetails.assignedUser.name}</div>
+                        <div className='text-white/60 text-xs'>Ana Sorumlu</div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Add other team members from project */}
+                  {users.filter(user => user.id !== selectedTaskDetails?.assignedUser?.id).slice(0, 3).map(user => (
+                    <div key={user.id} className='flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2'>
+                      <div className='w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm'>
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className='text-white text-sm font-medium'>{user.name}</div>
+                        <div className='text-white/60 text-xs'>Takım Üyesi</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Add New Status Note Form */}
               <div className='mb-6 bg-white/10 rounded-xl p-5 backdrop-blur-sm border border-white/20'>
                 <div className='flex items-center gap-2 mb-4'>
@@ -2108,6 +2150,30 @@ export default function ProjectDetailsPage() {
                   <span className='text-white font-bold'>Yeni Durum Notu Ekle</span>
                 </div>
                 <div className='space-y-4'>
+                  {/* User Selection */}
+                  <div>
+                    <label className='block text-white/80 text-sm font-medium mb-2'>
+                      Notu Ekleyen Kişi:
+                    </label>
+                    <select
+                      value={selectedNoteCreator}
+                      onChange={(e) => setSelectedNoteCreator(e.target.value)}
+                      className='w-full bg-white/20 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white/30 border border-white/20'
+                    >
+                      <option value='' className='bg-gray-800 text-white'>Kişi Seçin...</option>
+                      {selectedTaskDetails?.assignedUser && (
+                        <option value={selectedTaskDetails.assignedUser.id} className='bg-gray-800 text-white'>
+                          {selectedTaskDetails.assignedUser.name} (Ana Sorumlu)
+                        </option>
+                      )}
+                      {users.filter(user => user.id !== selectedTaskDetails?.assignedUser?.id).map(user => (
+                        <option key={user.id} value={user.id} className='bg-gray-800 text-white'>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <textarea
                     value={newStatusNoteContent}
                     onChange={(e) => setNewStatusNoteContent(e.target.value)}
@@ -2115,7 +2181,7 @@ export default function ProjectDetailsPage() {
                     className='w-full bg-white/20 text-white placeholder-white/60 rounded-lg p-4 resize-none focus:outline-none focus:ring-2 focus:ring-white/30 border border-white/20'
                     rows={3}
                   />
-                  <div className='flex items-center justify-between'>
+                  <div className='flex items-center justify-between gap-3'>
                     <select
                       value={newStatusNoteType}
                       onChange={(e) => setNewStatusNoteType(e.target.value as any)}
@@ -2128,19 +2194,21 @@ export default function ProjectDetailsPage() {
                     </select>
                     <button
                       onClick={async () => {
-                        if (selectedTaskDetails && newStatusNoteContent.trim()) {
+                        if (selectedTaskDetails && newStatusNoteContent.trim() && selectedNoteCreator) {
                           const success = await addTaskStatusNote(
                             selectedTaskDetails.id,
                             newStatusNoteContent,
-                            newStatusNoteType
+                            newStatusNoteType,
+                            selectedNoteCreator
                           )
                           if (success !== false) {
                             setNewStatusNoteContent('')
                             setNewStatusNoteType('INFO')
+                            setSelectedNoteCreator('')
                           }
                         }
                       }}
-                      disabled={!newStatusNoteContent.trim() || isAddingNote}
+                      disabled={!newStatusNoteContent.trim() || !selectedNoteCreator || isAddingNote}
                       className='bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium'
                     >
                       {isAddingNote ? (
@@ -2156,6 +2224,9 @@ export default function ProjectDetailsPage() {
                       )}
                     </button>
                   </div>
+                  {(!selectedNoteCreator && newStatusNoteContent.trim()) && (
+                    <p className='text-orange-200 text-xs'>⚠️ Lütfen notu ekleyen kişiyi seçin</p>
+                  )}
                 </div>
               </div>
 

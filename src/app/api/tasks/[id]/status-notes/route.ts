@@ -68,7 +68,7 @@ export async function POST(
   try {
     const taskId = params.id
     const body = await request.json()
-    const { content, status } = body
+    const { content, status, createdById } = body
 
     // Validate required fields
     if (!content || !status) {
@@ -99,9 +99,8 @@ export async function POST(
       )
     }
 
-    // For now, we'll use a default user ID or get from session/auth
-    // In a real app, you'd get this from the authenticated user
-    const defaultUserId = await getDefaultUserId()
+    // Get the user ID (either provided or default)
+    const userId = createdById || await getDefaultUserId()
 
     // Create the status note
     const statusNote = await prisma.taskStatusNote.create({
@@ -109,7 +108,7 @@ export async function POST(
         content: content.trim(),
         status,
         taskId,
-        createdById: defaultUserId,
+        createdById: userId,
       },
       include: {
         createdBy: {
