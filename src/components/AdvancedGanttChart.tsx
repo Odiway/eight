@@ -139,7 +139,7 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
     const taskStartDays = Math.ceil((task.startDate.getTime() - projectStartDate.getTime()) / (1000 * 60 * 60 * 24))
     const taskDurationDays = Math.ceil((task.endDate.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24))
     
-    const containerWidth = timeUnits.length * (viewMode === 'days' ? 40 : viewMode === 'weeks' ? 80 : 120) * zoomLevel
+    const containerWidth = timeUnits.length * (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel
     
     return {
       left: (taskStartDays / totalDays) * containerWidth,
@@ -321,7 +321,7 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
         {/* Timeline Header */}
         <div className="flex border-b border-gray-200 bg-gray-50">
           {/* Task Names Column Header */}
-          <div className="w-80 p-4 font-semibold text-gray-700 bg-white border-r border-gray-200 flex items-center justify-between">
+          <div className="w-96 p-4 font-semibold text-gray-700 bg-white border-r border-gray-200 flex items-center justify-between">
             <span>Görevler ({filteredTasks.length})</span>
             <div className="flex gap-2">
               <button
@@ -343,16 +343,16 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
           
           {/* Timeline Headers */}
           <div ref={timelineRef} className="flex-1 overflow-x-auto">
-            <div className="flex" style={{ width: `${timeUnits.length * (viewMode === 'days' ? 40 : viewMode === 'weeks' ? 80 : 120) * zoomLevel}px` }}>
+            <div className="flex" style={{ width: `${timeUnits.length * (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px` }}>
               {timeUnits.map((date, index) => (
                 <div
                   key={index}
-                  className={`flex-shrink-0 p-2 text-center text-xs font-medium border-r border-gray-200 ${
+                  className={`flex-shrink-0 p-3 text-center text-sm font-medium border-r border-gray-200 ${
                     isWeekend(date) ? 'bg-gray-100 text-gray-500' : 'bg-gray-50 text-gray-700'
                   } ${isToday(date) ? 'bg-blue-100 text-blue-700 font-bold' : ''}`}
                   style={{ 
-                    width: `${(viewMode === 'days' ? 40 : viewMode === 'weeks' ? 80 : 120) * zoomLevel}px`,
-                    minWidth: `${(viewMode === 'days' ? 40 : viewMode === 'weeks' ? 80 : 120) * zoomLevel}px`
+                    width: `${(viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px`,
+                    minWidth: `${(viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px`
                   }}
                 >
                   {formatTimelineHeader(date)}
@@ -363,15 +363,15 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
         </div>
 
         {/* Tasks and Chart Area */}
-        <div ref={chartRef} className="flex max-h-96 overflow-y-auto">
+        <div ref={chartRef} className="flex max-h-[600px] overflow-y-auto">
           {/* Task Names Column */}
-          <div className="w-80 bg-white border-r border-gray-200">
+          <div className="w-96 bg-white border-r border-gray-200">
             {filteredTasks.map((task, index) => (
               <div
                 key={task.id}
-                className={`p-3 border-b border-gray-100 ${compactMode ? 'py-2' : 'py-3'} hover:bg-gray-50 transition-colors cursor-pointer`}
+                className={`p-4 border-b border-gray-100 ${compactMode ? 'py-3' : 'py-4'} hover:bg-gray-50 transition-colors cursor-pointer`}
                 onClick={() => handleTaskClick(task)}
-                style={{ height: compactMode ? '50px' : '60px' }}
+                style={{ height: compactMode ? '60px' : '80px' }}
               >
                 <div className="flex items-center gap-3">
                   {/* Status Icon */}
@@ -380,7 +380,7 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
                   {/* Task Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className={`font-medium text-gray-900 truncate ${compactMode ? 'text-sm' : 'text-base'}`}>
+                      <p className={`font-medium text-gray-900 truncate ${compactMode ? 'text-base' : 'text-lg'}`}>
                         {task.title}
                       </p>
                       {task.isCriticalPath && showCriticalPath && (
@@ -445,8 +445,8 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
                     key={`weekend-${index}`}
                     className="bg-gray-100/50"
                     style={{ 
-                      width: `${(viewMode === 'days' ? 40 : viewMode === 'weeks' ? 80 : 120) * zoomLevel}px`,
-                      left: `${index * (viewMode === 'days' ? 40 : viewMode === 'weeks' ? 80 : 120) * zoomLevel}px`
+                      width: `${(viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px`,
+                      left: `${index * (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px`
                     }}
                   ></div>
                 )
@@ -454,15 +454,15 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
             </div>
 
             {/* Task Bars */}
-            <div className="relative" style={{ width: `${timeUnits.length * (viewMode === 'days' ? 40 : viewMode === 'weeks' ? 80 : 120) * zoomLevel}px` }}>
+            <div className="relative" style={{ width: `${timeUnits.length * (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px` }}>
               {filteredTasks.map((task, index) => {
                 const dimensions = getTaskDimensions(task)
                 return (
                   <div
                     key={task.id}
-                    className={`absolute flex items-center ${compactMode ? 'h-8' : 'h-12'} cursor-move group hover:z-10`}
+                    className={`absolute flex items-center ${compactMode ? 'h-10' : 'h-16'} cursor-move group hover:z-10`}
                     style={{
-                      top: `${index * (compactMode ? 50 : 60) + (compactMode ? 11 : 14)}px`,
+                      top: `${index * (compactMode ? 60 : 80) + (compactMode ? 15 : 20)}px`,
                       left: `${dimensions.left}px`,
                       width: `${dimensions.width}px`,
                     }}
@@ -472,7 +472,7 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
                   >
                     {/* Task Bar */}
                     <div 
-                      className={`relative w-full ${compactMode ? 'h-6' : 'h-8'} ${getStatusColor(task.status)} rounded-lg shadow-sm border-2 ${getPriorityColor(task.priority)} group-hover:shadow-lg transition-all overflow-hidden`}
+                      className={`relative w-full ${compactMode ? 'h-8' : 'h-12'} ${getStatusColor(task.status)} rounded-lg shadow-sm border-2 ${getPriorityColor(task.priority)} group-hover:shadow-lg transition-all overflow-hidden`}
                     >
                       {/* Progress Fill */}
                       <div 
@@ -482,7 +482,7 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
                       
                       {/* Task Text */}
                       <div className="absolute inset-0 flex items-center justify-between px-2">
-                        <span className={`text-white font-medium truncate ${compactMode ? 'text-xs' : 'text-sm'}`}>
+                        <span className={`text-white font-medium truncate ${compactMode ? 'text-sm' : 'text-base'}`}>
                           {task.title}
                         </span>
                         {!compactMode && task.estimatedHours && (
@@ -541,9 +541,9 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
                     >
                       <line
                         x1={depDimensions.left + depDimensions.width}
-                        y1={depIndex * (compactMode ? 50 : 60) + (compactMode ? 25 : 30)}
+                        y1={depIndex * (compactMode ? 60 : 80) + (compactMode ? 30 : 40)}
                         x2={taskDimensions.left}
-                        y2={taskIndex * (compactMode ? 50 : 60) + (compactMode ? 25 : 30)}
+                        y2={taskIndex * (compactMode ? 60 : 80) + (compactMode ? 30 : 40)}
                         stroke={task.isCriticalPath ? "#ef4444" : "#6b7280"}
                         strokeWidth="2"
                         markerEnd="url(#arrowhead)"
