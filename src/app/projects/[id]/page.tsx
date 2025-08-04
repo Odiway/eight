@@ -25,10 +25,14 @@ import {
   Target,
   Timer,
   MessageSquare,
+  Download,
 } from 'lucide-react'
 import type { Project, Task, User } from '@prisma/client'
 import ImprovedEnhancedCalendar from '@/components/ImprovedEnhancedCalendar'
 import EnhancedTaskCreationModal from '@/components/EnhancedTaskCreationModal'
+import AdvancedGanttChart from '@/components/AdvancedGanttChart'
+import NotificationCenter from '@/components/NotificationCenter'
+import CriticalPathAnalysis from '@/components/CriticalPathAnalysis'
 import '@/styles/kanban-board.css'
 
 interface ExtendedProject extends Project {
@@ -68,7 +72,7 @@ export default function ProjectDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'calendar' | 'analytics'
+    'overview' | 'calendar' | 'gantt' | 'critical-path' | 'analytics'
   >('overview')
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [draggedTask, setDraggedTask] = useState<string | null>(null)
@@ -525,6 +529,66 @@ export default function ProjectDetailsPage() {
   ).length
   const progressPercentage =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+
+  // Transform tasks for Gantt chart
+  const transformTasksForGantt = (tasks: ExtendedTask[]) => {
+    return tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      startDate: task.startDate ? new Date(task.startDate) : new Date(),
+      endDate: task.endDate ? new Date(task.endDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days from now
+      progress: task.status === 'COMPLETED' ? 100 : 
+                task.status === 'IN_PROGRESS' ? 50 : 
+                task.status === 'REVIEW' ? 80 : 0,
+      priority: task.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
+      status: task.status as 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED' | 'BLOCKED',
+      assignedUsers: task.assignedUsers?.map(assignment => ({
+        user: {
+          id: assignment.user.id,
+          name: assignment.user.name,
+          avatar: undefined
+        }
+      })) || (task.assignedUser ? [{
+        user: {
+          id: task.assignedUser.id,
+          name: task.assignedUser.name,
+          avatar: undefined
+        }
+      }] : []),
+      dependencies: [], // Add dependencies logic if available
+      estimatedHours: task.estimatedHours || 8,
+      actualHours: task.actualHours ?? undefined,
+      isOnCriticalPath: false, // This would be calculated by critical path analysis
+      milestones: []
+    }))
+  }
+
+  // Transform tasks for Critical Path Analysis
+  const transformTasksForCriticalPath = (tasks: ExtendedTask[]) => {
+    return tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      estimatedHours: task.estimatedHours || 8,
+      actualHours: task.actualHours ?? undefined,
+      startDate: task.startDate ? new Date(task.startDate) : new Date(),
+      endDate: task.endDate ? new Date(task.endDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      dependencies: [], // Add dependencies logic if available
+      status: task.status as 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED' | 'BLOCKED',
+      assignedUsers: task.assignedUsers?.map(assignment => ({
+        user: { id: assignment.user.id, name: assignment.user.name }
+      })) || (task.assignedUser ? [{
+        user: { id: task.assignedUser.id, name: task.assignedUser.name }
+      }] : []),
+      priority: task.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+    }))
+  }
+
+  // Handle optimization recommendations
+  const handleOptimizationRecommendations = async (recommendations: any[]) => {
+    console.log('Optimization recommendations:', recommendations)
+    // You can implement auto-application of recommendations here
+    alert(`${recommendations.length} optimizasyon önerisi alındı. Konsolu kontrol edin.`)
+  }
 
   // TaskList Component
   function TaskList({
@@ -1057,6 +1121,18 @@ export default function ProjectDetailsPage() {
               </div>
             </div>
             <div className='flex items-center gap-3'>
+              <NotificationCenter 
+                projectId={projectId} 
+                userId={undefined} // Add user ID if available
+              />
+              <button
+                onClick={() => window.open(`/api/reports/project/${projectId}/pdf`, '_blank')}
+                className='flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'
+                title='PDF Raporu İndir (Gelişmiş Timeline ile)'
+              >
+                <Download className='w-4 h-4' />
+                PDF İndir
+              </button>
               <button
                 onClick={() => {
                   setModalMode('create')
@@ -1136,6 +1212,8 @@ export default function ProjectDetailsPage() {
               {[
                 { key: 'overview', label: 'Genel Bakış', icon: BarChart3 },
                 { key: 'calendar', label: 'Takvim', icon: Calendar },
+                { key: 'gantt', label: 'Gantt Şeması', icon: Target },
+                { key: 'critical-path', label: 'Kritik Yol', icon: AlertTriangle },
                 { key: 'analytics', label: 'Analitik', icon: BarChart3 },
               ].map((tab) => {
                 const Icon = tab.icon
@@ -1414,6 +1492,57 @@ export default function ProjectDetailsPage() {
                 onTaskUpdate={handleTaskUpdate}
                 onProjectReschedule={handleProjectReschedule}
               />
+            )}
+
+            {/* Gantt Chart Tab */}
+            {activeTab === 'gantt' && (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">🎯 Gelişmiş Gantt Şeması</h3>
+                  <p className="text-sm opacity-90">
+                    Görevleri sürükleyerek yeniden planlayabilir, bağımlılıkları görüntüleyebilir ve kritik yolu analiz edebilirsiniz.
+                  </p>
+                </div>
+                
+                <AdvancedGanttChart
+                  tasks={transformTasksForGantt(project.tasks)}
+                  projectStartDate={project.startDate ? new Date(project.startDate) : new Date()}
+                  projectEndDate={project.endDate ? new Date(project.endDate) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)}
+                  onTaskUpdate={(taskId, updates) => {
+                    handleTaskUpdate(taskId, {
+                      startDate: updates.startDate?.toISOString(),
+                      endDate: updates.endDate?.toISOString(),
+                      ...updates
+                    })
+                  }}
+                  onDependencyCreate={(fromTaskId, toTaskId) => {
+                    console.log('Dependency created:', fromTaskId, '->', toTaskId)
+                    // Implement dependency creation logic
+                  }}
+                  onMilestoneAdd={(taskId, milestone) => {
+                    console.log('Milestone added to task:', taskId, milestone)
+                    // Implement milestone addition logic
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Critical Path Analysis Tab */}
+            {activeTab === 'critical-path' && (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">🎯 Kritik Yol Analizi</h3>
+                  <p className="text-sm opacity-90">
+                    Projenizin en kritik görevlerini belirleyin ve zaman tasarrufu için optimizasyon önerilerini uygulayın.
+                  </p>
+                </div>
+                
+                <CriticalPathAnalysis
+                  tasks={transformTasksForCriticalPath(project.tasks)}
+                  projectStartDate={project.startDate ? new Date(project.startDate) : new Date()}
+                  onOptimize={handleOptimizationRecommendations}
+                />
+              </div>
             )}
 
             {/* Analytics Tab */}
