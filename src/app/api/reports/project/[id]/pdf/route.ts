@@ -1014,6 +1014,148 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             border-radius: 3px;
         }
         
+        /* ===== PROJECT TIMELINE STYLES ===== */
+        .timeline-overview {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .timeline-card {
+            background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--premium-blue) 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+        
+        .timeline-card.start-date {
+            background: linear-gradient(135deg, var(--success-forest) 0%, #4caf50 100%);
+        }
+        
+        .timeline-card.estimated-date {
+            background: linear-gradient(135deg, var(--warning-amber) 0%, #ff9800 100%);
+        }
+        
+        .timeline-card.remaining-days {
+            background: linear-gradient(135deg, #ad1457 0%, #e91e63 100%);
+        }
+        
+        .timeline-card.critical-path {
+            background: linear-gradient(135deg, var(--danger-crimson) 0%, #f44336 100%);
+        }
+        
+        .timeline-icon {
+            font-size: 24px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .timeline-value {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+        
+        .timeline-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .project-phases {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--light-silver);
+        }
+        
+        .project-phases h3 {
+            color: var(--executive-navy);
+            margin-bottom: 24px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .phases-timeline {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            position: relative;
+        }
+        
+        .phases-timeline::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--light-silver);
+            z-index: 1;
+        }
+        
+        .phase-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+        
+        .phase-indicator {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--light-silver);
+            border: 4px solid white;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .phase-item.completed .phase-indicator {
+            background: var(--success-forest);
+        }
+        
+        .phase-item.current .phase-indicator {
+            background: var(--corporate-blue);
+            animation: pulse 2s infinite;
+        }
+        
+        .phase-content {
+            text-align: center;
+        }
+        
+        .phase-name {
+            font-weight: 600;
+            color: var(--executive-navy);
+            margin-bottom: 4px;
+        }
+        
+        .phase-progress {
+            font-size: 12px;
+            color: var(--corporate-gray);
+        }
+        
+        .phase-item.completed .phase-name {
+            color: var(--success-forest);
+        }
+        
+        .phase-item.current .phase-name {
+            color: var(--corporate-blue);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
         /* ===== FOOTER ===== */
         .premium-footer {
             background: linear-gradient(135deg, var(--executive-navy) 0%, var(--corporate-blue) 100%);
@@ -1196,6 +1338,75 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             </div>
         </div>
         
+        <!-- ===== PROJECT TIMELINE SECTION ===== -->
+        <div class="analytics-section">
+            <div class="section-header">
+                <h2>PROJE ZAMAN ÇİZELGESİ</h2>
+                <p>Tahmini Tamamlanma Tarihleri ve Kritik Yol Analizi</p>
+            </div>
+            
+            <div class="timeline-overview">
+                <div class="timeline-card start-date">
+                    <span class="timeline-icon">🚀</span>
+                    <div class="timeline-value">${data.project.startDate ? 
+                        new Date(data.project.startDate).toLocaleDateString('tr-TR', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        }) : 'Belirtilmemiş'}</div>
+                    <div class="timeline-label">Başlangıç Tarihi</div>
+                </div>
+                
+                <div class="timeline-card estimated-date">
+                    <span class="timeline-icon">📅</span>
+                    <div class="timeline-value">${data.project.endDate ? 
+                        new Date(data.project.endDate).toLocaleDateString('tr-TR', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        }) : 'Hesaplanıyor...'}</div>
+                    <div class="timeline-label">Tahmini Bitiş</div>
+                </div>
+                
+                <div class="timeline-card remaining-days">
+                    <span class="timeline-icon">⏰</span>
+                    <div class="timeline-value">${data.project.endDate ? 
+                        Math.ceil((new Date(data.project.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : '---'}</div>
+                    <div class="timeline-label">Kalan Gün</div>
+                </div>
+                
+                <div class="timeline-card critical-path">
+                    <span class="timeline-icon">🔴</span>
+                    <div class="timeline-value">${data.tasks.filter(t => t.priority === 'HIGH' || t.priority === 'URGENT').length}</div>
+                    <div class="timeline-label">Kritik Görev</div>
+                </div>
+            </div>
+            
+            <div class="project-phases">
+                <h3>Proje Fazları ve Tahmini Süreler</h3>
+                <div class="phases-timeline">
+                    ${(() => {
+                        const phases = [
+                            { name: 'Planlama', percentage: 20, status: completionRate > 20 ? 'completed' : 'current' },
+                            { name: 'Geliştirme', percentage: 60, status: completionRate > 60 ? 'completed' : completionRate > 20 ? 'current' : 'pending' },
+                            { name: 'Test', percentage: 85, status: completionRate > 85 ? 'completed' : completionRate > 60 ? 'current' : 'pending' },
+                            { name: 'Teslimat', percentage: 100, status: completionRate === 100 ? 'completed' : completionRate > 85 ? 'current' : 'pending' }
+                        ];
+                        
+                        return phases.map(phase => `
+                            <div class="phase-item ${phase.status}">
+                                <div class="phase-indicator"></div>
+                                <div class="phase-content">
+                                    <div class="phase-name">${phase.name}</div>
+                                    <div class="phase-progress">${phase.percentage}%</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    })()}
+                </div>
+            </div>
+        </div>
+
         <!-- ===== ANALYTICS SECTION ===== -->
         <div class="analytics-section">
             <div class="section-header">
