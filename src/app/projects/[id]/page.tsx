@@ -1508,18 +1508,18 @@ export default function ProjectDetailsPage() {
                   tasks={transformTasksForGantt(project.tasks)}
                   projectStartDate={project.startDate ? new Date(project.startDate) : new Date()}
                   projectEndDate={project.endDate ? new Date(project.endDate) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)}
-                  onTaskUpdate={(taskId, updates) => {
+                  onTaskUpdate={(taskId: string, updates: any) => {
                     handleTaskUpdate(taskId, {
                       startDate: updates.startDate?.toISOString(),
                       endDate: updates.endDate?.toISOString(),
                       ...updates
                     })
                   }}
-                  onDependencyCreate={(fromTaskId, toTaskId) => {
+                  onDependencyCreate={(fromTaskId: string, toTaskId: string) => {
                     console.log('Dependency created:', fromTaskId, '->', toTaskId)
                     // Implement dependency creation logic
                   }}
-                  onMilestoneAdd={(taskId, milestone) => {
+                  onMilestoneAdd={(taskId: string, milestone: any) => {
                     console.log('Milestone added to task:', taskId, milestone)
                     // Implement milestone addition logic
                   }}

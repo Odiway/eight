@@ -971,15 +971,6 @@ function ImprovedEnhancedCalendar({
               )
             })}
           </div>
-
-          {/* Auto-reschedule Button */}
-          <button
-            onClick={() => onProjectReschedule('auto')}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Yeniden Planla
-          </button>
         </div>
       </div>
 
