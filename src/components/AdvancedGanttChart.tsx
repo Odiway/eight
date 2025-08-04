@@ -136,14 +136,15 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
   // Calculate task position and width
   const getTaskDimensions = (task: GanttTask) => {
     const totalDays = Math.ceil((projectEndDate.getTime() - projectStartDate.getTime()) / (1000 * 60 * 60 * 24))
-    const taskStartDays = Math.ceil((task.startDate.getTime() - projectStartDate.getTime()) / (1000 * 60 * 60 * 24))
-    const taskDurationDays = Math.ceil((task.endDate.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24))
+    const taskStartDays = Math.max(0, Math.ceil((task.startDate.getTime() - projectStartDate.getTime()) / (1000 * 60 * 60 * 24)))
+    const taskDurationDays = Math.max(1, Math.ceil((task.endDate.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24)))
     
     const containerWidth = timeUnits.length * (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel
+    const cellWidth = (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel
     
     return {
-      left: (taskStartDays / totalDays) * containerWidth,
-      width: Math.max((taskDurationDays / totalDays) * containerWidth, 20),
+      left: Math.max(0, (taskStartDays / totalDays) * containerWidth),
+      width: Math.max(cellWidth * 0.8, (taskDurationDays / totalDays) * containerWidth),
     }
   }
 
@@ -213,6 +214,23 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
 
   return (
     <div className="w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      <style jsx>{`
+        .gantt-scroll::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .gantt-scroll::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+        .gantt-scroll::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+        .gantt-scroll::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
       {/* Enhanced Header with Gradient */}
       <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -342,7 +360,7 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
           </div>
           
           {/* Timeline Headers */}
-          <div ref={timelineRef} className="flex-1 overflow-x-auto">
+          <div ref={timelineRef} className="flex-1 gantt-scroll overflow-x-auto">
             <div className="flex" style={{ width: `${timeUnits.length * (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px` }}>
               {timeUnits.map((date, index) => (
                 <div
@@ -363,7 +381,7 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
         </div>
 
         {/* Tasks and Chart Area */}
-        <div ref={chartRef} className="flex max-h-[600px] overflow-y-auto">
+        <div ref={chartRef} className="flex gantt-scroll overflow-y-auto" style={{ maxHeight: `${Math.max(600, filteredTasks.length * (compactMode ? 60 : 80) + 40)}px` }}>
           {/* Task Names Column */}
           <div className="w-96 bg-white border-r border-gray-200">
             {filteredTasks.map((task, index) => (
@@ -375,7 +393,7 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
               >
                 <div className="flex items-center gap-3">
                   {/* Status Icon */}
-                  <div className={`w-3 h-3 rounded-full ${getStatusColor(task.status)}`}></div>
+                  <div className={`w-4 h-4 rounded-full ${getStatusColor(task.status)} border-2 border-white shadow-sm`}></div>
                   
                   {/* Task Info */}
                   <div className="flex-1 min-w-0">
@@ -394,23 +412,23 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
                     {!compactMode && (
                       <div className="flex items-center gap-3 mt-1">
                         {/* Progress */}
-                        <div className="flex items-center gap-1">
-                          <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                             <div 
                               className={`h-full ${getStatusColor(task.status)} transition-all`}
                               style={{ width: `${task.progress}%` }}
                             ></div>
                           </div>
-                          <span className="text-xs text-gray-500">{task.progress}%</span>
+                          <span className="text-sm text-gray-500 font-medium">{task.progress}%</span>
                         </div>
                         
                         {/* Assigned User */}
                         {showResources && task.assignedUser && (
-                          <div className="flex items-center gap-1">
-                            <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
                               {task.assignedUser.name.charAt(0).toUpperCase()}
                             </div>
-                            <span className="text-xs text-gray-500 truncate max-w-16" title={task.assignedUser.name}>
+                            <span className="text-sm text-gray-600 truncate max-w-20" title={task.assignedUser.name}>
                               {task.assignedUser.name}
                             </span>
                           </div>
@@ -424,26 +442,26 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
           </div>
 
           {/* Chart Area */}
-          <div className="flex-1 overflow-x-auto relative">
+          <div className="flex-1 gantt-scroll overflow-x-auto relative">
             {/* Today Line */}
             <div 
               className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 opacity-75"
               style={{
-                left: `${((currentDate.getTime() - projectStartDate.getTime()) / (projectEndDate.getTime() - projectStartDate.getTime())) * 100}%`
+                left: `${Math.max(0, Math.min(100, ((currentDate.getTime() - projectStartDate.getTime()) / (projectEndDate.getTime() - projectStartDate.getTime())) * 100))}%`
               }}
             >
-              <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded">
+              <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                 Bugün
               </div>
             </div>
 
             {/* Weekend Columns */}
-            <div className="absolute inset-0 flex pointer-events-none">
+            <div className="absolute inset-0 flex pointer-events-none" style={{ minHeight: `${filteredTasks.length * (compactMode ? 60 : 80)}px` }}>
               {timeUnits.map((date, index) => (
                 isWeekend(date) && (
                   <div
                     key={`weekend-${index}`}
-                    className="bg-gray-100/50"
+                    className="bg-gray-100/30"
                     style={{ 
                       width: `${(viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px`,
                       left: `${index * (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px`
@@ -454,7 +472,10 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
             </div>
 
             {/* Task Bars */}
-            <div className="relative" style={{ width: `${timeUnits.length * (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px` }}>
+            <div className="relative" style={{ 
+              width: `${timeUnits.length * (viewMode === 'days' ? 60 : viewMode === 'weeks' ? 120 : 180) * zoomLevel}px`,
+              minHeight: `${filteredTasks.length * (compactMode ? 60 : 80)}px`
+            }}>
               {filteredTasks.map((task, index) => {
                 const dimensions = getTaskDimensions(task)
                 return (
@@ -472,36 +493,39 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
                   >
                     {/* Task Bar */}
                     <div 
-                      className={`relative w-full ${compactMode ? 'h-8' : 'h-12'} ${getStatusColor(task.status)} rounded-lg shadow-sm border-2 ${getPriorityColor(task.priority)} group-hover:shadow-lg transition-all overflow-hidden`}
+                      className={`relative w-full ${compactMode ? 'h-8' : 'h-12'} ${getStatusColor(task.status)} rounded-lg shadow-md border-2 ${getPriorityColor(task.priority)} group-hover:shadow-xl group-hover:scale-105 transition-all duration-200 overflow-hidden`}
                     >
                       {/* Progress Fill */}
                       <div 
-                        className="absolute inset-0 bg-white/20 transition-all"
+                        className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/30 transition-all"
                         style={{ width: `${task.progress}%` }}
                       ></div>
                       
                       {/* Task Text */}
-                      <div className="absolute inset-0 flex items-center justify-between px-2">
-                        <span className={`text-white font-medium truncate ${compactMode ? 'text-sm' : 'text-base'}`}>
+                      <div className="absolute inset-0 flex items-center justify-between px-3">
+                        <span className={`text-white font-semibold truncate ${compactMode ? 'text-sm' : 'text-base'}`}>
                           {task.title}
                         </span>
                         {!compactMode && task.estimatedHours && (
-                          <span className="text-white/80 text-xs">
+                          <span className="text-white/90 text-sm font-medium">
                             {task.estimatedHours}h
                           </span>
                         )}
                       </div>
 
                       {/* Hover Details */}
-                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap pointer-events-none">
-                        <div className="font-medium">{task.title}</div>
-                        <div className="text-gray-300">
+                      <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-30 whitespace-nowrap pointer-events-none shadow-xl">
+                        <div className="font-semibold text-white">{task.title}</div>
+                        <div className="text-gray-300 text-xs mt-1">
                           {task.startDate.toLocaleDateString('tr-TR')} - {task.endDate.toLocaleDateString('tr-TR')}
                         </div>
                         {task.estimatedHours && (
-                          <div className="text-gray-300">{task.estimatedHours} saat</div>
+                          <div className="text-blue-300 text-xs">{task.estimatedHours} saat tahmini</div>
                         )}
-                        <div className="text-gray-300">İlerleme: {task.progress}%</div>
+                        <div className="text-green-300 text-xs">İlerleme: {task.progress}%</div>
+                        {task.assignedUser && (
+                          <div className="text-purple-300 text-xs">Atanan: {task.assignedUser.name}</div>
+                        )}
                       </div>
                     </div>
 
@@ -578,24 +602,24 @@ const AdvancedGanttChart: React.FC<AdvancedGanttChartProps> = ({
       </div>
 
       {/* Footer Stats */}
-      <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+      <div className="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white px-6 py-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-6 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-              <span>Tamamlanan: {tasks.filter(t => t.status === 'COMPLETED').length}</span>
+          <div className="flex items-center gap-8 text-sm text-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 bg-emerald-500 rounded-full shadow-sm"></div>
+              <span className="font-medium">Tamamlanan: <span className="text-emerald-700 font-bold">{tasks.filter(t => t.status === 'COMPLETED').length}</span></span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span>Devam Eden: {tasks.filter(t => t.status === 'IN_PROGRESS').length}</span>
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 bg-blue-500 rounded-full shadow-sm"></div>
+              <span className="font-medium">Devam Eden: <span className="text-blue-700 font-bold">{tasks.filter(t => t.status === 'IN_PROGRESS').length}</span></span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-              <span>Bekleyen: {tasks.filter(t => t.status === 'TODO').length}</span>
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 bg-gray-400 rounded-full shadow-sm"></div>
+              <span className="font-medium">Bekleyen: <span className="text-gray-700 font-bold">{tasks.filter(t => t.status === 'TODO').length}</span></span>
             </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-orange-500" />
-              <span>Kritik: {tasks.filter(t => t.isCriticalPath).length}</span>
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5 text-orange-500" />
+              <span className="font-medium">Kritik: <span className="text-orange-700 font-bold">{tasks.filter(t => t.isCriticalPath).length}</span></span>
             </div>
           </div>
           
