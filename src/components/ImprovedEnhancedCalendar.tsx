@@ -214,24 +214,30 @@ function ImprovedEnhancedCalendar({
 
   // Function to get overdue tasks for a specific date
   const getOverdueTasksForDate = (date: Date): Task[] => {
-    // Always use the actual current date/time for overdue comparison, not the calendar cell date
-    const currentDate = new Date() // This should always be "now"
+    const currentDate = new Date() // Always use the actual current date/time for overdue comparison
+    const checkDate = new Date(date) // The calendar cell date we're checking
+    
     return tasks.filter(task => {
       if (!task.endDate || task.status === 'COMPLETED') return false
       
       const taskDeadline = new Date(task.endDate)
       
-      // Set deadline to end of deadline day
-      taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
+      // Set all dates to start of day for accurate comparison
+      taskDeadline.setHours(0, 0, 0, 0)
+      currentDate.setHours(0, 0, 0, 0)
+      checkDate.setHours(0, 0, 0, 0)
       
-      // Show overdue tasks only when current date is completely past the deadline
-      // This means if today is 30.07.2025 and deadline is 31.07.2025, it's NOT overdue
-      // Only becomes overdue from 01.08.2025 onwards
+      // Task is overdue only if current date is past the deadline
       const isOverdue = currentDate > taskDeadline
+      
+      // Only show overdue tasks on days between deadline and current date (inclusive)
+      // This means overdue tasks should appear from the day after deadline up to current day
+      const shouldShowOnThisDate = isOverdue && checkDate > taskDeadline && checkDate <= currentDate
+      
       const statusMatch = statusFilter === 'all' || task.status === statusFilter
       const priorityMatch = priorityFilter === 'all' || task.priority === priorityFilter
       
-      return isOverdue && statusMatch && priorityMatch
+      return shouldShowOnThisDate && statusMatch && priorityMatch
     })
   }
 
