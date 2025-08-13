@@ -2,7 +2,14 @@ import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
 import TeamView from '@/components/TeamView'
 import TeamRefreshButton from '@/components/TeamRefreshButton'
-import { Users, UserPlus, Plus } from 'lucide-react'
+import {
+  Users,
+  UserPlus,
+  Plus,
+  Pencil,
+  UserCheck,
+  Building,
+} from 'lucide-react'
 import Link from 'next/link'
 
 // Force dynamic rendering - no caching
@@ -10,7 +17,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
-async function getTeamData() {
+async function getUsers() {
   const users = await prisma.user.findMany({
     include: {
       assignedTasks: {
@@ -61,13 +68,13 @@ async function getTeamData() {
     // Combine tasks from both assignedTasks (legacy) and taskAssignments (new)
     const allUserTasks = [
       ...user.assignedTasks,
-      ...user.taskAssignments.map(assignment => assignment.task)
-    ];
+      ...user.taskAssignments.map((assignment) => assignment.task),
+    ]
 
     // Remove duplicates (in case a task is in both arrays)
-    const uniqueTasks = allUserTasks.filter((task, index, array) => 
-      array.findIndex(t => t.id === task.id) === index
-    );
+    const uniqueTasks = allUserTasks.filter(
+      (task, index, array) => array.findIndex((t) => t.id === task.id) === index
+    )
 
     const activeTasks = uniqueTasks.filter(
       (task) => task.status === 'TODO' || task.status === 'IN_PROGRESS'
@@ -110,7 +117,8 @@ async function getTeamData() {
 }
 
 export default async function TeamPage() {
-  const { users, teams, totalUsers, totalTeams, departmentCount } = await getTeamData()
+  const { users, teams, totalUsers, totalTeams, departmentCount } =
+    await getUsers()
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -128,7 +136,8 @@ export default async function TeamPage() {
                   Takım Yönetimi
                 </h1>
                 <p className='text-gray-600'>
-                  {totalUsers} çalışan, {totalTeams} takım, {departmentCount} departman
+                  {totalUsers} çalışan, {totalTeams} takım, {departmentCount}{' '}
+                  departman
                 </p>
               </div>
             </div>
@@ -208,7 +217,7 @@ export default async function TeamPage() {
                   <div className='flex-shrink-0'>
                     <div className='w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center'>
                       <span className='text-white text-sm font-medium'>
-                        {users.reduce((sum, user) => sum + user.activeTasks, 0)}
+                        {users.reduce((sum: number, user: any) => sum + user.activeTasks, 0)}
                       </span>
                     </div>
                   </div>
@@ -218,7 +227,7 @@ export default async function TeamPage() {
                         Aktif Görevler
                       </dt>
                       <dd className='text-lg font-medium text-gray-900'>
-                        {users.reduce((sum, user) => sum + user.activeTasks, 0)}
+                        {users.reduce((sum: number, user: any) => sum + user.activeTasks, 0)}
                       </dd>
                     </dl>
                   </div>
@@ -233,7 +242,7 @@ export default async function TeamPage() {
                     <div className='w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center'>
                       <span className='text-white text-sm font-medium'>
                         {users.reduce(
-                          (sum, user) => sum + user.activeProjects,
+                          (sum: number, user: any) => sum + user.activeProjects,
                           0
                         )}
                       </span>
@@ -246,7 +255,7 @@ export default async function TeamPage() {
                       </dt>
                       <dd className='text-lg font-medium text-gray-900'>
                         {users.reduce(
-                          (sum, user) => sum + user.activeProjects,
+                          (sum: number, user: any) => sum + user.activeProjects,
                           0
                         )}
                       </dd>

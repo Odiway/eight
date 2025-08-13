@@ -14,6 +14,9 @@ import {
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
+// Force dynamic rendering to prevent build-time database access
+export const dynamic = 'force-dynamic'
+
 interface DepartmentWorkload {
   name: string
   totalUsers: number
@@ -83,7 +86,7 @@ function calculateTimeBasedWorkload(tasks: any[]) {
   // Initialize the next 12 weeks
   for (let i = 0; i < 12; i++) {
     const date = new Date(now)
-    date.setDate(date.getDate() + (i * 7))
+    date.setDate(date.getDate() + i * 7)
     const week = `${date.getFullYear()}-W${Math.ceil(date.getDate() / 7)}`
     weeklyData[week] = { hours: 0, tasks: 0 }
   }
@@ -92,28 +95,36 @@ function calculateTimeBasedWorkload(tasks: any[]) {
   for (let i = 0; i < 12; i++) {
     const date = new Date(now)
     date.setMonth(date.getMonth() + i)
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const monthKey = `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, '0')}`
     monthlyData[monthKey] = { hours: 0, tasks: 0 }
   }
 
   // Distribute active tasks across time periods
-  tasks.forEach(task => {
+  tasks.forEach((task) => {
     if (task.status === 'COMPLETED') return
 
     const estimatedHours = task.estimatedHours || 8 // Default 8 hours per task
     const startDate = task.startDate ? new Date(task.startDate) : new Date()
-    const endDate = task.endDate ? new Date(task.endDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    
+    const endDate = task.endDate
+      ? new Date(task.endDate)
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
     // Calculate days between start and end
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
     const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
-    
+
     // IMPORTANT: For multiple assignments, each person gets the FULL estimated hours
     // Do NOT divide by number of assigned users
     const hoursPerDay = estimatedHours / diffDays
 
     // Distribute hours across the date range
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    for (
+      let d = new Date(startDate);
+      d <= endDate;
+      d.setDate(d.getDate() + 1)
+    ) {
       const dateKey = d.toISOString().split('T')[0]
       if (dailyData[dateKey]) {
         dailyData[dateKey].hours += hoursPerDay
@@ -128,7 +139,10 @@ function calculateTimeBasedWorkload(tasks: any[]) {
       }
 
       // Monthly aggregation
-      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+        2,
+        '0'
+      )}`
       if (monthlyData[monthKey]) {
         monthlyData[monthKey].hours += hoursPerDay
         monthlyData[monthKey].tasks += 1 / diffDays
@@ -140,18 +154,18 @@ function calculateTimeBasedWorkload(tasks: any[]) {
     daily: Object.entries(dailyData).map(([date, data]) => ({
       date,
       hours: Math.round(data.hours * 10) / 10,
-      tasks: Math.round(data.tasks * 10) / 10
+      tasks: Math.round(data.tasks * 10) / 10,
     })),
     weekly: Object.entries(weeklyData).map(([week, data]) => ({
       week,
       hours: Math.round(data.hours * 10) / 10,
-      tasks: Math.round(data.tasks * 10) / 10
+      tasks: Math.round(data.tasks * 10) / 10,
     })),
     monthly: Object.entries(monthlyData).map(([month, data]) => ({
       month,
       hours: Math.round(data.hours * 10) / 10,
-      tasks: Math.round(data.tasks * 10) / 10
-    }))
+      tasks: Math.round(data.tasks * 10) / 10,
+    })),
   }
 }
 
@@ -357,11 +371,13 @@ async function getWorkloadData() {
 
   const criticalProjects = projects.filter((p) => {
     const overdue =
-      p.endDate && (() => {
+      p.endDate &&
+      (() => {
         const projectEndDate = new Date(p.endDate)
         projectEndDate.setHours(23, 59, 59, 999) // End of the day
         return projectEndDate < new Date()
-      })() && p.status !== 'COMPLETED'
+      })() &&
+      p.status !== 'COMPLETED'
     const highRiskTasks = p.tasks.filter((t) => {
       if (!t.endDate || t.status === 'COMPLETED') return false
       const taskEndDate = new Date(t.endDate)
@@ -648,28 +664,36 @@ export default async function WorkloadPage() {
               <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
                 <div className='text-center p-4 bg-green-50 rounded-lg'>
                   <div className='text-2xl font-bold text-green-600'>
-                    {userWorkloads.filter(u => u.workloadScore <= 5).length}
+                    {userWorkloads.filter((u) => u.workloadScore <= 5).length}
                   </div>
                   <div className='text-sm text-gray-600'>Düşük Yük</div>
                   <div className='text-xs text-gray-500'>0-5 puan</div>
                 </div>
                 <div className='text-center p-4 bg-blue-50 rounded-lg'>
                   <div className='text-2xl font-bold text-blue-600'>
-                    {userWorkloads.filter(u => u.workloadScore > 5 && u.workloadScore <= 10).length}
+                    {
+                      userWorkloads.filter(
+                        (u) => u.workloadScore > 5 && u.workloadScore <= 10
+                      ).length
+                    }
                   </div>
                   <div className='text-sm text-gray-600'>Normal Yük</div>
                   <div className='text-xs text-gray-500'>6-10 puan</div>
                 </div>
                 <div className='text-center p-4 bg-yellow-50 rounded-lg'>
                   <div className='text-2xl font-bold text-yellow-600'>
-                    {userWorkloads.filter(u => u.workloadScore > 10 && u.workloadScore <= 15).length}
+                    {
+                      userWorkloads.filter(
+                        (u) => u.workloadScore > 10 && u.workloadScore <= 15
+                      ).length
+                    }
                   </div>
                   <div className='text-sm text-gray-600'>Yüksek Yük</div>
                   <div className='text-xs text-gray-500'>11-15 puan</div>
                 </div>
                 <div className='text-center p-4 bg-red-50 rounded-lg'>
                   <div className='text-2xl font-bold text-red-600'>
-                    {userWorkloads.filter(u => u.workloadScore > 15).length}
+                    {userWorkloads.filter((u) => u.workloadScore > 15).length}
                   </div>
                   <div className='text-sm text-gray-600'>Kritik Yük</div>
                   <div className='text-xs text-gray-500'>15+ puan</div>
@@ -683,25 +707,67 @@ export default async function WorkloadPage() {
                   <span>Toplam {userWorkloads.length} çalışan</span>
                 </div>
                 <div className='flex h-4 bg-gray-200 rounded-full overflow-hidden'>
-                  <div 
+                  <div
                     className='bg-green-500 transition-all duration-500'
-                    style={{ width: `${(userWorkloads.filter(u => u.workloadScore <= 5).length / userWorkloads.length) * 100}%` }}
-                    title={`Düşük Yük: ${userWorkloads.filter(u => u.workloadScore <= 5).length} kişi`}
+                    style={{
+                      width: `${
+                        (userWorkloads.filter((u) => u.workloadScore <= 5)
+                          .length /
+                          userWorkloads.length) *
+                        100
+                      }%`,
+                    }}
+                    title={`Düşük Yük: ${
+                      userWorkloads.filter((u) => u.workloadScore <= 5).length
+                    } kişi`}
                   ></div>
-                  <div 
+                  <div
                     className='bg-blue-500 transition-all duration-500'
-                    style={{ width: `${(userWorkloads.filter(u => u.workloadScore > 5 && u.workloadScore <= 10).length / userWorkloads.length) * 100}%` }}
-                    title={`Normal Yük: ${userWorkloads.filter(u => u.workloadScore > 5 && u.workloadScore <= 10).length} kişi`}
+                    style={{
+                      width: `${
+                        (userWorkloads.filter(
+                          (u) => u.workloadScore > 5 && u.workloadScore <= 10
+                        ).length /
+                          userWorkloads.length) *
+                        100
+                      }%`,
+                    }}
+                    title={`Normal Yük: ${
+                      userWorkloads.filter(
+                        (u) => u.workloadScore > 5 && u.workloadScore <= 10
+                      ).length
+                    } kişi`}
                   ></div>
-                  <div 
+                  <div
                     className='bg-yellow-500 transition-all duration-500'
-                    style={{ width: `${(userWorkloads.filter(u => u.workloadScore > 10 && u.workloadScore <= 15).length / userWorkloads.length) * 100}%` }}
-                    title={`Yüksek Yük: ${userWorkloads.filter(u => u.workloadScore > 10 && u.workloadScore <= 15).length} kişi`}
+                    style={{
+                      width: `${
+                        (userWorkloads.filter(
+                          (u) => u.workloadScore > 10 && u.workloadScore <= 15
+                        ).length /
+                          userWorkloads.length) *
+                        100
+                      }%`,
+                    }}
+                    title={`Yüksek Yük: ${
+                      userWorkloads.filter(
+                        (u) => u.workloadScore > 10 && u.workloadScore <= 15
+                      ).length
+                    } kişi`}
                   ></div>
-                  <div 
+                  <div
                     className='bg-red-500 transition-all duration-500'
-                    style={{ width: `${(userWorkloads.filter(u => u.workloadScore > 15).length / userWorkloads.length) * 100}%` }}
-                    title={`Kritik Yük: ${userWorkloads.filter(u => u.workloadScore > 15).length} kişi`}
+                    style={{
+                      width: `${
+                        (userWorkloads.filter((u) => u.workloadScore > 15)
+                          .length /
+                          userWorkloads.length) *
+                        100
+                      }%`,
+                    }}
+                    title={`Kritik Yük: ${
+                      userWorkloads.filter((u) => u.workloadScore > 15).length
+                    } kişi`}
                   ></div>
                 </div>
               </div>
@@ -727,8 +793,7 @@ export default async function WorkloadPage() {
           {/* Strategic Department Analysis */}
           <div className='grid grid-cols-1 gap-8 mb-8'>
             {/* Top Performers & Risk Analysis */}
-            <div className='space-y-6'>
-            </div>
+            <div className='space-y-6'></div>
           </div>
 
           {/* Time-Based Workload Analysis */}
@@ -824,7 +889,13 @@ export default async function WorkloadPage() {
                       <div>
                         <div className='flex justify-between text-sm text-gray-600 mb-1'>
                           <span>İş Yükü</span>
-                          <span>{Math.min(100, Math.round((user.workloadScore / 20) * 100))}%</span>
+                          <span>
+                            {Math.min(
+                              100,
+                              Math.round((user.workloadScore / 20) * 100)
+                            )}
+                            %
+                          </span>
                         </div>
                         <div className='w-full bg-gray-200 rounded-full h-2'>
                           <div
@@ -837,7 +908,12 @@ export default async function WorkloadPage() {
                                 ? 'bg-blue-500'
                                 : 'bg-green-500'
                             }`}
-                            style={{ width: `${Math.min(100, (user.workloadScore / 20) * 100)}%` }}
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                (user.workloadScore / 20) * 100
+                              )}%`,
+                            }}
                           ></div>
                         </div>
                       </div>

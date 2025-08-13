@@ -2,6 +2,9 @@ import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
 import CalendarClient from '@/components/CalendarClient'
 
+// Force dynamic rendering to prevent build-time database access
+export const dynamic = 'force-dynamic'
+
 async function getCalendarData(projectId?: string) {
   const where = projectId ? { projectId } : {}
 
