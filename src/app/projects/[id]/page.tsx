@@ -33,6 +33,8 @@ import EnhancedTaskCreationModal from '@/components/EnhancedTaskCreationModal'
 import AdvancedGanttChart from '@/components/AdvancedGanttChart'
 import NotificationCenter from '@/components/NotificationCenter'
 import CriticalPathAnalysis from '@/components/CriticalPathAnalysis'
+import NotificationSystem from '@/components/NotificationSystem'
+import ProjectDatesManager from '@/components/ProjectDatesManager'
 import '@/styles/kanban-board.css'
 
 interface ExtendedProject extends Project {
@@ -79,14 +81,18 @@ export default function ProjectDetailsPage() {
   const [selectedTaskDetails, setSelectedTaskDetails] =
     useState<ExtendedTask | null>(null)
   const [showTaskDetailsModal, setShowTaskDetailsModal] = useState(false)
-  const [editingTaskData, setEditingTaskData] = useState<ExtendedTask | null>(null)
+  const [editingTaskData, setEditingTaskData] = useState<ExtendedTask | null>(
+    null
+  )
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
-  
+
   // Status Notes state for task details modal
   const [taskStatusNotes, setTaskStatusNotes] = useState<StatusNote[]>([])
   const [showStatusNotesModal, setShowStatusNotesModal] = useState(false)
   const [newStatusNoteContent, setNewStatusNoteContent] = useState('')
-  const [newStatusNoteType, setNewStatusNoteType] = useState<'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'>('INFO')
+  const [newStatusNoteType, setNewStatusNoteType] = useState<
+    'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
+  >('INFO')
   const [selectedNoteCreator, setSelectedNoteCreator] = useState<string>('')
   const [isAddingNote, setIsAddingNote] = useState(false)
 
@@ -234,13 +240,13 @@ export default function ProjectDetailsPage() {
     setSelectedNoteCreator('')
     setNewStatusNoteContent('')
     setNewStatusNoteType('INFO')
-    
+
     // Debug: Log task assignment data
     console.log('Task clicked:', {
       title: task.title,
       assignedUser: task.assignedUser,
       assignedUsers: task.assignedUsers,
-      assignedUsersCount: task.assignedUsers?.length || 0
+      assignedUsersCount: task.assignedUsers?.length || 0,
     })
   }
 
@@ -263,30 +269,35 @@ export default function ProjectDetailsPage() {
   }
 
   // Add new status note to a task
-  const addTaskStatusNote = async (taskId: string, content: string, status: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR', createdById?: string) => {
+  const addTaskStatusNote = async (
+    taskId: string,
+    content: string,
+    status: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR',
+    createdById?: string
+  ) => {
     if (!content.trim()) return
 
     setIsAddingNote(true)
-    
+
     try {
       const response = await fetch(`/api/tasks/${taskId}/status-notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          content: content.trim(), 
+        body: JSON.stringify({
+          content: content.trim(),
           status,
-          createdById: createdById || undefined
-        })
+          createdById: createdById || undefined,
+        }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to save note')
       }
 
       const savedNote = await response.json()
-      
+
       // Update local state with the saved note
-      setTaskStatusNotes(prev => [savedNote, ...prev])
+      setTaskStatusNotes((prev) => [savedNote, ...prev])
       return true
     } catch (error) {
       console.error('Error adding status note:', error)
@@ -532,54 +543,88 @@ export default function ProjectDetailsPage() {
 
   // Transform tasks for Gantt chart
   const transformTasksForGantt = (tasks: ExtendedTask[]) => {
-    return tasks.map(task => ({
+    return tasks.map((task) => ({
       id: task.id,
       title: task.title,
       startDate: task.startDate ? new Date(task.startDate) : new Date(),
-      endDate: task.endDate ? new Date(task.endDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days from now
-      progress: task.status === 'COMPLETED' ? 100 : 
-                task.status === 'IN_PROGRESS' ? 50 : 
-                task.status === 'REVIEW' ? 80 : 0,
+      endDate: task.endDate
+        ? new Date(task.endDate)
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days from now
+      progress:
+        task.status === 'COMPLETED'
+          ? 100
+          : task.status === 'IN_PROGRESS'
+          ? 50
+          : task.status === 'REVIEW'
+          ? 80
+          : 0,
       priority: task.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
-      status: task.status as 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED' | 'BLOCKED',
-      assignedUsers: task.assignedUsers?.map(assignment => ({
-        user: {
-          id: assignment.user.id,
-          name: assignment.user.name,
-          avatar: undefined
-        }
-      })) || (task.assignedUser ? [{
-        user: {
-          id: task.assignedUser.id,
-          name: task.assignedUser.name,
-          avatar: undefined
-        }
-      }] : []),
+      status: task.status as
+        | 'TODO'
+        | 'IN_PROGRESS'
+        | 'IN_REVIEW'
+        | 'COMPLETED'
+        | 'BLOCKED',
+      assignedUsers:
+        task.assignedUsers?.map((assignment) => ({
+          user: {
+            id: assignment.user.id,
+            name: assignment.user.name,
+            avatar: undefined,
+          },
+        })) ||
+        (task.assignedUser
+          ? [
+              {
+                user: {
+                  id: task.assignedUser.id,
+                  name: task.assignedUser.name,
+                  avatar: undefined,
+                },
+              },
+            ]
+          : []),
       dependencies: [], // Add dependencies logic if available
       estimatedHours: task.estimatedHours || 8,
       actualHours: task.actualHours ?? undefined,
       isOnCriticalPath: false, // This would be calculated by critical path analysis
-      milestones: []
+      milestones: [],
     }))
   }
 
   // Transform tasks for Critical Path Analysis
   const transformTasksForCriticalPath = (tasks: ExtendedTask[]) => {
-    return tasks.map(task => ({
+    return tasks.map((task) => ({
       id: task.id,
       title: task.title,
       estimatedHours: task.estimatedHours || 8,
       actualHours: task.actualHours ?? undefined,
       startDate: task.startDate ? new Date(task.startDate) : new Date(),
-      endDate: task.endDate ? new Date(task.endDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      endDate: task.endDate
+        ? new Date(task.endDate)
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       dependencies: [], // Add dependencies logic if available
-      status: task.status as 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED' | 'BLOCKED',
-      assignedUsers: task.assignedUsers?.map(assignment => ({
-        user: { id: assignment.user.id, name: assignment.user.name }
-      })) || (task.assignedUser ? [{
-        user: { id: task.assignedUser.id, name: task.assignedUser.name }
-      }] : []),
-      priority: task.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+      status: task.status as
+        | 'TODO'
+        | 'IN_PROGRESS'
+        | 'IN_REVIEW'
+        | 'COMPLETED'
+        | 'BLOCKED',
+      assignedUsers:
+        task.assignedUsers?.map((assignment) => ({
+          user: { id: assignment.user.id, name: assignment.user.name },
+        })) ||
+        (task.assignedUser
+          ? [
+              {
+                user: {
+                  id: task.assignedUser.id,
+                  name: task.assignedUser.name,
+                },
+              },
+            ]
+          : []),
+      priority: task.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
     }))
   }
 
@@ -587,7 +632,9 @@ export default function ProjectDetailsPage() {
   const handleOptimizationRecommendations = async (recommendations: any[]) => {
     console.log('Optimization recommendations:', recommendations)
     // You can implement auto-application of recommendations here
-    alert(`${recommendations.length} optimizasyon önerisi alındı. Konsolu kontrol edin.`)
+    alert(
+      `${recommendations.length} optimizasyon önerisi alındı. Konsolu kontrol edin.`
+    )
   }
 
   // TaskList Component
@@ -748,14 +795,14 @@ export default function ProjectDetailsPage() {
               // Fixed overdue logic: task is overdue only after the deadline day has completely passed
               const isOverdue = (() => {
                 if (!task.endDate || task.status === 'COMPLETED') return false
-                
+
                 const taskDeadline = new Date(task.endDate)
                 const today = new Date()
-                
+
                 // Set deadline to end of deadline day and current date to end of current day
                 taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
                 today.setHours(23, 59, 59, 999) // End of current day
-                
+
                 // Task is overdue only when current day is completely past the deadline
                 return today > taskDeadline
               })()
@@ -845,14 +892,14 @@ export default function ProjectDetailsPage() {
     // Fixed overdue logic: task is overdue only after the deadline day has completely passed
     const isOverdue = (() => {
       if (!task.endDate || task.status === 'COMPLETED') return false
-      
+
       const taskDeadline = new Date(task.endDate)
       const today = new Date()
-      
+
       // Set deadline to end of deadline day and current date to end of current day
       taskDeadline.setHours(23, 59, 59, 999) // End of deadline day
       today.setHours(23, 59, 59, 999) // End of current day
-      
+
       // Task is overdue only when current day is completely past the deadline
       return today > taskDeadline
     })()
@@ -926,149 +973,149 @@ export default function ProjectDetailsPage() {
         <div className="absolute inset-0 opacity-[0.02] bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Cg fill-rule=%22evenodd%22%3E%3Cg fill=%22%23000%22 fill-opacity=%220.4%22 fill-rule=%22nonzero%22%3E%3Cpath d=%22m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
 
         <div className='relative z-10'>
-            {/* Header with status and actions */}
-            <div className='flex items-start justify-between mb-3'>
-              <div className='flex items-center gap-3 flex-1'>
-                <div className='p-2 bg-white/80 rounded-lg shadow-sm'>
-                  {statusStyling.statusIcon}
+          {/* Header with status and actions */}
+          <div className='flex items-start justify-between mb-3'>
+            <div className='flex items-center gap-3 flex-1'>
+              <div className='p-2 bg-white/80 rounded-lg shadow-sm'>
+                {statusStyling.statusIcon}
+              </div>
+              <h4
+                className={`font-bold text-base ${statusStyling.textColor} leading-tight`}
+              >
+                {task.title}
+              </h4>
+              {isOverdue && (
+                <div className='flex items-center bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold animate-bounce'>
+                  ⚠️ GECİKMİŞ
                 </div>
-                <h4
-                  className={`font-bold text-base ${statusStyling.textColor} leading-tight`}
-                >
-                  {task.title}
-                </h4>
-                {isOverdue && (
-                  <div className='flex items-center bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold animate-bounce'>
-                    ⚠️ GECİKMİŞ
-                  </div>
-                )}
-              </div>
-              <div className='flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
-                <button
-                  onClick={() => handleEditTask(task)}
-                  className='p-2 text-slate-500 hover:text-blue-600 hover:bg-white/80 rounded-lg transition-all duration-200'
-                  title='Görevi Düzenle'
-                >
-                  <Edit className='w-4 h-4' />
-                </button>
-                <button
-                  onClick={() => handleTaskDelete(task.id)}
-                  className='p-2 text-slate-500 hover:text-red-600 hover:bg-white/80 rounded-lg transition-all duration-200'
-                  title='Görevi Sil'
-                >
-                  <Trash2 className='w-4 h-4' />
-                </button>
-              </div>
+              )}
             </div>
-
-            {/* Description */}
-            {task.description && (
-              <p className='text-sm text-slate-600 mb-4 bg-white/50 p-3 rounded-lg leading-relaxed'>
-                {task.description}
-              </p>
-            )}
-
-            {/* Priority and metadata */}
-            <div className='flex items-center justify-between mb-4'>
-              <div className='flex items-center gap-3'>
-                <span
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 shadow-sm ${
-                    task.priority === 'URGENT'
-                      ? 'bg-red-100 text-red-700 border-red-200'
-                      : task.priority === 'HIGH'
-                      ? 'bg-orange-100 text-orange-700 border-orange-200'
-                      : task.priority === 'MEDIUM'
-                      ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                      : 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                  }`}
-                >
-                  {task.priority === 'URGENT'
-                    ? '🔴 Acil'
-                    : task.priority === 'HIGH'
-                    ? '🟠 Yüksek'
-                    : task.priority === 'MEDIUM'
-                    ? '🟡 Orta'
-                    : '🟢 Düşük'}
-                </span>
-                {task.estimatedHours && (
-                  <div className='flex items-center bg-white/80 px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 shadow-sm border'>
-                    <Clock className='w-3 h-3 mr-1.5' />
-                    {task.estimatedHours}h
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Assigned user */}
-            {task.assignedUser && (
-              <div className='flex items-center bg-white/80 p-3 rounded-lg mb-4 border shadow-sm'>
-                <div className='kanban-user-avatar w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3'>
-                  {task.assignedUser.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className='font-medium text-slate-800 text-sm'>
-                    {task.assignedUser.name}
-                  </p>
-                  <p className='text-xs text-slate-500'>Sorumlu</p>
-                </div>
-              </div>
-            )}
-
-            {/* Dates */}
-            {(task.startDate || task.endDate) && (
-              <div className='bg-white/80 p-3 rounded-lg border shadow-sm'>
-                <div className='flex items-center justify-between text-xs'>
-                  {task.startDate && (
-                    <div className='flex items-center text-emerald-600'>
-                      <div className='w-2 h-2 bg-emerald-500 rounded-full mr-2'></div>
-                      <span className='font-medium'>
-                        🚀{' '}
-                        {new Date(task.startDate).toLocaleDateString('tr-TR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  {task.endDate && (
-                    <div
-                      className={`flex items-center ${
-                        isOverdue ? 'text-red-600 font-bold' : 'text-red-500'
-                      }`}
-                    >
-                      <div
-                        className={`w-2 h-2 rounded-full mr-2 ${
-                          isOverdue ? 'bg-red-600 animate-pulse' : 'bg-red-500'
-                        }`}
-                      ></div>
-                      <span className='font-medium'>
-                        🏁{' '}
-                        {new Date(task.endDate).toLocaleDateString('tr-TR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                        })}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Progress indicator for status */}
-            <div className='mt-4 w-full bg-slate-200 rounded-full h-2 overflow-hidden kanban-progress-bar'>
-              <div
-                className={`h-full transition-all duration-500 ${
-                  task.status === 'COMPLETED'
-                    ? 'w-full bg-gradient-to-r from-emerald-500 to-emerald-600'
-                    : task.status === 'REVIEW'
-                    ? 'w-4/5 bg-gradient-to-r from-purple-500 to-purple-600'
-                    : task.status === 'IN_PROGRESS'
-                    ? 'w-1/2 bg-gradient-to-r from-blue-500 to-blue-600'
-                    : 'w-1/4 bg-gradient-to-r from-slate-400 to-slate-500'
-                }`}
-              ></div>
+            <div className='flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+              <button
+                onClick={() => handleEditTask(task)}
+                className='p-2 text-slate-500 hover:text-blue-600 hover:bg-white/80 rounded-lg transition-all duration-200'
+                title='Görevi Düzenle'
+              >
+                <Edit className='w-4 h-4' />
+              </button>
+              <button
+                onClick={() => handleTaskDelete(task.id)}
+                className='p-2 text-slate-500 hover:text-red-600 hover:bg-white/80 rounded-lg transition-all duration-200'
+                title='Görevi Sil'
+              >
+                <Trash2 className='w-4 h-4' />
+              </button>
             </div>
           </div>
+
+          {/* Description */}
+          {task.description && (
+            <p className='text-sm text-slate-600 mb-4 bg-white/50 p-3 rounded-lg leading-relaxed'>
+              {task.description}
+            </p>
+          )}
+
+          {/* Priority and metadata */}
+          <div className='flex items-center justify-between mb-4'>
+            <div className='flex items-center gap-3'>
+              <span
+                className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 shadow-sm ${
+                  task.priority === 'URGENT'
+                    ? 'bg-red-100 text-red-700 border-red-200'
+                    : task.priority === 'HIGH'
+                    ? 'bg-orange-100 text-orange-700 border-orange-200'
+                    : task.priority === 'MEDIUM'
+                    ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                    : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                }`}
+              >
+                {task.priority === 'URGENT'
+                  ? '🔴 Acil'
+                  : task.priority === 'HIGH'
+                  ? '🟠 Yüksek'
+                  : task.priority === 'MEDIUM'
+                  ? '🟡 Orta'
+                  : '🟢 Düşük'}
+              </span>
+              {task.estimatedHours && (
+                <div className='flex items-center bg-white/80 px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 shadow-sm border'>
+                  <Clock className='w-3 h-3 mr-1.5' />
+                  {task.estimatedHours}h
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Assigned user */}
+          {task.assignedUser && (
+            <div className='flex items-center bg-white/80 p-3 rounded-lg mb-4 border shadow-sm'>
+              <div className='kanban-user-avatar w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3'>
+                {task.assignedUser.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className='font-medium text-slate-800 text-sm'>
+                  {task.assignedUser.name}
+                </p>
+                <p className='text-xs text-slate-500'>Sorumlu</p>
+              </div>
+            </div>
+          )}
+
+          {/* Dates */}
+          {(task.startDate || task.endDate) && (
+            <div className='bg-white/80 p-3 rounded-lg border shadow-sm'>
+              <div className='flex items-center justify-between text-xs'>
+                {task.startDate && (
+                  <div className='flex items-center text-emerald-600'>
+                    <div className='w-2 h-2 bg-emerald-500 rounded-full mr-2'></div>
+                    <span className='font-medium'>
+                      🚀{' '}
+                      {new Date(task.startDate).toLocaleDateString('tr-TR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                )}
+                {task.endDate && (
+                  <div
+                    className={`flex items-center ${
+                      isOverdue ? 'text-red-600 font-bold' : 'text-red-500'
+                    }`}
+                  >
+                    <div
+                      className={`w-2 h-2 rounded-full mr-2 ${
+                        isOverdue ? 'bg-red-600 animate-pulse' : 'bg-red-500'
+                      }`}
+                    ></div>
+                    <span className='font-medium'>
+                      🏁{' '}
+                      {new Date(task.endDate).toLocaleDateString('tr-TR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Progress indicator for status */}
+          <div className='mt-4 w-full bg-slate-200 rounded-full h-2 overflow-hidden kanban-progress-bar'>
+            <div
+              className={`h-full transition-all duration-500 ${
+                task.status === 'COMPLETED'
+                  ? 'w-full bg-gradient-to-r from-emerald-500 to-emerald-600'
+                  : task.status === 'REVIEW'
+                  ? 'w-4/5 bg-gradient-to-r from-purple-500 to-purple-600'
+                  : task.status === 'IN_PROGRESS'
+                  ? 'w-1/2 bg-gradient-to-r from-blue-500 to-blue-600'
+                  : 'w-1/4 bg-gradient-to-r from-slate-400 to-slate-500'
+              }`}
+            ></div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -1121,12 +1168,22 @@ export default function ProjectDetailsPage() {
               </div>
             </div>
             <div className='flex items-center gap-3'>
-              <NotificationCenter 
-                projectId={projectId} 
+              <NotificationSystem
+                projectId={projectId}
+                tasks={project.tasks.map((task) => ({
+                  id: task.id,
+                  name: task.title,
+                  endDate: new Date(task.endDate || Date.now()),
+                  status: task.status,
+                  assignedUserId: task.assignedUser?.id,
+                  priority: task.priority,
+                }))}
                 userId={undefined} // Add user ID if available
               />
               <button
-                onClick={() => window.open(`/api/reports/project/${projectId}/pdf`, '_blank')}
+                onClick={() =>
+                  window.open(`/api/reports/project/${projectId}/pdf`, '_blank')
+                }
                 className='flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'
                 title='PDF Raporu İndir (Gelişmiş Timeline ile)'
               >
@@ -1205,6 +1262,25 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
 
+        {/* Project Dates Manager */}
+        <div className='mb-6'>
+          <ProjectDatesManager
+            projectId={projectId}
+            originalStartDate={new Date(project.startDate || Date.now())}
+            originalEndDate={new Date(project.endDate || Date.now())}
+            tasks={project.tasks.map((task) => ({
+              id: task.id,
+              name: task.title,
+              startDate: new Date(task.startDate || Date.now()),
+              endDate: new Date(task.endDate || Date.now()),
+              duration: task.estimatedHours || 8,
+              status: task.status,
+              dependencies: [], // Add dependencies logic if available
+            }))}
+            className='w-full'
+          />
+        </div>
+
         {/* Tabs */}
         <div className='bg-white rounded-lg shadow-sm mb-6'>
           <div className='border-b border-gray-200'>
@@ -1213,7 +1289,11 @@ export default function ProjectDetailsPage() {
                 { key: 'overview', label: 'Genel Bakış', icon: BarChart3 },
                 { key: 'calendar', label: 'Takvim', icon: Calendar },
                 { key: 'gantt', label: 'Gantt Şeması', icon: Target },
-                { key: 'critical-path', label: 'Kritik Yol', icon: AlertTriangle },
+                {
+                  key: 'critical-path',
+                  label: 'Kritik Yol',
+                  icon: AlertTriangle,
+                },
                 { key: 'analytics', label: 'Analitik', icon: BarChart3 },
               ].map((tab) => {
                 const Icon = tab.icon
@@ -1496,27 +1576,44 @@ export default function ProjectDetailsPage() {
 
             {/* Gantt Chart Tab */}
             {activeTab === 'gantt' && (
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-2">🎯 Gelişmiş Gantt Şeması</h3>
-                  <p className="text-sm opacity-90">
-                    Görevleri sürükleyerek yeniden planlayabilir, bağımlılıkları görüntüleyebilir ve kritik yolu analiz edebilirsiniz.
+              <div className='space-y-6'>
+                <div className='bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg p-4'>
+                  <h3 className='text-lg font-semibold mb-2'>
+                    🎯 Gelişmiş Gantt Şeması
+                  </h3>
+                  <p className='text-sm opacity-90'>
+                    Görevleri sürükleyerek yeniden planlayabilir, bağımlılıkları
+                    görüntüleyebilir ve kritik yolu analiz edebilirsiniz.
                   </p>
                 </div>
-                
+
                 <AdvancedGanttChart
                   tasks={transformTasksForGantt(project.tasks)}
-                  projectStartDate={project.startDate ? new Date(project.startDate) : new Date()}
-                  projectEndDate={project.endDate ? new Date(project.endDate) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)}
+                  projectStartDate={
+                    project.startDate ? new Date(project.startDate) : new Date()
+                  }
+                  projectEndDate={
+                    project.endDate
+                      ? new Date(project.endDate)
+                      : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+                  }
                   onTaskUpdate={(taskId: string, updates: any) => {
                     handleTaskUpdate(taskId, {
                       startDate: updates.startDate?.toISOString(),
                       endDate: updates.endDate?.toISOString(),
-                      ...updates
+                      ...updates,
                     })
                   }}
-                  onDependencyCreate={(fromTaskId: string, toTaskId: string) => {
-                    console.log('Dependency created:', fromTaskId, '->', toTaskId)
+                  onDependencyCreate={(
+                    fromTaskId: string,
+                    toTaskId: string
+                  ) => {
+                    console.log(
+                      'Dependency created:',
+                      fromTaskId,
+                      '->',
+                      toTaskId
+                    )
                     // Implement dependency creation logic
                   }}
                   onMilestoneAdd={(taskId: string, milestone: any) => {
@@ -1529,17 +1626,22 @@ export default function ProjectDetailsPage() {
 
             {/* Critical Path Analysis Tab */}
             {activeTab === 'critical-path' && (
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-2">🎯 Kritik Yol Analizi</h3>
-                  <p className="text-sm opacity-90">
-                    Projenizin en kritik görevlerini belirleyin ve zaman tasarrufu için optimizasyon önerilerini uygulayın.
+              <div className='space-y-6'>
+                <div className='bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg p-4'>
+                  <h3 className='text-lg font-semibold mb-2'>
+                    🎯 Kritik Yol Analizi
+                  </h3>
+                  <p className='text-sm opacity-90'>
+                    Projenizin en kritik görevlerini belirleyin ve zaman
+                    tasarrufu için optimizasyon önerilerini uygulayın.
                   </p>
                 </div>
-                
+
                 <CriticalPathAnalysis
                   tasks={transformTasksForCriticalPath(project.tasks)}
-                  projectStartDate={project.startDate ? new Date(project.startDate) : new Date()}
+                  projectStartDate={
+                    project.startDate ? new Date(project.startDate) : new Date()
+                  }
                   onOptimize={handleOptimizationRecommendations}
                 />
               </div>
@@ -1977,71 +2079,84 @@ export default function ProjectDetailsPage() {
                       <span className='ml-2 bg-purple-200 text-purple-800 px-2 py-1 rounded-full text-xs font-bold'>
                         {(() => {
                           // Calculate unique assigned users
-                          const uniqueUsers = new Set();
+                          const uniqueUsers = new Set()
                           if (selectedTaskDetails.assignedUser) {
-                            uniqueUsers.add(selectedTaskDetails.assignedUser.id);
+                            uniqueUsers.add(selectedTaskDetails.assignedUser.id)
                           }
-                          selectedTaskDetails.assignedUsers?.forEach(assignment => {
-                            uniqueUsers.add(assignment.user.id);
-                          });
-                          return uniqueUsers.size;
+                          selectedTaskDetails.assignedUsers?.forEach(
+                            (assignment) => {
+                              uniqueUsers.add(assignment.user.id)
+                            }
+                          )
+                          return uniqueUsers.size
                         })()}
                       </span>
                     </h5>
-                    
+
                     {(() => {
                       // Create unique list of assigned users
-                      const assignedUsers = [];
-                      const addedUserIds = new Set();
-                      
+                      const assignedUsers = []
+                      const addedUserIds = new Set()
+
                       // Add main assigned user first if exists
-                      if (selectedTaskDetails.assignedUser && !addedUserIds.has(selectedTaskDetails.assignedUser.id)) {
+                      if (
+                        selectedTaskDetails.assignedUser &&
+                        !addedUserIds.has(selectedTaskDetails.assignedUser.id)
+                      ) {
                         assignedUsers.push({
                           user: selectedTaskDetails.assignedUser,
                           isMain: true,
-                          assignedAt: null
-                        });
-                        addedUserIds.add(selectedTaskDetails.assignedUser.id);
+                          assignedAt: null,
+                        })
+                        addedUserIds.add(selectedTaskDetails.assignedUser.id)
                       }
-                      
+
                       // Add task assignments, skipping duplicates
-                      selectedTaskDetails.assignedUsers?.forEach(assignment => {
-                        if (!addedUserIds.has(assignment.user.id)) {
-                          assignedUsers.push({
-                            user: assignment.user,
-                            isMain: false,
-                            assignedAt: assignment.assignedAt
-                          });
-                          addedUserIds.add(assignment.user.id);
+                      selectedTaskDetails.assignedUsers?.forEach(
+                        (assignment) => {
+                          if (!addedUserIds.has(assignment.user.id)) {
+                            assignedUsers.push({
+                              user: assignment.user,
+                              isMain: false,
+                              assignedAt: assignment.assignedAt,
+                            })
+                            addedUserIds.add(assignment.user.id)
+                          }
                         }
-                      });
-                      
+                      )
+
                       if (assignedUsers.length === 0) {
                         return (
                           <div className='text-center py-6'>
                             <Users className='w-8 h-8 mx-auto text-purple-300 mb-2' />
-                            <p className='text-sm text-purple-600 mb-1'>Bu göreve henüz kimse atanmamış</p>
-                            <p className='text-xs text-purple-500'>Görev düzenleme modalından kişi atayabilirsiniz</p>
+                            <p className='text-sm text-purple-600 mb-1'>
+                              Bu göreve henüz kimse atanmamış
+                            </p>
+                            <p className='text-xs text-purple-500'>
+                              Görev düzenleme modalından kişi atayabilirsiniz
+                            </p>
                           </div>
-                        );
+                        )
                       }
-                      
+
                       return (
                         <div className='space-y-2 max-h-64 overflow-y-auto'>
                           {assignedUsers.map((item, index) => (
                             <div
                               key={`${item.user.id}-${index}`}
                               className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                                item.isMain 
-                                  ? 'bg-white border-purple-200 hover:border-purple-300' 
+                                item.isMain
+                                  ? 'bg-white border-purple-200 hover:border-purple-300'
                                   : 'bg-white border-gray-200 hover:border-purple-200'
                               }`}
                             >
-                              <div className={`w-10 h-10 ${
-                                item.isMain 
-                                  ? 'bg-gradient-to-br from-purple-600 to-purple-700' 
-                                  : 'bg-gradient-to-br from-blue-500 to-blue-600'
-                              } text-white rounded-full flex items-center justify-center font-bold`}>
+                              <div
+                                className={`w-10 h-10 ${
+                                  item.isMain
+                                    ? 'bg-gradient-to-br from-purple-600 to-purple-700'
+                                    : 'bg-gradient-to-br from-blue-500 to-blue-600'
+                                } text-white rounded-full flex items-center justify-center font-bold`}
+                              >
                                 {item.user.name.charAt(0)}
                               </div>
                               <div className='flex-1 min-w-0'>
@@ -2053,21 +2168,26 @@ export default function ProjectDetailsPage() {
                                 </p>
                                 {item.assignedAt && (
                                   <p className='text-xs text-blue-600'>
-                                    {new Date(item.assignedAt).toLocaleDateString('tr-TR')} tarihinde atandı
+                                    {new Date(
+                                      item.assignedAt
+                                    ).toLocaleDateString('tr-TR')}{' '}
+                                    tarihinde atandı
                                   </p>
                                 )}
                               </div>
-                              <div className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${
-                                item.isMain
-                                  ? 'text-purple-600 bg-purple-100'
-                                  : 'text-blue-600 bg-blue-100'
-                              }`}>
+                              <div
+                                className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${
+                                  item.isMain
+                                    ? 'text-purple-600 bg-purple-100'
+                                    : 'text-blue-600 bg-blue-100'
+                                }`}
+                              >
                                 {item.isMain ? 'Ana Sorumlu' : 'Atanan'}
                               </div>
                             </div>
                           ))}
                         </div>
-                      );
+                      )
                     })()}
                   </div>
                 </div>
@@ -2262,36 +2382,56 @@ export default function ProjectDetailsPage() {
                           onClick={() => setShowStatusNotesModal(true)}
                           className='text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors'
                         >
-                          {(taskStatusNotes?.length || 0) > 0 ? 'Tümünü Gör' : 'Not Ekle'}
+                          {(taskStatusNotes?.length || 0) > 0
+                            ? 'Tümünü Gör'
+                            : 'Not Ekle'}
                         </button>
                       </div>
                     </div>
-                    
-                    {(taskStatusNotes && taskStatusNotes.length > 0) ? (
+
+                    {taskStatusNotes && taskStatusNotes.length > 0 ? (
                       <div className='space-y-2'>
                         {taskStatusNotes.slice(0, 2).map((note) => (
-                          <div key={note.id} className='bg-white p-3 rounded-lg border border-blue-200'>
+                          <div
+                            key={note.id}
+                            className='bg-white p-3 rounded-lg border border-blue-200'
+                          >
                             <div className='flex items-start justify-between mb-1'>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                note.status === 'INFO' ? 'bg-blue-100 text-blue-700' :
-                                note.status === 'WARNING' ? 'bg-orange-100 text-orange-700' :
-                                note.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {note.status === 'INFO' ? 'Bilgi' :
-                                 note.status === 'WARNING' ? 'Uyarı' :
-                                 note.status === 'SUCCESS' ? 'Başarı' : 'Hata'}
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  note.status === 'INFO'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : note.status === 'WARNING'
+                                    ? 'bg-orange-100 text-orange-700'
+                                    : note.status === 'SUCCESS'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
+                                }`}
+                              >
+                                {note.status === 'INFO'
+                                  ? 'Bilgi'
+                                  : note.status === 'WARNING'
+                                  ? 'Uyarı'
+                                  : note.status === 'SUCCESS'
+                                  ? 'Başarı'
+                                  : 'Hata'}
                               </span>
                               <span className='text-xs text-gray-500'>
-                                {new Date(note.createdAt).toLocaleDateString('tr-TR')}
+                                {new Date(note.createdAt).toLocaleDateString(
+                                  'tr-TR'
+                                )}
                               </span>
                             </div>
-                            <p className='text-sm text-gray-700 mb-2'>{note.content}</p>
+                            <p className='text-sm text-gray-700 mb-2'>
+                              {note.content}
+                            </p>
                             <div className='flex items-center gap-2'>
                               <div className='w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold text-gray-600'>
                                 {note.createdBy?.name?.charAt(0) || 'U'}
                               </div>
-                              <span className='text-xs text-gray-600'>{note.createdBy?.name || 'Unknown User'}</span>
+                              <span className='text-xs text-gray-600'>
+                                {note.createdBy?.name || 'Unknown User'}
+                              </span>
                             </div>
                           </div>
                         ))}
@@ -2304,8 +2444,12 @@ export default function ProjectDetailsPage() {
                     ) : (
                       <div className='text-center py-4'>
                         <MessageSquare className='w-8 h-8 mx-auto text-blue-300 mb-2' />
-                        <p className='text-sm text-blue-600 mb-2'>Bu görev için henüz durum notu yok</p>
-                        <p className='text-xs text-blue-500'>İlerleme kaydetmek için not ekleyebilirsiniz</p>
+                        <p className='text-sm text-blue-600 mb-2'>
+                          Bu görev için henüz durum notu yok
+                        </p>
+                        <p className='text-xs text-blue-500'>
+                          İlerleme kaydetmek için not ekleyebilirsiniz
+                        </p>
                       </div>
                     )}
                   </div>
@@ -2325,7 +2469,9 @@ export default function ProjectDetailsPage() {
               <div className='flex items-center justify-between'>
                 <div className='flex items-center gap-3'>
                   <MessageSquare className='w-6 h-6 text-white' />
-                  <h3 className='text-xl font-bold text-white'>Görev Durum Notları</h3>
+                  <h3 className='text-xl font-bold text-white'>
+                    Görev Durum Notları
+                  </h3>
                   <span className='bg-white/20 px-3 py-1 rounded-full text-sm text-white'>
                     {taskStatusNotes.length} Not
                   </span>
@@ -2355,32 +2501,51 @@ export default function ProjectDetailsPage() {
               <div className='mb-6 bg-white/10 rounded-xl p-5 backdrop-blur-sm border border-white/20'>
                 <div className='flex items-center gap-2 mb-4'>
                   <Users className='w-5 h-5 text-white' />
-                  <span className='text-white font-bold'>Bu Görevde Çalışanlar</span>
+                  <span className='text-white font-bold'>
+                    Bu Görevde Çalışanlar
+                  </span>
                 </div>
                 <div className='flex flex-wrap gap-3'>
                   {selectedTaskDetails?.assignedUser && (
                     <div className='flex items-center gap-2 bg-white/20 rounded-lg px-3 py-2'>
                       <div className='w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm'>
-                        {selectedTaskDetails.assignedUser.name.charAt(0).toUpperCase()}
+                        {selectedTaskDetails.assignedUser.name
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
                       <div>
-                        <div className='text-white text-sm font-medium'>{selectedTaskDetails.assignedUser.name}</div>
+                        <div className='text-white text-sm font-medium'>
+                          {selectedTaskDetails.assignedUser.name}
+                        </div>
                         <div className='text-white/60 text-xs'>Ana Sorumlu</div>
                       </div>
                     </div>
                   )}
                   {/* Add other team members from project */}
-                  {users.filter(user => user.id !== selectedTaskDetails?.assignedUser?.id).slice(0, 3).map(user => (
-                    <div key={user.id} className='flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2'>
-                      <div className='w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm'>
-                        {user.name.charAt(0).toUpperCase()}
+                  {users
+                    .filter(
+                      (user) =>
+                        user.id !== selectedTaskDetails?.assignedUser?.id
+                    )
+                    .slice(0, 3)
+                    .map((user) => (
+                      <div
+                        key={user.id}
+                        className='flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2'
+                      >
+                        <div className='w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm'>
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className='text-white text-sm font-medium'>
+                            {user.name}
+                          </div>
+                          <div className='text-white/60 text-xs'>
+                            Takım Üyesi
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className='text-white text-sm font-medium'>{user.name}</div>
-                        <div className='text-white/60 text-xs'>Takım Üyesi</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
 
@@ -2388,7 +2553,9 @@ export default function ProjectDetailsPage() {
               <div className='mb-6 bg-white/10 rounded-xl p-5 backdrop-blur-sm border border-white/20'>
                 <div className='flex items-center gap-2 mb-4'>
                   <MessageSquare className='w-5 h-5 text-white' />
-                  <span className='text-white font-bold'>Yeni Durum Notu Ekle</span>
+                  <span className='text-white font-bold'>
+                    Yeni Durum Notu Ekle
+                  </span>
                 </div>
                 <div className='space-y-4'>
                   {/* User Selection */}
@@ -2401,17 +2568,31 @@ export default function ProjectDetailsPage() {
                       onChange={(e) => setSelectedNoteCreator(e.target.value)}
                       className='w-full bg-white/20 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white/30 border border-white/20'
                     >
-                      <option value='' className='bg-gray-800 text-white'>Kişi Seçin...</option>
+                      <option value='' className='bg-gray-800 text-white'>
+                        Kişi Seçin...
+                      </option>
                       {selectedTaskDetails?.assignedUser && (
-                        <option value={selectedTaskDetails.assignedUser.id} className='bg-gray-800 text-white'>
+                        <option
+                          value={selectedTaskDetails.assignedUser.id}
+                          className='bg-gray-800 text-white'
+                        >
                           {selectedTaskDetails.assignedUser.name} (Ana Sorumlu)
                         </option>
                       )}
-                      {users.filter(user => user.id !== selectedTaskDetails?.assignedUser?.id).map(user => (
-                        <option key={user.id} value={user.id} className='bg-gray-800 text-white'>
-                          {user.name}
-                        </option>
-                      ))}
+                      {users
+                        .filter(
+                          (user) =>
+                            user.id !== selectedTaskDetails?.assignedUser?.id
+                        )
+                        .map((user) => (
+                          <option
+                            key={user.id}
+                            value={user.id}
+                            className='bg-gray-800 text-white'
+                          >
+                            {user.name}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
@@ -2425,17 +2606,37 @@ export default function ProjectDetailsPage() {
                   <div className='flex items-center justify-between gap-3'>
                     <select
                       value={newStatusNoteType}
-                      onChange={(e) => setNewStatusNoteType(e.target.value as any)}
+                      onChange={(e) =>
+                        setNewStatusNoteType(e.target.value as any)
+                      }
                       className='bg-white/20 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white/30 border border-white/20'
                     >
-                      <option value='INFO' className='bg-blue-600 text-white'>📋 Bilgi</option>
-                      <option value='WARNING' className='bg-orange-600 text-white'>⚠️ Uyarı</option>
-                      <option value='SUCCESS' className='bg-green-600 text-white'>✅ Başarı</option>
-                      <option value='ERROR' className='bg-red-600 text-white'>❌ Hata</option>
+                      <option value='INFO' className='bg-blue-600 text-white'>
+                        📋 Bilgi
+                      </option>
+                      <option
+                        value='WARNING'
+                        className='bg-orange-600 text-white'
+                      >
+                        ⚠️ Uyarı
+                      </option>
+                      <option
+                        value='SUCCESS'
+                        className='bg-green-600 text-white'
+                      >
+                        ✅ Başarı
+                      </option>
+                      <option value='ERROR' className='bg-red-600 text-white'>
+                        ❌ Hata
+                      </option>
                     </select>
                     <button
                       onClick={async () => {
-                        if (selectedTaskDetails && newStatusNoteContent.trim() && selectedNoteCreator) {
+                        if (
+                          selectedTaskDetails &&
+                          newStatusNoteContent.trim() &&
+                          selectedNoteCreator
+                        ) {
                           const success = await addTaskStatusNote(
                             selectedTaskDetails.id,
                             newStatusNoteContent,
@@ -2449,7 +2650,11 @@ export default function ProjectDetailsPage() {
                           }
                         }
                       }}
-                      disabled={!newStatusNoteContent.trim() || !selectedNoteCreator || isAddingNote}
+                      disabled={
+                        !newStatusNoteContent.trim() ||
+                        !selectedNoteCreator ||
+                        isAddingNote
+                      }
                       className='bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium'
                     >
                       {isAddingNote ? (
@@ -2465,8 +2670,10 @@ export default function ProjectDetailsPage() {
                       )}
                     </button>
                   </div>
-                  {(!selectedNoteCreator && newStatusNoteContent.trim()) && (
-                    <p className='text-orange-200 text-xs'>⚠️ Lütfen notu ekleyen kişiyi seçin</p>
+                  {!selectedNoteCreator && newStatusNoteContent.trim() && (
+                    <p className='text-orange-200 text-xs'>
+                      ⚠️ Lütfen notu ekleyen kişiyi seçin
+                    </p>
                   )}
                 </div>
               </div>
@@ -2475,24 +2682,43 @@ export default function ProjectDetailsPage() {
                 {(taskStatusNotes?.length || 0) === 0 ? (
                   <div className='text-center py-12 text-white/60'>
                     <MessageSquare className='w-16 h-16 mx-auto mb-4 opacity-50' />
-                    <p className='text-lg mb-2'>Bu görev için henüz durum notu yok</p>
-                    <p className='text-sm mb-4'>Yukarıdaki formu kullanarak görevin ilerlemesi hakkında notlar ekleyebilirsiniz.</p>
-                    <p className='text-xs opacity-75'>Not tipleri: Bilgi, Uyarı, Başarı, Hata</p>
+                    <p className='text-lg mb-2'>
+                      Bu görev için henüz durum notu yok
+                    </p>
+                    <p className='text-sm mb-4'>
+                      Yukarıdaki formu kullanarak görevin ilerlemesi hakkında
+                      notlar ekleyebilirsiniz.
+                    </p>
+                    <p className='text-xs opacity-75'>
+                      Not tipleri: Bilgi, Uyarı, Başarı, Hata
+                    </p>
                   </div>
                 ) : (
                   (taskStatusNotes || []).map((note, index) => (
-                    <div key={note.id} className='bg-white/10 rounded-xl p-5 backdrop-blur-sm'>
+                    <div
+                      key={note.id}
+                      className='bg-white/10 rounded-xl p-5 backdrop-blur-sm'
+                    >
                       <div className='flex items-start justify-between mb-3'>
                         <div className='flex items-center gap-3'>
-                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-                            note.status === 'INFO' ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30' :
-                            note.status === 'WARNING' ? 'bg-orange-500/30 text-orange-200 border border-orange-400/30' :
-                            note.status === 'SUCCESS' ? 'bg-green-500/30 text-green-200 border border-green-400/30' :
-                            'bg-red-500/30 text-red-200 border border-red-400/30'
-                          }`}>
-                            {note.status === 'INFO' ? '📋 Bilgi' :
-                             note.status === 'WARNING' ? '⚠️ Uyarı' :
-                             note.status === 'SUCCESS' ? '✅ Başarı' : '❌ Hata'}
+                          <span
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold ${
+                              note.status === 'INFO'
+                                ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
+                                : note.status === 'WARNING'
+                                ? 'bg-orange-500/30 text-orange-200 border border-orange-400/30'
+                                : note.status === 'SUCCESS'
+                                ? 'bg-green-500/30 text-green-200 border border-green-400/30'
+                                : 'bg-red-500/30 text-red-200 border border-red-400/30'
+                            }`}
+                          >
+                            {note.status === 'INFO'
+                              ? '📋 Bilgi'
+                              : note.status === 'WARNING'
+                              ? '⚠️ Uyarı'
+                              : note.status === 'SUCCESS'
+                              ? '✅ Başarı'
+                              : '❌ Hata'}
                           </span>
                           <span className='text-white/60 text-sm'>
                             #{(taskStatusNotes?.length || 0) - index}
@@ -2500,32 +2726,43 @@ export default function ProjectDetailsPage() {
                         </div>
                         <div className='text-right'>
                           <div className='text-xs text-white/70'>
-                            {new Date(note.createdAt).toLocaleDateString('tr-TR', {
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric'
-                            })}
+                            {new Date(note.createdAt).toLocaleDateString(
+                              'tr-TR',
+                              {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              }
+                            )}
                           </div>
                           <div className='text-xs text-white/50'>
-                            {new Date(note.createdAt).toLocaleTimeString('tr-TR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {new Date(note.createdAt).toLocaleTimeString(
+                              'tr-TR',
+                              {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }
+                            )}
                           </div>
                         </div>
                       </div>
-                      
+
                       <p className='text-white text-sm leading-relaxed mb-4 bg-white/5 p-3 rounded-lg'>
                         {note.content}
                       </p>
-                      
+
                       <div className='flex items-center gap-3'>
                         <div className='w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold'>
-                          {note.createdBy?.name?.charAt(0)?.toUpperCase() || 'U'}
+                          {note.createdBy?.name?.charAt(0)?.toUpperCase() ||
+                            'U'}
                         </div>
                         <div>
-                          <div className='text-white font-medium text-sm'>{note.createdBy?.name || 'Unknown User'}</div>
-                          <div className='text-white/60 text-xs'>Durum Notu Ekleyen</div>
+                          <div className='text-white font-medium text-sm'>
+                            {note.createdBy?.name || 'Unknown User'}
+                          </div>
+                          <div className='text-white/60 text-xs'>
+                            Durum Notu Ekleyen
+                          </div>
                         </div>
                       </div>
                     </div>

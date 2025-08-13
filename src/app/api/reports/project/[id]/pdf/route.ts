@@ -25,28 +25,31 @@ function formatTurkishText(text: string): string {
 // Helper function to format names for compact display
 function formatCompactName(fullName: string): string {
   if (!fullName) return 'Bilinmiyor'
-  
+
   const nameParts = fullName.trim().split(' ')
   if (nameParts.length === 1) {
-    return nameParts[0].length > 12 ? nameParts[0].substring(0, 12) + '.' : nameParts[0]
+    return nameParts[0].length > 12
+      ? nameParts[0].substring(0, 12) + '.'
+      : nameParts[0]
   }
-  
+
   const firstName = nameParts[0]
   const lastName = nameParts[nameParts.length - 1]
-  
+
   // If first name is too long, truncate it
-  const compactFirstName = firstName.length > 10 ? firstName.substring(0, 10) : firstName
-  
+  const compactFirstName =
+    firstName.length > 10 ? firstName.substring(0, 10) : firstName
+
   // Take only first letter of last name
   const lastNameInitial = lastName.charAt(0).toUpperCase()
-  
+
   return `${compactFirstName} ${lastNameInitial}.`
 }
 
 // Helper function to get formatted position title
 function getFormattedPosition(position: string): string {
   if (!position) return 'Belirtilmemiş'
-  
+
   // Simply return the position as-is, just formatted nicely
   return formatTurkishText(position)
 }
@@ -1319,12 +1322,16 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                   .map((member) => {
                     const compactName = formatCompactName(member.name)
                     const positionTitle = getFormattedPosition(member.position)
-                    const department = formatTurkishText(member.department || 'Genel')
-                    
+                    const department = formatTurkishText(
+                      member.department || 'Genel'
+                    )
+
                     return `
                     <div class="team-member-card">
                         <div class="member-avatar">
-                            <span class="member-initial">${member.name.charAt(0).toUpperCase()}</span>
+                            <span class="member-initial">${member.name
+                              .charAt(0)
+                              .toUpperCase()}</span>
                         </div>
                         <div class="member-info">
                             <div class="member-name">${compactName}</div>
@@ -1348,52 +1355,231 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
             <div class="timeline-overview">
                 <div class="timeline-card start-date">
                     <span class="timeline-icon">🚀</span>
-                    <div class="timeline-value">${data.project.startDate ? 
-                        new Date(data.project.startDate).toLocaleDateString('tr-TR', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                        }) : 'Belirtilmemiş'}</div>
+                    <div class="timeline-value">${
+                      data.project.startDate
+                        ? new Date(data.project.startDate).toLocaleDateString(
+                            'tr-TR',
+                            {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            }
+                          )
+                        : 'Belirtilmemiş'
+                    }</div>
                     <div class="timeline-label">Başlangıç Tarihi</div>
                 </div>
                 
                 <div class="timeline-card estimated-date">
                     <span class="timeline-icon">📅</span>
-                    <div class="timeline-value">${data.project.endDate ? 
-                        new Date(data.project.endDate).toLocaleDateString('tr-TR', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                        }) : 'Hesaplanıyor...'}</div>
+                    <div class="timeline-value">${
+                      data.project.endDate
+                        ? new Date(data.project.endDate).toLocaleDateString(
+                            'tr-TR',
+                            {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            }
+                          )
+                        : 'Hesaplanıyor...'
+                    }</div>
                     <div class="timeline-label">Tahmini Bitiş</div>
                 </div>
                 
                 <div class="timeline-card remaining-days">
                     <span class="timeline-icon">⏰</span>
-                    <div class="timeline-value">${data.project.endDate ? 
-                        Math.ceil((new Date(data.project.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : '---'}</div>
+                    <div class="timeline-value">${
+                      data.project.endDate
+                        ? Math.ceil(
+                            (new Date(data.project.endDate).getTime() -
+                              new Date().getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          )
+                        : '---'
+                    }</div>
                     <div class="timeline-label">Kalan Gün</div>
                 </div>
                 
                 <div class="timeline-card critical-path">
                     <span class="timeline-icon">🔴</span>
-                    <div class="timeline-value">${data.tasks.filter(t => t.priority === 'HIGH' || t.priority === 'URGENT').length}</div>
+                    <div class="timeline-value">${
+                      data.tasks.filter(
+                        (t) => t.priority === 'HIGH' || t.priority === 'URGENT'
+                      ).length
+                    }</div>
                     <div class="timeline-label">Kritik Görev</div>
                 </div>
+            </div>
+            
+            <!-- ===== BİTİŞ TARİHİ ANALİZİ ===== -->
+            <div class="date-analysis-section" style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 15px; border: 2px solid #cbd5e1;">
+                <h3 style="color: #1e293b; margin-bottom: 20px; font-size: 20px; font-weight: 700;">📊 Bitiş Tarihi Analizi</h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                    <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">📅 Planlanan Bitiş Tarihi</div>
+                        <div style="font-size: 18px; font-weight: 700;">${
+                          data.project.endDate
+                            ? new Date(data.project.endDate).toLocaleDateString(
+                                'tr-TR',
+                                {
+                                  day: 'numeric',
+                                  month: 'long',
+                                  year: 'numeric',
+                                }
+                              )
+                            : 'Belirtilmemiş'
+                        }</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">İlk belirlenen hedef</div>
+                    </div>
+                    
+                    <div style="background: linear-gradient(135deg, ${(() => {
+                      if (!data.project.endDate)
+                        return '#6b7280 0%, #4b5563 100%'
+                      const remaining = Math.ceil(
+                        (new Date(data.project.endDate).getTime() -
+                          new Date().getTime()) /
+                          (1000 * 60 * 60 * 24)
+                      )
+                      const isDelayed = remaining < 0
+                      const isWarning = remaining >= 0 && remaining <= 30
+                      if (isDelayed) return '#dc2626 0%, #991b1b 100%'
+                      if (isWarning) return '#f59e0b 0%, #d97706 100%'
+                      return '#10b981 0%, #059669 100%'
+                    })()} ); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">⏱️ Güncel Durum</div>
+                        <div style="font-size: 18px; font-weight: 700;">${(() => {
+                          if (!data.project.endDate) return 'Hesaplanamaz'
+                          const remaining = Math.ceil(
+                            (new Date(data.project.endDate).getTime() -
+                              new Date().getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          )
+                          if (remaining < 0)
+                            return `${Math.abs(remaining)} gün gecikmiş`
+                          if (remaining === 0) return 'Bugün bitiyor'
+                          return `${remaining} gün kaldı`
+                        })()}</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Mevcut duruma göre</div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 24px; font-weight: 700; color: #059669;">${completionRate.toFixed(
+                          0
+                        )}%</div>
+                        <div style="font-size: 12px; color: #64748b;">Tamamlanma Oranı</div>
+                    </div>
+                    
+                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 24px; font-weight: 700; color: #dc2626;">${
+                          data.tasks.filter(
+                            (t) =>
+                              t.priority === 'HIGH' || t.priority === 'URGENT'
+                          ).length
+                        }</div>
+                        <div style="font-size: 12px; color: #64748b;">Kritik Görev</div>
+                    </div>
+                    
+                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 24px; font-weight: 700; color: #3b82f6;">${inProgressTasks}</div>
+                        <div style="font-size: 12px; color: #64748b;">Devam Eden</div>
+                    </div>
+                </div>
+                
+                ${(() => {
+                  if (!data.project.endDate) return ''
+                  const remaining = Math.ceil(
+                    (new Date(data.project.endDate).getTime() -
+                      new Date().getTime()) /
+                      (1000 * 60 * 60 * 24)
+                  )
+                  const isDelayed = remaining < 0
+                  const isWarning = remaining >= 0 && remaining <= 30
+
+                  if (isDelayed) {
+                    return `
+                        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #f87171; border-radius: 8px;">
+                            <div style="color: #dc2626; font-weight: 600; margin-bottom: 8px;">⚠️ Gecikme Uyarısı</div>
+                            <ul style="color: #7f1d1d; font-size: 14px; margin: 0; padding-left: 20px;">
+                                <li>Proje ${Math.abs(
+                                  remaining
+                                )} gün gecikmiş durumda</li>
+                                <li>Kritik görevlere öncelik verilmeli</li>
+                                <li>Kaynak tahsisi gözden geçirilmeli</li>
+                            </ul>
+                        </div>`
+                  } else if (isWarning) {
+                    return `
+                        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%); border: 1px solid #f59e0b; border-radius: 8px;">
+                            <div style="color: #d97706; font-weight: 600; margin-bottom: 8px;">⚡ Dikkat Gerekli</div>
+                            <ul style="color: #92400e; font-size: 14px; margin: 0; padding-left: 20px;">
+                                <li>Bitiş tarihi yaklaşıyor (${remaining} gün)</li>
+                                <li>İlerleme takibi artırılmalı</li>
+                                <li>Risk faktörleri değerlendirilmeli</li>
+                            </ul>
+                        </div>`
+                  } else {
+                    return `
+                        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 1px solid #10b981; border-radius: 8px;">
+                            <div style="color: #059669; font-weight: 600; margin-bottom: 8px;">✅ Proje Yolunda</div>
+                            <ul style="color: #065f46; font-size: 14px; margin: 0; padding-left: 20px;">
+                                <li>Proje planlandığı gibi ilerliyor</li>
+                                <li>Bitiş tarihine uygun tempo</li>
+                                <li>Mevcut performans seviyesi iyi</li>
+                            </ul>
+                        </div>`
+                  }
+                })()}
             </div>
             
             <div class="project-phases">
                 <h3>Proje Fazları ve Tahmini Süreler</h3>
                 <div class="phases-timeline">
                     ${(() => {
-                        const phases = [
-                            { name: 'Planlama', percentage: 20, status: completionRate > 20 ? 'completed' : 'current' },
-                            { name: 'Geliştirme', percentage: 60, status: completionRate > 60 ? 'completed' : completionRate > 20 ? 'current' : 'pending' },
-                            { name: 'Test', percentage: 85, status: completionRate > 85 ? 'completed' : completionRate > 60 ? 'current' : 'pending' },
-                            { name: 'Teslimat', percentage: 100, status: completionRate === 100 ? 'completed' : completionRate > 85 ? 'current' : 'pending' }
-                        ];
-                        
-                        return phases.map(phase => `
+                      const phases = [
+                        {
+                          name: 'Planlama',
+                          percentage: 20,
+                          status: completionRate > 20 ? 'completed' : 'current',
+                        },
+                        {
+                          name: 'Geliştirme',
+                          percentage: 60,
+                          status:
+                            completionRate > 60
+                              ? 'completed'
+                              : completionRate > 20
+                              ? 'current'
+                              : 'pending',
+                        },
+                        {
+                          name: 'Test',
+                          percentage: 85,
+                          status:
+                            completionRate > 85
+                              ? 'completed'
+                              : completionRate > 60
+                              ? 'current'
+                              : 'pending',
+                        },
+                        {
+                          name: 'Teslimat',
+                          percentage: 100,
+                          status:
+                            completionRate === 100
+                              ? 'completed'
+                              : completionRate > 85
+                              ? 'current'
+                              : 'pending',
+                        },
+                      ]
+
+                      return phases
+                        .map(
+                          (phase) => `
                             <div class="phase-item ${phase.status}">
                                 <div class="phase-indicator"></div>
                                 <div class="phase-content">
@@ -1401,7 +1587,9 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                                     <div class="phase-progress">${phase.percentage}%</div>
                                 </div>
                             </div>
-                        `).join('');
+                        `
+                        )
+                        .join('')
                     })()}
                 </div>
             </div>
@@ -1530,7 +1718,7 @@ function generateExecutiveHTMLReport(data: ProjectReportData): string {
                         <div class="task-assignees">${
                           task.assignedUsers && task.assignedUsers.length > 0
                             ? task.assignedUsers
-                                .map(au => formatTurkishText(au.user.name))
+                                .map((au) => formatTurkishText(au.user.name))
                                 .join(', ')
                             : task.assignedUser
                             ? formatTurkishText(task.assignedUser.name)
@@ -1584,7 +1772,12 @@ async function buildReportData(
             assignedUsers: {
               include: {
                 user: {
-                  select: { id: true, name: true, department: true, position: true },
+                  select: {
+                    id: true,
+                    name: true,
+                    department: true,
+                    position: true,
+                  },
                 },
               },
             },
@@ -1593,7 +1786,12 @@ async function buildReportData(
         members: {
           include: {
             user: {
-              select: { id: true, name: true, department: true, position: true },
+              select: {
+                id: true,
+                name: true,
+                department: true,
+                position: true,
+              },
             },
           },
         },
