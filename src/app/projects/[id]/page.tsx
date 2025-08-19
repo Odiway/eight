@@ -34,7 +34,7 @@ import AdvancedGanttChart from '@/components/AdvancedGanttChart'
 import NotificationCenter from '@/components/NotificationCenter'
 import CriticalPathAnalysis from '@/components/CriticalPathAnalysis'
 import NotificationSystem from '@/components/NotificationSystem'
-import ProjectDatesManager from '@/components/ProjectDatesManager'
+import ProjectDatesManager from '@/components/ProjectDatesManagerNew'
 import '@/styles/kanban-board.css'
 
 interface ExtendedProject extends Project {
@@ -1266,18 +1266,16 @@ export default function ProjectDetailsPage() {
         <div className='mb-6'>
           <ProjectDatesManager
             projectId={projectId}
-            originalStartDate={new Date(project.startDate || Date.now())}
-            originalEndDate={new Date(project.endDate || Date.now())}
+            projectStatus={project.status}
             tasks={project.tasks.map((task) => ({
               id: task.id,
-              name: task.title,
-              startDate: new Date(task.startDate || Date.now()),
-              endDate: new Date(task.endDate || Date.now()),
-              duration: task.estimatedHours || 8,
+              title: task.title,
+              startDate: task.startDate,
+              endDate: task.endDate,
+              estimatedHours: task.estimatedHours,
               status: task.status,
-              dependencies: [], // Add dependencies logic if available
+              completedAt: task.completedAt
             }))}
-            className='w-full'
           />
         </div>
 

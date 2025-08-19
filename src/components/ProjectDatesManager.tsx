@@ -7,7 +7,10 @@ import {
   AlertTriangle,
   TrendingUp,
   Target,
+  CalendarCheck,
+  CalendarX,
 } from 'lucide-react'
+import { useProjectDates } from '@/hooks/useProjectDates'
 
 interface Task {
   id: string
@@ -25,16 +28,21 @@ interface ProjectDatesProps {
   originalEndDate: Date
   tasks: Task[]
   className?: string
+  // Add these new props to handle existing project delay data
+  existingDelayDays?: number
+  projectStatus?: string
 }
 
 interface DateAnalysis {
-  originalEndDate: Date
-  calculatedEndDate: Date
-  delayDays: number
+  plannedStartDate: Date | null
+  plannedEndDate: Date | null
+  actualStartDate: Date | null
+  actualEndDate: Date | null
   isDelayed: boolean
-  criticalPath: string[]
+  delayDays: number
   completionPercentage: number
-  estimatedActualEndDate: Date
+  criticalPath: string[]
+  status: 'early' | 'on-time' | 'delayed' | 'completed'
 }
 
 export default function ProjectDatesManager({
@@ -43,104 +51,38 @@ export default function ProjectDatesManager({
   originalEndDate,
   tasks,
   className = '',
+  existingDelayDays = 0,
+  projectStatus = 'IN_PROGRESS',
 }: ProjectDatesProps) {
-  const [dateAnalysis, setDateAnalysis] = useState<DateAnalysis | null>(null)
-  const [loading, setLoading] = useState(false)
+  // Use the custom hook for date calculations
+  const dateAnalysis = useProjectDates({
+    projectId,
+    tasks: tasks.map(task => ({
+      id: task.id,
+      title: task.name,
+      status: task.status,
+      startDate: task.startDate,
+      endDate: task.endDate,
+      estimatedHours: task.duration,
+    })),
+    projectStatus,
+  })
 
-  // Kritik yolu hesapla
-  const calculateCriticalPath = (tasks: Task[]): string[] => {
-    // Basitleştirilmiş kritik yol hesaplaması
-    const taskMap = new Map(tasks.map((task) => [task.id, task]))
-    const visited = new Set<string>()
-    const criticalPath: string[] = []
-
-    // En uzun süren görevleri bul
-    const longestTasks = tasks
-      .filter((task) => task.status !== 'completed')
-      .sort((a, b) => b.duration - a.duration)
-      .slice(0, Math.ceil(tasks.length * 0.3)) // En uzun %30
-
-    longestTasks.forEach((task) => {
-      if (!visited.has(task.id)) {
-        criticalPath.push(task.id)
-        visited.add(task.id)
-      }
-    })
-
-    return criticalPath
-  }
-
-  // Proje bitiş tarihini hesapla
-  const analyzeProjectDates = () => {
-    setLoading(true)
-
-    try {
-      const now = new Date()
-      const completedTasks = tasks.filter((task) => task.status === 'completed')
-      const remainingTasks = tasks.filter((task) => task.status !== 'completed')
-
-      // Tamamlanma yüzdesi
-      const completionPercentage =
-        tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0
-
-      // Kritik yol
-      const criticalPath = calculateCriticalPath(tasks)
-
-      // Hesaplanan bitiş tarihi (kalan görevlerin toplam süresi)
-      const remainingDuration = remainingTasks.reduce(
-        (sum, task) => sum + task.duration,
-        0
-      )
-      const calculatedEndDate = new Date(now)
-      calculatedEndDate.setDate(calculatedEndDate.getDate() + remainingDuration)
-
-      // Gecikmeli görevleri dikkate al
-      let maxTaskEndDate = now
-      remainingTasks.forEach((task) => {
-        const taskEndDate = new Date(task.endDate)
-        if (taskEndDate > maxTaskEndDate) {
-          maxTaskEndDate = taskEndDate
-        }
-      })
-
-      // Gerçek tahmini bitiş tarihi
-      const estimatedActualEndDate =
-        maxTaskEndDate > calculatedEndDate ? maxTaskEndDate : calculatedEndDate
-
-      // Gecikme hesaplama
-      const delayDays = Math.ceil(
-        (estimatedActualEndDate.getTime() - originalEndDate.getTime()) /
-          (1000 * 60 * 60 * 24)
-      )
-
-      const analysis: DateAnalysis = {
-        originalEndDate,
-        calculatedEndDate,
-        delayDays: Math.max(0, delayDays),
-        isDelayed: delayDays > 0,
-        criticalPath,
-        completionPercentage,
-        estimatedActualEndDate,
-      }
-
-      setDateAnalysis(analysis)
-    } catch (error) {
-      console.error('Tarih analizi hatası:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (tasks.length > 0) {
-      analyzeProjectDates()
-    }
-  }, [tasks, originalEndDate])
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false)
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString('tr-TR', {
       day: '2-digit',
       month: '2-digit',
+      year: 'numeric',
+    })
+  }
+
+  const formatDateWithDay = (date: Date): string => {
+    return date.toLocaleDateString('tr-TR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
       year: 'numeric',
     })
   }
@@ -152,7 +94,11 @@ export default function ProjectDatesManager({
     return 'text-red-600 bg-red-50 border-red-200'
   }
 
-  if (loading) {
+  const getDelayIcon = (isDelayed: boolean) => {
+    return isDelayed ? CalendarX : CalendarCheck
+  }
+
+  if (!dateAnalysis) {
     return (
       <div
         className={`bg-white rounded-lg border border-gray-200 p-4 ${className}`}
@@ -164,10 +110,6 @@ export default function ProjectDatesManager({
         </div>
       </div>
     )
-  }
-
-  if (!dateAnalysis) {
-    return null
   }
 
   return (
@@ -197,7 +139,7 @@ export default function ProjectDatesManager({
           </div>
           <div className='text-right'>
             <p className='font-bold text-blue-900'>
-              {formatDate(dateAnalysis.originalEndDate)}
+              {formatDate(dateAnalysis.plannedEndDate || new Date())}
             </p>
             <p className='text-xs text-blue-600'>Sabit</p>
           </div>
@@ -205,29 +147,38 @@ export default function ProjectDatesManager({
 
         {/* Güncel Tahmini Bitiş Tarihi */}
         <div
-          className={`flex items-center justify-between p-3 border rounded-lg ${getStatusColor(
+          className={`flex items-center justify-between p-4 border rounded-lg ${getStatusColor(
             dateAnalysis.isDelayed,
             dateAnalysis.delayDays
           )}`}
         >
           <div className='flex items-center gap-3'>
-            <Clock className='w-5 h-5' />
+            <Clock className='w-6 h-6' />
             <div>
-              <h4 className='font-medium'>Güncel Tahmini Bitiş</h4>
+              <h4 className='font-semibold text-lg'>Güncel Tahmini Bitiş</h4>
               <p className='text-sm opacity-80'>
-                Mevcut duruma göre hesaplanan
+                Mevcut duruma göre hesaplanan dinamik tarih
               </p>
             </div>
           </div>
           <div className='text-right'>
-            <p className='font-bold'>
-              {formatDate(dateAnalysis.estimatedActualEndDate)}
+            <p className='font-bold text-xl'>
+              {formatDate(dateAnalysis.actualEndDate || new Date())}
+            </p>
+            <p className='text-sm opacity-75 mb-1'>
+              {formatDateWithDay(dateAnalysis.actualEndDate || new Date())}
             </p>
             {dateAnalysis.isDelayed && (
-              <p className='text-xs'>
-                <AlertTriangle className='w-3 h-3 inline mr-1' />
-                {dateAnalysis.delayDays} gün gecikme
-              </p>
+              <div className='flex items-center gap-1 text-sm font-medium'>
+                <AlertTriangle className='w-4 h-4' />
+                +{dateAnalysis.delayDays} gün gecikme
+              </div>
+            )}
+            {!dateAnalysis.isDelayed && (
+              <div className='flex items-center gap-1 text-sm font-medium'>
+                <CalendarCheck className='w-4 h-4' />
+                Zamanında
+              </div>
             )}
           </div>
         </div>
@@ -284,24 +235,70 @@ export default function ProjectDatesManager({
           </div>
         )}
 
-        {/* Özet İstatistikler */}
-        <div className='grid grid-cols-2 gap-3 pt-3 border-t border-gray-200'>
-          <div className='text-center'>
-            <p className='text-xs text-gray-500'>Kalan Süre</p>
+        {/* Özet İstatistikler ve Takvim Entegrasyonu */}
+        <div className='grid grid-cols-2 gap-3 pt-4 border-t border-gray-200'>
+          <div className='text-center p-3 bg-gray-50 rounded-lg'>
+            <p className='text-xs text-gray-500 mb-1'>Kalan Süre</p>
             <p className='font-bold text-gray-900'>
-              {Math.ceil(
-                (dateAnalysis.estimatedActualEndDate.getTime() -
+              {Math.max(0, Math.ceil(
+                ((dateAnalysis.actualEndDate || new Date()).getTime() -
                   new Date().getTime()) /
                   (1000 * 60 * 60 * 24)
-              )}{' '}
+              ))}{' '}
               gün
             </p>
           </div>
-          <div className='text-center'>
-            <p className='text-xs text-gray-500'>Kritik Görevler</p>
+          <div className='text-center p-3 bg-gray-50 rounded-lg'>
+            <p className='text-xs text-gray-500 mb-1'>Kritik Görevler</p>
             <p className='font-bold text-gray-900'>
               {dateAnalysis.criticalPath.length}
             </p>
+          </div>
+        </div>
+
+        {/* Takvim Entegrasyonu Butonu */}
+        <div className='mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <Calendar className='w-5 h-5 text-blue-600' />
+              <div>
+                <h5 className='font-medium text-blue-900'>Takvim Entegrasyonu</h5>
+                <p className='text-xs text-blue-700'>
+                  Dinamik tarihler takvimde otomatik güncellenir
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                // Emit custom event for calendar integration
+                window.dispatchEvent(new CustomEvent('projectDatesUpdated', {
+                  detail: {
+                    projectId,
+                    plannedEndDate: dateAnalysis.plannedEndDate,
+                    dynamicEndDate: dateAnalysis.actualEndDate,
+                    delayDays: dateAnalysis.delayDays,
+                    isDelayed: dateAnalysis.isDelayed,
+                    status: dateAnalysis.status
+                  }
+                }))
+                
+                // Show brief feedback
+                const button = document.activeElement as HTMLButtonElement
+                if (button) {
+                  const originalText = button.textContent
+                  button.textContent = '✓ Güncellendi'
+                  button.disabled = true
+                  setTimeout(() => {
+                    button.textContent = originalText
+                    button.disabled = false
+                  }, 2000)
+                }
+              }}
+              className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2'
+            >
+              <CalendarCheck className='w-4 h-4' />
+              Takvimi Güncelle
+            </button>
           </div>
         </div>
       </div>

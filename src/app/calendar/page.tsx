@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
 import CalendarClient from '@/components/CalendarClient'
+import CalendarIntegration from '@/components/CalendarIntegration'
 
 // Force dynamic rendering to prevent build-time database access
 export const dynamic = 'force-dynamic'
@@ -51,11 +52,20 @@ export default async function CalendarPage({
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'>
       <Navbar />
-      <CalendarClient
-        tasks={tasks}
-        projects={projects}
-        selectedProjectId={resolvedSearchParams.project}
-      />
+      
+      <div className='max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8'>
+        {/* Dynamic Calendar Integration */}
+        <div className='mb-6'>
+          <CalendarIntegration />
+        </div>
+
+        {/* Main Calendar */}
+        <CalendarClient
+          tasks={tasks}
+          projects={projects}
+          selectedProjectId={resolvedSearchParams.project}
+        />
+      </div>
     </div>
   )
 }
