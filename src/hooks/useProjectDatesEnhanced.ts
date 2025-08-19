@@ -154,7 +154,7 @@ export function useProjectDates({
           const projectDuration = plannedEndDate.getTime() - (plannedStartDate?.getTime() || plannedEndDate.getTime() - 30 * 24 * 60 * 60 * 1000)
           const estimatedTotalDuration = (projectDuration / completionPercentage) * 100
           const estimatedEndDate = new Date((actualStartDate?.getTime() || plannedStartDate?.getTime() || now.getTime()) + estimatedTotalDuration)
-          progressBasedDelay = Math.max(0, Math.ceil((estimatedEndDate.getTime() - plannedEndDate.getTime()) / (1000 * 60 * 60 * 24)))
+          progressBasedDelay = Math.max(0, Math.ceil((estimatedEndDate.getTime() - plannedEndDate.getTime()) / (1000 * 60 * 60 * 1000)))
         }
 
         // Factor 4: Individual overdue tasks
@@ -203,16 +203,6 @@ export function useProjectDates({
           dominantFactor,
           overdueTaskDetails: overdueTaskDetails.sort((a, b) => b.daysOverdue - a.daysOverdue)
         }
-
-        console.log(`🔍 DELAY ANALYSIS FOR PROJECT ${projectId}:`)
-        console.log(`📊 Task-based delay: ${taskBasedDelay} days`)
-        console.log(`⏰ Schedule-based delay: ${scheduleBasedDelay} days`)
-        console.log(`📈 Progress-based delay: ${progressBasedDelay} days`)
-        console.log(`⚠️ Overdue tasks delay: ${overdueTasksDelay} days`)
-        console.log(`🎯 MAXIMUM DELAY (Used): ${delayDays} days`)
-        console.log(`🔥 Dominant factor: ${dominantFactor}`)
-        console.log(`📅 Planned End: ${plannedEndDate?.toLocaleDateString('tr-TR')}`)
-        console.log(`📅 Actual End: ${actualEndDate?.toLocaleDateString('tr-TR')}`)
       }
 
       // Determine status

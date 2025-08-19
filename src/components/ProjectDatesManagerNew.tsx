@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Calendar, Clock, AlertTriangle, CheckCircle, TrendingUp, TrendingDown } from 'lucide-react'
-import { useProjectDates } from '@/hooks/useProjectDates'
+import { useProjectDates } from '@/hooks/useProjectDatesEnhanced'
 
 interface Task {
   id: string
@@ -226,16 +226,90 @@ export default function ProjectDatesManager({
         </button>
         
         {showDetails && (
-          <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <h5 className="font-medium text-yellow-800 mb-2">Analiz Detayları:</h5>
-            <div className="text-sm text-yellow-700 space-y-1">
-              <p>• Tarihler görev başlangıç ve bitiş tarihlerinden dinamik olarak hesaplanır</p>
-              <p>• Gecikme: Planlanan bitiş tarihinden gerçek/tahmini bitiş tarihine kadar geçen gün</p>
-              <p>• Tamamlanan görevlerin gerçek tarihleri, kalan görevlerin planlanan tarihleri kullanılır</p>
-              {analysis.criticalPath.length > 0 && (
-                <p>• Kritik görevler: {analysis.criticalPath.length} görev gecikmede etkili olabilir</p>
-              )}
+          <div className="mt-4 space-y-4">
+            {/* Basic Analysis */}
+            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <h5 className="font-medium text-yellow-800 mb-2">Analiz Detayları:</h5>
+              <div className="text-sm text-yellow-700 space-y-1">
+                <p>• Tarihler görev başlangıç ve bitiş tarihlerinden dinamik olarak hesaplanır</p>
+                <p>• Gecikme: Planlanan bitiş tarihinden gerçek/tahmini bitiş tarihine kadar geçen gün</p>
+                <p>• Tamamlanan görevlerin gerçek tarihleri, kalan görevlerin planlanan tarihleri kullanılır</p>
+                {analysis.criticalPath.length > 0 && (
+                  <p>• Kritik görevler: {analysis.criticalPath.length} görev gecikmede etkili olabilir</p>
+                )}
+              </div>
             </div>
+
+            {/* Enhanced Delay Breakdown */}
+            {analysis.delayBreakdown && analysis.isDelayed && (
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                <h5 className="font-medium text-red-800 mb-3">🔍 Gecikme Analizi (Gelişmiş)</h5>
+                <div className="space-y-2">
+                  <div className="text-sm text-red-700">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="font-medium">Gecikme Faktörleri:</p>
+                        <ul className="space-y-1 mt-1">
+                          <li>📊 Görev bazlı: {analysis.delayBreakdown.taskBasedDelay} gün</li>
+                          <li>⏰ Zaman bazlı: {analysis.delayBreakdown.scheduleBasedDelay} gün</li>
+                          <li>📈 İlerleme bazlı: {analysis.delayBreakdown.progressBasedDelay} gün</li>
+                          <li>⚠️ Geciken görevler: {analysis.delayBreakdown.overdueTasksDelay} gün</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-medium">Ana Gecikme Sebebi:</p>
+                        <div className="mt-1">
+                          {analysis.delayBreakdown.dominantFactor === 'overdue' && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+                              ⚠️ Geciken Görevler ({analysis.delayDays} gün)
+                            </span>
+                          )}
+                          {analysis.delayBreakdown.dominantFactor === 'schedule' && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                              ⏰ Zaman Aşımı ({analysis.delayDays} gün)
+                            </span>
+                          )}
+                          {analysis.delayBreakdown.dominantFactor === 'progress' && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
+                              📈 Yavaş İlerleme ({analysis.delayDays} gün)
+                            </span>
+                          )}
+                          {analysis.delayBreakdown.dominantFactor === 'tasks' && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                              📊 Görev Planlaması ({analysis.delayDays} gün)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Overdue Tasks Details */}
+                  {analysis.delayBreakdown.overdueTaskDetails.length > 0 && (
+                    <div className="mt-3 p-3 bg-red-100 rounded border">
+                      <p className="font-medium text-red-800 text-sm mb-2">Geciken Görevler:</p>
+                      <div className="space-y-1">
+                        {analysis.delayBreakdown.overdueTaskDetails.slice(0, 3).map((task, index) => (
+                          <div key={task.id} className="text-xs text-red-700">
+                            <span className="font-medium">{task.title}</span> - {task.daysOverdue} gün gecikme
+                          </div>
+                        ))}
+                        {analysis.delayBreakdown.overdueTaskDetails.length > 3 && (
+                          <p className="text-xs text-red-600 italic">
+                            +{analysis.delayBreakdown.overdueTaskDetails.length - 3} görev daha...
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-3 p-2 bg-gray-100 rounded text-xs text-gray-600">
+                    💡 <strong>Sistem Mantığı:</strong> Farklı gecikme faktörlerinin en büyüğü kullanılır. 
+                    Bu, en gerçekçi bitiş tarihini sağlar.
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
