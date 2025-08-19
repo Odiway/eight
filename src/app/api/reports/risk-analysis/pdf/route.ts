@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import jsPDF from 'jspdf'
 import { formatTurkishText } from '@/lib/pdf-utils'
+import { calculateDynamicProjectDates, getDelaySeverity } from '@/lib/dynamic-dates'
 
 const prisma = new PrismaClient()
 
@@ -33,82 +34,102 @@ const mockRiskData = {
 
 async function generateRiskAnalysisPDF() {
   try {
-    // Try to get real data from database
+    // Try to get real data from database with enhanced task details
     const projects = await prisma.project.findMany({
       include: {
-        tasks: true,
+        tasks: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            startDate: true,
+            endDate: true,
+            completedAt: true,
+          },
+        },
       },
     })
 
-    // Calculate risk levels
-    const highRiskProjects = projects.filter((p) => {
-      const overdueTasks =
-        p.tasks?.filter((t: any) => t.status !== 'COMPLETED').length || 0
-      const totalTasks = p.tasks?.length || 0
-      return totalTasks > 0 && overdueTasks / totalTasks > 0.5
+    if (projects.length === 0) {
+      console.log('No projects found, using mock data')
+      return generatePDF(mockRiskData)
+    }
+
+    // Calculate dynamic dates and enhanced risk levels for each project
+    const projectsWithRisk = projects.map(project => {
+      const dynamicDates = calculateDynamicProjectDates(project.tasks, project)
+      const delaySeverity = getDelaySeverity(dynamicDates.delayDays)
+      
+      // Enhanced risk level calculation based on multiple factors
+      let riskLevel = 'Dusuk'
+      if (dynamicDates.status === 'completed') {
+        riskLevel = 'Dusuk'
+      } else if (delaySeverity === 'critical' || dynamicDates.delayDays > 45) {
+        riskLevel = 'Yuksek'
+      } else if (delaySeverity === 'high' || dynamicDates.delayDays > 21) {
+        riskLevel = 'Orta'
+      } else if (dynamicDates.completionPercentage < 30 && dynamicDates.delayDays > 7) {
+        riskLevel = 'Orta'
+      } else if (dynamicDates.delayBreakdown?.overdueTasksDelay && dynamicDates.delayBreakdown.overdueTasksDelay > 14) {
+        riskLevel = 'Yuksek'
+      }
+
+      return {
+        project,
+        name: project.name,
+        riskLevel,
+        completionRate: Math.round(dynamicDates.completionPercentage),
+        delayDays: dynamicDates.delayDays,
+        status: dynamicDates.status,
+        criticalTaskCount: dynamicDates.criticalPath.length,
+        overdueTaskCount: dynamicDates.delayBreakdown?.overdueTaskDetails.length || 0,
+        dominantDelayFactor: dynamicDates.delayBreakdown?.dominantFactor
+      }
     })
 
-    const mediumRiskProjects = projects.filter((p) => {
-      const overdueTasks =
-        p.tasks?.filter((t: any) => t.status !== 'COMPLETED').length || 0
-      const totalTasks = p.tasks?.length || 0
-      return (
-        totalTasks > 0 &&
-        overdueTasks / totalTasks >= 0.25 &&
-        overdueTasks / totalTasks <= 0.5
-      )
-    })
-
-    const lowRiskProjects = projects.filter((p) => {
-      const completedTasks =
-        p.tasks?.filter((t: any) => t.status === 'COMPLETED').length || 0
-      const totalTasks = p.tasks?.length || 0
-      return totalTasks > 0 && completedTasks / totalTasks >= 0.75
-    })
+    // Categorize projects by enhanced risk levels
+    const highRiskProjects = projectsWithRisk.filter(p => p.riskLevel === 'Yuksek')
+    const mediumRiskProjects = projectsWithRisk.filter(p => p.riskLevel === 'Orta')
+    const lowRiskProjects = projectsWithRisk.filter(p => p.riskLevel === 'Dusuk')
 
     const riskData = {
-      highRiskProjects: highRiskProjects.map((p) => ({
-        name: p.name,
-        riskLevel: 'Yuksek',
-        completionRate: Math.round(
-          ((p.tasks?.filter((t: any) => t.status === 'COMPLETED').length || 0) /
-            (p.tasks?.length || 1)) *
-            100
-        ),
-      })),
-      mediumRiskProjects: mediumRiskProjects.map((p) => ({
-        name: p.name,
-        riskLevel: 'Orta',
-        completionRate: Math.round(
-          ((p.tasks?.filter((t: any) => t.status === 'COMPLETED').length || 0) /
-            (p.tasks?.length || 1)) *
-            100
-        ),
-      })),
-      lowRiskProjects: lowRiskProjects.map((p) => ({
-        name: p.name,
-        riskLevel: 'Dusuk',
-        completionRate: Math.round(
-          ((p.tasks?.filter((t: any) => t.status === 'COMPLETED').length || 0) /
-            (p.tasks?.length || 1)) *
-            100
-        ),
-      })),
+      highRiskProjects,
+      mediumRiskProjects,
+      lowRiskProjects,
       riskFactors: [
-        'Tamamlanmamis gorev orani %50 uzeri',
-        'Geciken proje teslim tarihleri',
-        'Atanmamis kritik gorevler',
-        'Kaynak yetersizligi ve darbogazlar',
-        'Ekip iletisim sorunlari',
+        'Gecikmis gorevler ve teslim tarihleri',
+        'Dusuk proje tamamlanma oranlari (%30 altı)',
+        'Kritik oncelikli gorevlerde yogunlasma',
+        'Takim uyesi atama eksiklikleri',
+        'Proje zaman cizelgesi sapmalari (21+ gun)',
+        'Dinamik tarih analizine gore yuksek gecikme'
       ],
       mitigationStrategies: [
-        'Haftalik ilerleme toplantilari ve takip',
-        'Otomatik gorev yeniden atama sistemi',
-        'Erken uyari ve bildirim mekanizmasi',
+        'Dinamik tarih takibi ve erken uyarı sistemleri',
+        'Gecikmis gorevlerin oncelikli tamamlanması',
         'Kaynak tahsisi optimizasyonu',
-        'Risk degerlendirme matrisi kullanimi',
+        'Haftalik ilerleme toplantilari ve takip',  
+        'Otomatik risk degerlendirme matrisi kullanımı',
+        'Gecikme faktorlerinin surekli izlenmesi'
       ],
+      // Enhanced statistics
+      stats: {
+        totalProjects: projects.length,
+        averageCompletionRate: Math.round(projectsWithRisk.reduce((sum, p) => sum + p.completionRate, 0) / projectsWithRisk.length),
+        totalDelayDays: projectsWithRisk.reduce((sum, p) => sum + p.delayDays, 0),
+        criticalTasksTotal: projectsWithRisk.reduce((sum, p) => sum + p.criticalTaskCount, 0)
+      }
     }
+
+    console.log('📊 Enhanced Risk Analysis Generated:', {
+      totalProjects: projects.length,
+      highRisk: highRiskProjects.length,
+      mediumRisk: mediumRiskProjects.length,
+      lowRisk: lowRiskProjects.length,
+      totalDelayDays: riskData.stats.totalDelayDays,
+      avgCompletion: riskData.stats.averageCompletionRate + '%'
+    })
 
     return generatePDF(riskData)
   } catch (error) {
