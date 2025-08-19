@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import jsPDF from 'jspdf'
 import { formatTurkishText } from '@/lib/pdf-utils'
+import { calculateDynamicProjectDates, getStatusText, getDelaySeverity } from '@/lib/dynamic-dates'
 
 const prisma = new PrismaClient()
 
@@ -48,10 +49,20 @@ export async function GET(request: NextRequest) {
 
 async function generateGeneralPDF() {
   try {
-    // Try to get real data from database
+    // Try to get real data from database with enhanced task details
     const projects = await prisma.project.findMany({
       include: {
-        tasks: true,
+        tasks: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            startDate: true,
+            endDate: true,
+            completedAt: true,
+          },
+        },
         members: {
           include: {
             user: true,
@@ -62,12 +73,32 @@ async function generateGeneralPDF() {
 
     const users = await prisma.user.findMany()
 
+    // Calculate dynamic dates for each project
+    const projectsWithDynamicData = projects.map(project => {
+      const dynamicDates = calculateDynamicProjectDates(project.tasks, project)
+      return {
+        name: project.name,
+        status: project.status,
+        taskCount: project.tasks?.length || 0,
+        completionPercentage: dynamicDates.completionPercentage,
+        delayDays: dynamicDates.delayDays,
+        dynamicStatus: dynamicDates.status,
+        isDelayed: dynamicDates.isDelayed,
+        criticalTaskCount: dynamicDates.criticalPath.length,
+        overdueTaskCount: dynamicDates.delayBreakdown?.overdueTaskDetails.length || 0
+      }
+    })
+
+    // Enhanced system-wide statistics
+    const totalDelayDays = projectsWithDynamicData.reduce((sum, p) => sum + p.delayDays, 0)
+    const delayedProjectsCount = projectsWithDynamicData.filter(p => p.isDelayed).length
+    const completedProjectsCount = projectsWithDynamicData.filter(p => p.dynamicStatus === 'completed').length
+    const averageCompletionRate = projectsWithDynamicData.length > 0 
+      ? Math.round(projectsWithDynamicData.reduce((sum, p) => sum + p.completionPercentage, 0) / projectsWithDynamicData.length)
+      : 0
+
     const generalData = {
-      projects: projects.map((p) => ({
-        name: p.name,
-        status: p.status,
-        taskCount: p.tasks?.length || 0,
-      })),
+      projects: projectsWithDynamicData,
       stats: {
         totalProjects: projects.length,
         totalTasks: projects.reduce(
@@ -81,6 +112,12 @@ async function generateGeneralPDF() {
           0
         ),
         totalUsers: users.length,
+        // Enhanced statistics
+        totalDelayDays,
+        delayedProjectsCount,
+        completedProjectsCount,
+        averageCompletionRate,
+        onTimeProjectsCount: projectsWithDynamicData.filter(p => p.dynamicStatus === 'on-time').length
       },
       departments: Object.entries(
         users.reduce((acc: any, user) => {
@@ -96,6 +133,13 @@ async function generateGeneralPDF() {
         }, {})
       ).map(([_, dept]: any) => dept),
     }
+
+    console.log('📊 Enhanced General Report Generated:', {
+      totalProjects: generalData.stats.totalProjects,
+      averageCompletion: generalData.stats.averageCompletionRate + '%',
+      totalDelays: totalDelayDays + ' days',
+      delayedProjects: delayedProjectsCount
+    })
 
     return generatePDF(generalData)
   } catch (error) {
@@ -150,7 +194,36 @@ function generatePDF(data: any) {
     25,
     yPosition
   )
-  yPosition += 20
+  yPosition += 8
+
+  // Enhanced statistics if available
+  if (data.stats.averageCompletionRate !== undefined) {
+    pdf.text(
+      formatTurkishText(`Ortalama Tamamlanma Orani: %${data.stats.averageCompletionRate}`),
+      25,
+      yPosition
+    )
+    yPosition += 8
+    pdf.text(
+      formatTurkishText(`Gecikmis Proje Sayisi: ${data.stats.delayedProjectsCount}`),
+      25,
+      yPosition
+    )
+    yPosition += 8
+    pdf.text(
+      formatTurkishText(`Toplam Gecikme Gun Sayisi: ${data.stats.totalDelayDays}`),
+      25,
+      yPosition
+    )
+    yPosition += 8
+    pdf.text(
+      formatTurkishText(`Zamaninda Proje Sayisi: ${data.stats.onTimeProjectsCount}`),
+      25,
+      yPosition
+    )
+    yPosition += 8
+  }
+  yPosition += 12
 
   // Projects
   pdf.setFontSize(14)
@@ -163,11 +236,14 @@ function generatePDF(data: any) {
       yPosition = 20
     }
     pdf.setFontSize(10)
+    
+    const statusText = getStatusText(project.dynamicStatus || 'on-time')
+    const delayInfo = project.isDelayed ? ` (${project.delayDays} gun gecikme)` : ''
+    const completionInfo = project.completionPercentage ? ` - %${Math.round(project.completionPercentage)} tamamlandi` : ''
+    
     pdf.text(
       formatTurkishText(
-        `${index + 1}. ${project.name} - Durum: ${project.status} - Gorev: ${
-          project.taskCount
-        }`
+        `${index + 1}. ${project.name} - ${statusText}${delayInfo}${completionInfo} - Gorev: ${project.taskCount}`
       ),
       25,
       yPosition

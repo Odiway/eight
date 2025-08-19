@@ -167,11 +167,11 @@ function generatePDF(riskData: any) {
         yPosition = 20
       }
       pdf.setFontSize(10)
+      const delayInfo = project.delayDays ? ` (${project.delayDays} gun gecikme)` : ''
+      const overdueInfo = project.overdueTaskCount ? ` - ${project.overdueTaskCount} geciken gorev` : ''
       pdf.text(
         formatTurkishText(
-          `${index + 1}. ${project.name} - Tamamlanma: %${
-            project.completionRate
-          }`
+          `${index + 1}. ${project.name} - %${project.completionRate}${delayInfo}${overdueInfo}`
         ),
         25,
         yPosition
@@ -201,11 +201,11 @@ function generatePDF(riskData: any) {
         yPosition = 20
       }
       pdf.setFontSize(10)
+      const delayInfo = project.delayDays ? ` (${project.delayDays} gun gecikme)` : ''
+      const overdueInfo = project.overdueTaskCount ? ` - ${project.overdueTaskCount} geciken gorev` : ''
       pdf.text(
         formatTurkishText(
-          `${index + 1}. ${project.name} - Tamamlanma: %${
-            project.completionRate
-          }`
+          `${index + 1}. ${project.name} - %${project.completionRate}${delayInfo}${overdueInfo}`
         ),
         25,
         yPosition
@@ -235,11 +235,10 @@ function generatePDF(riskData: any) {
         yPosition = 20
       }
       pdf.setFontSize(10)
+      const statusInfo = project.status === 'completed' ? ' (Tamamlandi)' : ''
       pdf.text(
         formatTurkishText(
-          `${index + 1}. ${project.name} - Tamamlanma: %${
-            project.completionRate
-          }`
+          `${index + 1}. ${project.name} - %${project.completionRate}${statusInfo}`
         ),
         25,
         yPosition
@@ -320,22 +319,46 @@ function generatePDF(riskData: any) {
     )
     yPosition += 8
     pdf.text(
-      formatTurkishText(`Yuksek Risk Orani: %${highRiskPercentage}`),
+      formatTurkishText(`Yuksek Risk: ${riskData.highRiskProjects.length} proje (%${highRiskPercentage})`),
       25,
       yPosition
     )
     yPosition += 8
     pdf.text(
-      formatTurkishText(`Orta Risk Orani: %${mediumRiskPercentage}`),
+      formatTurkishText(`Orta Risk: ${riskData.mediumRiskProjects.length} proje (%${mediumRiskPercentage})`),
       25,
       yPosition
     )
     yPosition += 8
     pdf.text(
-      formatTurkishText(`Dusuk Risk Orani: %${lowRiskPercentage}`),
+      formatTurkishText(`Dusuk Risk: ${riskData.lowRiskProjects.length} proje (%${lowRiskPercentage})`),
       25,
       yPosition
     )
+    yPosition += 8
+
+    // Enhanced statistics if available
+    if (riskData.stats) {
+      yPosition += 5
+      pdf.text(
+        formatTurkishText(`Ortalama Tamamlanma Orani: %${riskData.stats.averageCompletionRate}`),
+        25,
+        yPosition
+      )
+      yPosition += 8
+      pdf.text(
+        formatTurkishText(`Toplam Gecikme Gun Sayisi: ${riskData.stats.totalDelayDays}`),
+        25,
+        yPosition
+      )
+      yPosition += 8
+      pdf.text(
+        formatTurkishText(`Kritik Gorev Sayisi: ${riskData.stats.criticalTasksTotal}`),
+        25,
+        yPosition
+      )
+      yPosition += 8
+    }
     yPosition += 15
   }
 
