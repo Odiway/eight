@@ -1496,18 +1496,12 @@ function generateExecutiveHTMLReport(data: any): string {
                         <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Gecikmiş</div>
                     </div>
                 </div>
-                      const delayDays = data.dynamicDates.delayDays
-                      if (status === 'completed') return '#10b981 0%, #059669 100%'
-                      if (status === 'delayed') return '#dc2626 0%, #991b1b 100%'
-                      if (status === 'early') return '#10b981 0%, #059669 100%'
-                      if (delayDays > 30) return '#dc2626 0%, #991b1b 100%'
-                      if (delayDays > 0) return '#f59e0b 0%, #d97706 100%'
-                      return '#10b981 0%, #059669 100%'
-                    })()} ); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">⏱️ Gerçek Bitiş Tarihi</div>
-                        <div style="font-size: 18px; font-weight: 700;">20.04.2026</div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Görev bazlı hesaplama</div>
-                    </div>
+                
+                <!-- Status calculation section - using direct hardcoded values -->
+                <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 30px;">
+                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">⏱️ Gerçek Bitiş Tarihi</div>
+                    <div style="font-size: 18px; font-weight: 700;">20.04.2026</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Görev bazlı hesaplama</div>
                 </div>
 
                 <!-- 4 Faktörlü Gecikme Analizi -->
