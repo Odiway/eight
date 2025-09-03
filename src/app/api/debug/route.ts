@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
@@ -11,31 +10,10 @@ export async function GET() {
       VERCEL: !!process.env.VERCEL,
     }
 
-    // Test database connection
-    let dbStatus = 'disconnected'
-    let userCount = 0
-    let sampleUser = null
-    
-    try {
-      userCount = await prisma.user.count()
-      sampleUser = await prisma.user.findFirst({
-        where: { username: 'arda.sonmez' },
-        select: { id: true, username: true, email: true, isActive: true }
-      })
-      dbStatus = 'connected'
-    } catch (dbError) {
-      console.error('Database error:', dbError)
-      dbStatus = `error: ${dbError instanceof Error ? dbError.message : 'unknown'}`
-    }
-
+    // Test basic response first
     return NextResponse.json({
       status: 'ok',
       environment: envStatus,
-      database: {
-        status: dbStatus,
-        userCount,
-        sampleUser
-      },
       timestamp: new Date().toISOString()
     })
 

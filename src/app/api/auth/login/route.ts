@@ -21,6 +21,18 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+
+  // Test database connection
+  try {
+    await prisma.$connect()
+    console.log('Database connection successful')
+  } catch (connectionError) {
+    console.error('Database connection failed:', connectionError)
+    return NextResponse.json(
+      { success: false, message: 'Veritabanı bağlantı hatası' },
+      { status: 500 }
+    )
+  }
   
   try {
     const requestData = await request.json()
@@ -64,13 +76,20 @@ export async function POST(request: NextRequest) {
     // Regular user login
     let user = null
     try {
+      console.log('Attempting to find user:', username)
       user = await prisma.user.findUnique({
         where: { username }
       })
+      console.log('User query result:', user ? 'User found' : 'User not found')
     } catch (dbError) {
-      console.error('Database query error:', dbError)
+      console.error('Database query error details:', {
+        error: dbError instanceof Error ? dbError.message : dbError,
+        stack: dbError instanceof Error ? dbError.stack : undefined,
+        username,
+        DATABASE_URL_exists: !!process.env.DATABASE_URL
+      })
       return NextResponse.json(
-        { success: false, message: 'Veritabanı bağlantı hatası' },
+        { success: false, message: 'Veritabanı bağlantı hatası', debug: process.env.NODE_ENV === 'development' ? dbError : undefined },
         { status: 500 }
       )
     }

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Production Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Temsa Production Login Test</h1>
+    
+    <div id="results"></div>
+    
+    <button onclick="testDebugEndpoint()">Test Debug Endpoint</button>
+    <button onclick="testAdminLogin()">Test Admin Login</button>
+    <button onclick="testUserLogin()">Test User Login (arda.sonmez)</button>
+    <button onclick="testInvalidLogin()">Test Invalid Login</button>
+    
+    <script>
+        const API_BASE = 'https://temsa-one.vercel.app/api';
+        
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<h3>${title}</h3><pre>${JSON.stringify(content, null, 2)}</pre>`;
+            resultsDiv.appendChild(div);
+        }
+        
+        async function testDebugEndpoint() {
+            try {
+                const response = await fetch(`${API_BASE}/debug`);
+                const result = await response.json();
+                addResult('Debug Endpoint Test', { status: response.status, data: result }, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('Debug Endpoint Test', { error: error.message }, 'error');
+            }
+        }
+        
+        async function testAdminLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'Securepassword1',
+                        loginType: 'admin'
+                    })
+                });
+                const result = await response.json();
+                addResult('Admin Login Test', { status: response.status, data: result }, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('Admin Login Test', { error: error.message }, 'error');
+            }
+        }
+        
+        async function testUserLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'arda.sonmez',
+                        password: 'F2k8W5j3',
+                        loginType: 'user'
+                    })
+                });
+                const result = await response.json();
+                addResult('User Login Test (arda.sonmez)', { status: response.status, data: result }, response.ok ? 'success' : 'error');
+            } catch (error) {
+                addResult('User Login Test (arda.sonmez)', { error: error.message }, 'error');
+            }
+        }
+        
+        async function testInvalidLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'invalid',
+                        password: 'invalid',
+                        loginType: 'user'
+                    })
+                });
+                const result = await response.json();
+                addResult('Invalid Login Test', { status: response.status, data: result }, 'info');
+            } catch (error) {
+                addResult('Invalid Login Test', { error: error.message }, 'error');
+            }
+        }
+        
+        // Auto-run debug test on load
+        window.onload = () => testDebugEndpoint();
+    </script>
+</body>
+</html>
