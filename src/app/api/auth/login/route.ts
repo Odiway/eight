@@ -6,8 +6,27 @@ import { prisma } from '@/lib/prisma'
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production'
 
 export async function POST(request: NextRequest) {
+  let username = ''
+  let loginType = ''
+  
+  // Check for required environment variables
+  if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET environment variable is not set')
+  }
+  
+  if (!process.env.DATABASE_URL) {
+    console.error('DATABASE_URL environment variable is not set')
+    return NextResponse.json(
+      { success: false, message: 'Sunucu yapılandırma hatası' },
+      { status: 500 }
+    )
+  }
+  
   try {
-    const { username, password, loginType } = await request.json()
+    const requestData = await request.json()
+    username = requestData.username
+    const password = requestData.password
+    loginType = requestData.loginType
 
     // Admin login
     if (loginType === 'admin') {
@@ -43,9 +62,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Regular user login
-    const user = await prisma.user.findUnique({
-      where: { username }
-    })
+    let user = null
+    try {
+      user = await prisma.user.findUnique({
+        where: { username }
+      })
+    } catch (dbError) {
+      console.error('Database query error:', dbError)
+      return NextResponse.json(
+        { success: false, message: 'Veritabanı bağlantı hatası' },
+        { status: 500 }
+      )
+    }
 
     if (!user || !user.isActive) {
       return NextResponse.json(
@@ -96,9 +124,26 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('Login error details:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      username,
+      loginType,
+      timestamp: new Date().toISOString(),
+      env: {
+        NODE_ENV: process.env.NODE_ENV,
+        DATABASE_URL_EXISTS: !!process.env.DATABASE_URL,
+        JWT_SECRET_EXISTS: !!process.env.JWT_SECRET
+      }
+    })
     return NextResponse.json(
-      { success: false, message: 'Sunucu hatası' },
+      { 
+        success: false, 
+        message: 'Sunucu hatası',
+        debug: process.env.NODE_ENV === 'development' ? {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        } : undefined
+      },
       { status: 500 }
     )
   }
