@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
 import ProjectsList from '@/components/ProjectsList'
+import AdminHeader from '@/components/AdminHeader'
 import { Plus, Briefcase, Users, Target, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
@@ -51,6 +52,9 @@ export default async function ProjectsPage() {
 
       <div className='max-w-7xl mx-auto py-8 sm:px-6 lg:px-8'>
         <div className='px-4 py-6 sm:px-0'>
+          {/* Admin Header */}
+          <AdminHeader />
+
           {/* Enhanced Header */}
           <div className='flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 space-y-4 lg:space-y-0'>
             <div className='space-y-2'>

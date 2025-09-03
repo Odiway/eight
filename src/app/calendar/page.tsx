@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
 import CalendarClient from '@/components/CalendarClient'
 import CalendarIntegration from '@/components/CalendarIntegration'
+import UserDashboard from '@/components/UserDashboard'
 
 // Force dynamic rendering to prevent build-time database access
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,9 @@ export default async function CalendarPage({
       <Navbar />
       
       <div className='max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8'>
+        {/* User Dashboard for regular users */}
+        <UserDashboard />
+
         {/* Dynamic Calendar Integration */}
         <div className='mb-6'>
           <CalendarIntegration />

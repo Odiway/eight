@@ -21,63 +21,74 @@ import {
   Lightbulb,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 
-const navigation = [
+const allNavigation = [
   {
     name: 'Takvim',
     href: '/calendar',
     icon: Calendar,
     description: 'Proje takvimleri ve görevler',
+    requiresAdmin: false,
   },
   {
     name: 'Projeler',
     href: '/projects',
     icon: FolderKanban,
     description: 'Proje yönetimi ve takibi',
+    requiresAdmin: true,
   },
   {
     name: 'Stratejik Alan',
     href: '/playground',
     icon: Lightbulb,
     description: 'Kritik yol analizi ve stratejik planlama',
+    requiresAdmin: true,
   },
   {
     name: 'Takım',
     href: '/team',
     icon: Users,
     description: 'Ekip üyeleri ve roller',
+    requiresAdmin: true,
   },
   {
     name: 'İş Gücü',
     href: '/workload',
     icon: BarChart3,
     description: 'İş yükü analizi',
+    requiresAdmin: true,
   },
   {
     name: 'Raporlar',
     href: '/reports',
     icon: FileText,
     description: 'Detaylı raporlar ve analitik',
+    requiresAdmin: true,
   },
   {
     name: 'Bildirimler',
     href: '/notifications',
     icon: Bell,
     description: 'Sistem bildirimleri',
+    requiresAdmin: true,
   },
 ]
 
 const userMenuItems = [
   { name: 'Profil', icon: User, href: '/profile' },
   { name: 'Ayarlar', icon: Settings, href: '/settings' },
-  { name: 'Çıkış Yap', icon: LogOut, href: '/logout' },
 ]
 
 export default function Navbar() {
   const pathname = usePathname()
+  const { user, logout, isAdmin } = useAuth()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+
+  // Filter navigation based on user role
+  const navigation = allNavigation.filter(item => !item.requiresAdmin || isAdmin)
 
   // Handle scroll effect
   useEffect(() => {
@@ -259,8 +270,16 @@ export default function Navbar() {
                       scrolled ? 'text-gray-900' : 'text-white'
                     )}
                   >
-                    Temsada Admin
+                    {user?.name || 'Kullanıcı'}
                   </p>
+                  {isAdmin && (
+                    <p className={cn(
+                      'text-xs truncate',
+                      scrolled ? 'text-gray-600' : 'text-white/70'
+                    )}>
+                      Yönetici
+                    </p>
+                  )}
                 </div>
                 <ChevronDown
                   className={cn(
@@ -276,9 +295,12 @@ export default function Navbar() {
                 <div className='absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 animate-in slide-in-from-top-2 duration-200'>
                   <div className='px-4 py-3 border-b border-gray-100'>
                     <p className='text-sm font-medium text-gray-900'>
-                      Temsada Admin
+                      {user?.name || 'Kullanıcı'}
                     </p>
-                    <p className='text-xs text-gray-500'>admin@temsada.com</p>
+                    <p className='text-xs text-gray-500'>{user?.email}</p>
+                    {user?.department && (
+                      <p className='text-xs text-gray-500 mt-1'>{user.department}</p>
+                    )}
                   </div>
                   {userMenuItems.map((item) => {
                     const Icon = item.icon
@@ -293,6 +315,17 @@ export default function Navbar() {
                       </Link>
                     )
                   })}
+                  {/* Logout Button */}
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false)
+                      logout()
+                    }}
+                    className='flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors duration-200'
+                  >
+                    <LogOut className='w-4 h-4 mr-3 text-red-400' />
+                    Çıkış Yap
+                  </button>
                 </div>
               )}
             </div>

@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -20,6 +20,13 @@ model User {
   studentId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Authentication fields
+  username    String   @unique @default("")
+  password    String   @default("")
+  role        UserRole @default(USER)
+  isActive    Boolean  @default(true)
+  lastLogin   DateTime?
   
   // New fields for workload management
   maxHoursPerDay Int @default(8) // Günlük maksimum çalışma saati
@@ -291,4 +298,9 @@ enum TaskNoteStatus {
   WARNING
   SUCCESS
   ERROR
+}
+
+enum UserRole {
+  ADMIN
+  USER
 }
