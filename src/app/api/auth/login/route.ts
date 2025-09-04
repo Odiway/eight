@@ -24,14 +24,29 @@ export async function POST(request: NextRequest) {
 
   // Test database connection
   try {
+    console.log('Testing database connection...')
     await prisma.$connect()
     console.log('Database connection successful')
   } catch (connectionError) {
-    console.error('Database connection failed:', connectionError)
-    return NextResponse.json(
-      { success: false, message: 'Veritabanı bağlantı hatası' },
-      { status: 500 }
-    )
+    console.error('Database connection failed:', {
+      error: connectionError instanceof Error ? connectionError.message : connectionError,
+      code: connectionError instanceof Error && 'code' in connectionError ? connectionError.code : undefined,
+      DATABASE_URL_format: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + '...' : 'missing'
+    })
+    
+    // Try to reconnect once
+    try {
+      console.log('Attempting to reconnect...')
+      await prisma.$disconnect()
+      await prisma.$connect()
+      console.log('Reconnection successful')
+    } catch (reconnectError) {
+      console.error('Reconnection failed:', reconnectError)
+      return NextResponse.json(
+        { success: false, message: 'Veritabanı bağlantı hatası' },
+        { status: 500 }
+      )
+    }
   }
   
   try {
