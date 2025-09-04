@@ -143,7 +143,7 @@ export default function LoginPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-8">
+            <div className="p-8">
               {/* Username Field */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -210,13 +210,21 @@ export default function LoginPage() {
 
               {/* Submit Button */}
               <button
-                type="submit"
-                disabled={isLoading}
+                type="button"
                 onClick={() => {
                   console.log('Submit button clicked!')
                   alert('Submit button clicked!')
+                  handleSubmit(new Event('submit') as any)
                 }}
-                className={`w-full py-3 px-4 rounded-xl text-white font-medium transition-all duration-200 ${
+                style={{
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  zIndex: 999,
+                  position: 'relative',
+                  border: 'none',
+                  outline: 'none'
+                }}
+                className={`w-full py-3 px-4 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer ${
                   formData.loginType === 'admin'
                     ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
                     : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
@@ -236,7 +244,7 @@ export default function LoginPage() {
                   </div>
                 )}
               </button>
-            </form>
+            </div>
           </div>
 
           {/* Security Notice */}
