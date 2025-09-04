@@ -63,6 +63,8 @@ export default function LoginPage() {
   }
 
   const handleLoginTypeChange = (type: 'user' | 'admin') => {
+    console.log('Button clicked! Type:', type) // Debug log
+    alert(`Button clicked: ${type}`) // Visual feedback for testing
     setFormData(prev => ({
       ...prev,
       loginType: type,
@@ -99,7 +101,15 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleLoginTypeChange('user')}
-                className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                onMouseDown={() => console.log('User button mouse down')}
+                onMouseUp={() => console.log('User button mouse up')}
+                style={{ 
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  zIndex: 10,
+                  position: 'relative'
+                }}
+                className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer ${
                   formData.loginType === 'user'
                     ? 'bg-blue-600 text-white shadow-lg'
                     : 'bg-transparent text-gray-600 hover:bg-white hover:shadow-sm'
@@ -111,7 +121,15 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleLoginTypeChange('admin')}
-                className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                onMouseDown={() => console.log('Admin button mouse down')}
+                onMouseUp={() => console.log('Admin button mouse up')}
+                style={{ 
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  zIndex: 10,
+                  position: 'relative'
+                }}
+                className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer ${
                   formData.loginType === 'admin'
                     ? 'bg-purple-600 text-white shadow-lg'
                     : 'bg-transparent text-gray-600 hover:bg-white hover:shadow-sm'
