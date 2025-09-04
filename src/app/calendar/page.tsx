@@ -135,35 +135,55 @@ async function getCalendarData(projectId?: string, currentUser?: any) {
 
   console.log(`Total tasks in database: ${allTasks.length}`)
 
-  // Filter tasks in JavaScript to be absolutely certain
+  // Filter tasks in JavaScript - strict name matching as suggested
   const userTasks = allTasks.filter(task => {
-    // Check if task is assigned to current user
-    const isDirectlyAssigned = task.assignedUser?.id === currentUser.id
-    const isInMultipleAssignees = task.assignedUsers.some(au => au.user.id === currentUser.id)
-    const isAssignedByName = task.assignedUser?.name === currentUser.name
-    const isInMultipleAssigneesByName = task.assignedUsers.some(au => au.user.name === currentUser.name)
+    // Get the current user's name for comparison - normalize for better matching
+    const currentUserName = currentUser.name?.trim()
     
-    const shouldShow = isDirectlyAssigned || isInMultipleAssignees || isAssignedByName || isInMultipleAssigneesByName
+    if (!currentUserName) {
+      console.log(`⚠️ Warning: Current user has no name!`)
+      return false
+    }
     
     console.log(`\n--- Task: "${task.title}" ---`)
-    console.log(`Direct assignment: ${task.assignedUser?.name || 'none'} (${isDirectlyAssigned})`)
-    console.log(`Multiple assignees: [${task.assignedUsers.map(au => `${au.user.name} (ID: ${au.user.id})`).join(', ')}]`)
-    console.log(`Current user: ${currentUser.name} (ID: ${currentUser.id})`)
-    console.log(`Current user username: ${currentUser.username}`)
-    console.log(`Multiple assignees check: ${isInMultipleAssignees}`)
-    console.log(`Multiple assignees by name check: ${isInMultipleAssigneesByName}`)
-    console.log(`Should show: ${shouldShow}`)
+    console.log(`Current user name: "${currentUserName}"`)
+    
+    // Check direct assignment by name
+    const directAssigneeName = task.assignedUser?.name?.trim() || null
+    const isDirectlyAssigned = directAssigneeName === currentUserName
+    console.log(`Direct assignee: "${directAssigneeName}" - Match: ${isDirectlyAssigned}`)
+    
+    // Check multiple assignees by name
+    const assigneeNames = task.assignedUsers.map(au => au.user.name?.trim()).filter(Boolean)
+    const isInMultipleAssignees = assigneeNames.includes(currentUserName)
+    console.log(`Multiple assignees: [${assigneeNames.map(name => `"${name}"`).join(', ')}]`)
+    console.log(`User in multiple assignees: ${isInMultipleAssignees}`)
+    
+    // Task should be shown if user is assigned either directly or in multiple assignees
+    const shouldShow = isDirectlyAssigned || isInMultipleAssignees
     
     if (shouldShow) {
-      console.log(`✅ SHOWING this task`)
+      console.log(`✅ SHOWING task - user "${currentUserName}" is assigned`)
     } else {
-      console.log(`❌ HIDING this task`)
+      console.log(`❌ HIDING task - user "${currentUserName}" is NOT assigned`)
     }
     
     return shouldShow
   })
 
   console.log(`Filtered to ${userTasks.length} tasks for user: ${currentUser.name}`)
+  
+  // Double-check: Log all tasks that will be shown
+  console.log('\n=== FINAL FILTERED TASKS ===')
+  userTasks.forEach((task, index) => {
+    console.log(`${index + 1}. "${task.title}" - Assigned to: ${task.assignedUser?.name || 'None'} + [${task.assignedUsers.map(au => au.user.name).join(', ')}]`)
+  })
+  console.log(`\n🎯 FINAL RESULT: Showing ${userTasks.length} out of ${allTasks.length} total tasks to user "${currentUser.name}"`)
+  
+  // SAFETY CHECK: If user is not admin but seeing more than expected tasks, log warning
+  if (currentUser.role !== 'ADMIN' && userTasks.length === allTasks.length && allTasks.length > 0) {
+    console.warn('⚠️ WARNING: Non-admin user is seeing ALL tasks - filtering may have failed!')
+  }
 
   // Get projects that have tasks assigned to this user
   const userProjectIds = [...new Set(userTasks.map(task => task.projectId))]
