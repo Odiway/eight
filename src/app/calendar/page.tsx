@@ -86,117 +86,88 @@ async function getCalendarData(projectId?: string, currentUser?: any) {
   console.log('User role:', currentUser.role)
   console.log('User name:', currentUser.name)
 
-  // Base filter for projects/tasks
-  const projectFilter = projectId ? { projectId } : {}
+  // If user is ADMIN, show all tasks
+  if (currentUser.role === 'ADMIN') {
+    console.log('User is ADMIN - showing all tasks')
+    
+    const allTasks = await prisma.task.findMany({
+      where: {
+        OR: [{ startDate: { not: null } }, { endDate: { not: null } }],
+        ...(projectId ? { projectId } : {})
+      },
+      include: {
+        project: true,
+        assignedUser: true,
+        assignedUsers: {
+          include: { user: true },
+        },
+      },
+      orderBy: { startDate: 'asc' },
+    })
 
-  let taskFilter: any = {
-    ...projectFilter,
-    OR: [{ startDate: { not: null } }, { endDate: { not: null } }],
+    const allProjects = await prisma.project.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    })
+
+    console.log(`Admin sees ${allTasks.length} tasks and ${allProjects.length} projects`)
+    return { tasks: allTasks, projects: allProjects }
   }
 
-  // SIMPLE APPROACH: If not admin, only show tasks where this user is specifically assigned
-  if (currentUser.role !== 'ADMIN') {
-    // For regular users: Only show tasks where THEIR NAME appears
-    // Either as the main assignedUser OR in the assignedUsers list
-    taskFilter.AND = [
-      {
-        OR: [
-          // Task assigned directly to this user
-          { assignedId: currentUser.id },
-          // Task assigned to this user through assignedUsers relationship
-          {
-            assignedUsers: {
-              some: {
-                userId: currentUser.id
-              }
-            }
-          },
-          // Backup: check by name if ID matching fails
-          {
-            assignedUser: {
-              name: currentUser.name
-            }
-          }
-        ]
-      }
-    ]
-  }
-  // If ADMIN: show all tasks (no additional filters)
+  // For regular users - STRICT filtering
+  console.log('User is regular user - filtering tasks strictly')
 
-  console.log('Task filter:', JSON.stringify(taskFilter, null, 2))
-
-  const tasks = await prisma.task.findMany({
-    where: taskFilter,
+  // Get ALL tasks first, then filter in code to be 100% sure
+  const allTasks = await prisma.task.findMany({
+    where: {
+      OR: [{ startDate: { not: null } }, { endDate: { not: null } }],
+      ...(projectId ? { projectId } : {})
+    },
     include: {
       project: true,
       assignedUser: true,
       assignedUsers: {
-        include: {
-          user: true,
-        },
+        include: { user: true },
       },
     },
-    orderBy: {
-      startDate: 'asc',
-    },
+    orderBy: { startDate: 'asc' },
   })
 
-  console.log(`Found ${tasks.length} tasks for user: ${currentUser.name}`)
-  
-  // Debug: Log task assignments to verify filtering
-  tasks.forEach(task => {
-    console.log(`Task: ${task.title}`)
-    console.log(`  - Assigned to: ${task.assignedUser?.name || 'No one'}`)
-    console.log(`  - Multiple assignees: ${task.assignedUsers.map(au => au.user.name).join(', ')}`)
-  })
+  console.log(`Total tasks in database: ${allTasks.length}`)
 
-  // For projects: same logic
-  let projectsFilter: any = {}
-  if (currentUser.role !== 'ADMIN') {
-    projectsFilter = {
-      OR: [
-        {
-          members: {
-            some: {
-              userId: currentUser.id
-            }
-          }
-        },
-        {
-          tasks: {
-            some: {
-              OR: [
-                { assignedId: currentUser.id },
-                { 
-                  assignedUsers: { 
-                    some: { userId: currentUser.id } 
-                  } 
-                },
-                {
-                  assignedUser: {
-                    name: currentUser.name
-                  }
-                }
-              ]
-            }
-          }
-        }
-      ]
+  // Filter tasks in JavaScript to be absolutely certain
+  const userTasks = allTasks.filter(task => {
+    // Check if task is assigned to current user
+    const isDirectlyAssigned = task.assignedUser?.id === currentUser.id
+    const isInMultipleAssignees = task.assignedUsers.some(au => au.user.id === currentUser.id)
+    const isAssignedByName = task.assignedUser?.name === currentUser.name
+    
+    const shouldShow = isDirectlyAssigned || isInMultipleAssignees || isAssignedByName
+    
+    if (shouldShow) {
+      console.log(`✅ Showing task "${task.title}" - assigned to: ${task.assignedUser?.name}`)
+    } else {
+      console.log(`❌ Hiding task "${task.title}" - assigned to: ${task.assignedUser?.name}`)
     }
-  }
+    
+    return shouldShow
+  })
 
-  const projects = await prisma.project.findMany({
-    where: projectsFilter,
-    select: {
-      id: true,
-      name: true,
+  console.log(`Filtered to ${userTasks.length} tasks for user: ${currentUser.name}`)
+
+  // Get projects that have tasks assigned to this user
+  const userProjectIds = [...new Set(userTasks.map(task => task.projectId))]
+  const userProjects = await prisma.project.findMany({
+    where: {
+      id: { in: userProjectIds }
     },
+    select: { id: true, name: true },
     orderBy: { name: 'asc' },
   })
 
-  console.log(`Found ${projects.length} projects for user: ${currentUser.name}`)
+  console.log(`User has access to ${userProjects.length} projects`)
 
-  return { tasks, projects }
+  return { tasks: userTasks, projects: userProjects }
 }
 
 export default async function CalendarPage({
