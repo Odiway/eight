@@ -13,33 +13,41 @@ export const dynamic = 'force-dynamic'
 async function getCurrentUser() {
   try {
     const cookieStore = await cookies()
-    const token = cookieStore.get('auth-token')?.value
+    const sessionCookie = cookieStore.get('auth-session')?.value
 
-    if (!token) {
+    if (!sessionCookie) {
       return null
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-change-in-production') as any
+    // Decode the session data from the cookie
+    const sessionData = JSON.parse(Buffer.from(sessionCookie, 'base64').toString())
     
-    // The JWT payload contains user info directly, not userId
-    if (!decoded.id) {
+    if (!sessionData.id) {
       return null
     }
 
-    // For admin users, return the decoded data directly
-    if (decoded.role === 'ADMIN') {
+    // Check if session is expired (24 hours)
+    const now = Date.now()
+    const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+    
+    if (now - sessionData.timestamp > maxAge) {
+      return null // Session expired
+    }
+
+    // For admin users, return the session data directly
+    if (sessionData.role === 'ADMIN') {
       return {
-        id: decoded.id,
-        name: decoded.name,
-        email: decoded.email,
-        role: decoded.role,
-        username: decoded.username
+        id: sessionData.id,
+        name: sessionData.name,
+        email: 'admin@temsa.com',
+        role: sessionData.role,
+        username: sessionData.username
       }
     }
 
     // For regular users, fetch from database to get the most current data
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
+      where: { id: sessionData.id },
       select: {
         id: true,
         name: true,

@@ -17,19 +17,6 @@ export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth()
 
-  // Clear any existing auth data when login page loads
-  useEffect(() => {
-    // Clear cookies
-    document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    
-    // Clear localStorage
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('user')
-    localStorage.removeItem('auth-token')
-    localStorage.removeItem('user-info')
-  }, [])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -51,14 +38,10 @@ export default function LoginPage() {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        // IMPORTANT: Clear all existing auth cookies first to prevent conflicts
+        // Clear only conflicting cookies before setting new ones
         document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
         
-        // Clear localStorage as well
-        localStorage.clear()
-        
-        // Create fresh session data for cookie
+        // Create session data for the specific user who just logged in
         const sessionData = {
           id: result.user.id,
           username: result.user.username,
@@ -67,19 +50,22 @@ export default function LoginPage() {
           timestamp: Date.now()
         }
         
-        // Store NEW session in cookie
+        // Set the new session cookie
         const sessionCookie = Buffer.from(JSON.stringify(sessionData)).toString('base64')
         document.cookie = `auth-session=${sessionCookie}; path=/; max-age=86400; samesite=lax`
         
-        // Store in localStorage with fresh data
+        // Store in localStorage for backup (clear old first)
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
         localStorage.setItem('authToken', result.token)
         localStorage.setItem('user', JSON.stringify(result.user))
         
-        // Add a small delay to ensure cookies are set, then redirect
-        setTimeout(() => {
-          const redirectUrl = result.user.role === 'ADMIN' ? '/dashboard' : '/calendar'
-          window.location.href = redirectUrl
-        }, 100)
+        // Redirect immediately without delay
+        if (result.user.role === 'ADMIN') {
+          window.location.href = '/dashboard'
+        } else {
+          window.location.href = '/calendar'
+        }
       } else {
         setError(result.message || 'Giriş başarısız')
       }
