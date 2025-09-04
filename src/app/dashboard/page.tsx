@@ -23,8 +23,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     // Check authentication
-    const token = localStorage.getItem('auth-token')
-    const userInfo = localStorage.getItem('user-info')
+    const token = localStorage.getItem('authToken') || localStorage.getItem('auth-token')
+    const userInfo = localStorage.getItem('user') || localStorage.getItem('user-info')
     
     if (!token || !userInfo) {
       router.push('/login')
@@ -42,8 +42,15 @@ export default function AdminDashboard() {
   }, [router])
 
   const handleLogout = () => {
+    // Clear all possible localStorage keys
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('user')
     localStorage.removeItem('auth-token')
     localStorage.removeItem('user-info')
+    
+    // Clear cookies
+    document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    
     router.push('/')
   }
 

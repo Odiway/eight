@@ -56,7 +56,8 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(result.user))
         
         // Force reload to ensure proper session
-        window.location.href = result.user.role === 'ADMIN' ? '/dashboard' : '/calendar'
+        const redirectUrl = result.user.role === 'ADMIN' ? '/dashboard' : '/calendar'
+        window.location.href = redirectUrl
       } else {
         setError(result.message || 'Giriş başarısız')
       }
