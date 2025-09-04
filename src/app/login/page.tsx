@@ -221,7 +221,15 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e)}
+                onMouseDown={() => console.log('Submit button mouse down')}
+                onMouseUp={() => console.log('Submit button mouse up')}
                 disabled={isLoading}
+                style={{ 
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  zIndex: 10,
+                  position: 'relative'
+                }}
                 className={`w-full py-3 px-4 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer ${
                   formData.loginType === 'admin'
                     ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
