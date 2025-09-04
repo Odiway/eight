@@ -19,6 +19,8 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Form submitted!', formData) // Debug log
+    alert(`Form submitted with: ${formData.username} / ${formData.loginType}`) // Debug alert
     setIsLoading(true)
     setError('')
 
@@ -210,6 +212,10 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
+                onClick={() => {
+                  console.log('Submit button clicked!')
+                  alert('Submit button clicked!')
+                }}
                 className={`w-full py-3 px-4 rounded-xl text-white font-medium transition-all duration-200 ${
                   formData.loginType === 'admin'
                     ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
