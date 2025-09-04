@@ -1,71 +1,118 @@
-# User Credentials - Temsada Batarya Üretim Departmanı
+# User Authentication System - Temsada Batarya Üretim Departmanı
 
-## Admin Account
-- **Username:** admin
-- **Password:** Securepassword1
+## System Overview
+This document describes the authentication system for the Temsada Battery Production Department management application.
+
+## Authentication Method
+- **Database-based Authentication**: All user credentials are securely stored in the database
+- **Password Encryption**: All passwords are hashed using bcryptjs for security
+- **Session Management**: Cookie-based sessions with 24-hour expiration
+- **Role-based Access Control**: Admin and User roles with different permissions
+
+## User Roles
+
+### Admin Access
 - **Role:** ADMIN
-- **Access:** Full system access
+- **Access:** Full system access including:
+  - Dashboard management
+  - Project creation and management
+  - Team member management
+  - Report generation
+  - System settings
 
-## User Accounts
+### User Access
+- **Role:** USER
+- **Access:** Limited access including:
+  - Personal calendar view
+  - Task assignments
+  - Project viewing (assigned projects only)
+  - Basic reports
 
-### Batarya Paketleme Ekibi
-| Name | Username | Password | Email |
-|------|----------|----------|-------|
-| Ali AĞCAKOYUNLU | ali.agcakoyunlu | K9m2P8x1 | ali.agcakoyunlu@temsa.com |
-| Berkay ŞİMŞEK | berkay.simsek | N7w5Q2z9 | berkay.simsek@temsa.com |
-| Canberk ALBAY | canberk.albay | R4t8Y6u3 | canberk.albay@temsa.com |
-| Ekrem ATICI | ekrem.atici | L1s9D4h7 | ekrem.atici@temsa.com |
-| Fatih Rüştü PITIR | fatih.pitir | M3x6B9k2 | fatih.rustu.pitir@temsa.com |
-| Hüseyin Can SAK | huseyin.sak | P8v2C5n1 | huseyin.can.sak@temsa.com |
-| Kemal TAŞTAN | kemal.tastan | Q4j7F3w6 | kemal.tastan@temsa.com |
-| Oğuzhan İNANDI | oguzhan.inandi | T9r2E8y5 | oguzhan.inandi@temsa.com |
-| Ömer ARISOY | omer.arisoy | V6k4H9s2 | omer.arisoy@temsa.com |
-| Samet DANACI | samet.danaci | W1q8L6p4 | samet.danaci@temsa.com |
-| Yaşar DOĞAN | yasar.dogan | Z3m7N2c9 | yasar.dogan@temsa.com |
-| Yunus Emre KOÇ | yunus.koc | A8b5R1x7 | yunus.emre.koc@temsa.com |
-| Yusuf KEBÜDE | yusuf.kebude | D4g9T6v2 | yusuf.kebude@temsa.com |
+## Team Structure
 
-### Batarya Geliştirme Ekibi
-| Name | Username | Password | Email |
-|------|----------|----------|-------|
-| Arda SÖNMEZ | arda.sonmez | F2k8W5j3 | arda.sonmez@temsa.com |
-| Batuhan SALICI | batuhan.salici | G7n4Q9m1 | batuhan.salici@temsa.com |
-| Berk ERTÜRK | berk.erturk | H5p2L8c6 | berk.erturk@temsa.com |
-| Biran Can TÜRE | biran.ture | J9x3V7b4 | biran.can.ture@temsa.com |
-| Esra DÖNMEZ | esra.donmez | K1f6S2n8 | esra.donmez@temsa.com |
-| Mete Han KUŞDEMİR | mete.kusdemir | L4h9R5t7 | mete.han.kusdemir@temsa.com |
-| Muhammed KARAKUŞ | muhammed.karakus | M8d2Y6w3 | muhammed.karakus@temsa.com |
-| Murat KARA | murat.kara | N3z7E9q1 | murat.kara@temsa.com |
-| Selim AKBUDAK | selim.akbudak | O6s4I8u5 | selim.akbudak@temsa.com |
+### Batarya Paketleme Ekibi (Battery Packaging Team)
+- Ali AĞCAKOYUNLU
+- Berkay ŞİMŞEK
+- Canberk ALBAY
+- Ekrem ATICI
+- Fatih Rüştü PITIR
+- Hüseyin Can SAK
+- Kemal TAŞTAN
+- Oğuzhan İNANDI
+- Ömer ARISOY
+- Samet DANACI
+- Yaşar DOĞAN
+- Yunus Emre KOÇ
+- Yusuf KEBÜDE
 
-### Satın Alma Ekibi
-| Name | Username | Password | Email |
-|------|----------|----------|-------|
-| Fatih AVCI | fatih.avci | P2v8X4k9 | fatih.avci@temsa.com |
-| Polen ACIMIŞ | polen.acimis | Q7c1Z3m6 | polen.acimis@temsa.com |
+### Batarya Geliştirme Ekibi (Battery Development Team)
+- Arda SÖNMEZ
+- Batuhan SALICI
+- Berk ERTÜRK
+- Biran Can TÜRE
+- Esra DÖNMEZ
+- Mete Han KUŞDEMİR
+- Muhammed KARAKUŞ
+- Murat KARA
+- Selim AKBUDAK
 
-### Proje Geliştirme Ekibi
-| Name | Username | Password | Email |
-|------|----------|----------|-------|
-| Gökhan BİLGİN | gokhan.bilgin | R9f5A2l8 | gokhan.bilgin@temsa.com |
+### Satın Alma Ekibi (Procurement Team)
+- Fatih AVCI
+- Polen ACIMIŞ
+
+### Proje Geliştirme Ekibi (Project Development Team)
+- Gökhan BİLGİN
+
+## Security Features
+
+### Password Policy
+- Minimum 8 characters
+- Mix of uppercase, lowercase, and numbers
+- Secure random generation
+- bcrypt hashing before database storage
+
+### Session Security
+- HTTP-only cookies (not accessible via JavaScript)
+- Secure flag enabled in production
+- SameSite strict policy
+- 24-hour session timeout
+
+### Database Security
+- All credentials stored securely in PostgreSQL database
+- No plaintext passwords in code or configuration files
+- Connection string secured via environment variables
+
+## Login Instructions
+
+### For Users
+1. Navigate to `/login` page
+2. Select "Kullanıcı Girişi" (User Login)
+3. Enter your assigned username and password
+4. Access will be granted based on your role permissions
+
+### For Administrators
+1. Navigate to `/login` page
+2. Select "Yönetici Girişi" (Admin Login)
+3. Use admin credentials
+4. Full system access will be granted
+
+## Security Notes
+
+⚠️ **Important Security Practices:**
+- Credentials are managed through secure database storage
+- No sensitive information should be stored in version control
+- Regular password updates recommended
+- Monitor login attempts and suspicious activity
+- Database credentials secured via environment variables
+
+## Technical Implementation
+- **Framework**: Next.js 15 with App Router
+- **Database**: PostgreSQL (Neon)
+- **Authentication**: Cookie-based sessions
+- **Password Hashing**: bcryptjs
+- **Session Storage**: HTTP-only cookies
+- **Middleware**: Route protection and role validation
 
 ---
 
-## Password Policy
-- All passwords are 8 characters long
-- Mix of uppercase, lowercase, and numbers
-- Randomly generated for security
-- Users should change passwords on first login (feature to be implemented)
-
-## Login Instructions
-1. Go to `/login` page
-2. Select "Kullanıcı Girişi" for regular users or "Yönetici Girişi" for admin
-3. Enter username and password from the table above
-4. Regular users will have access to calendar view only
-5. Admin will have access to the full system
-
-## Security Notes
-- All passwords are hashed using bcrypt before storage
-- JWT tokens expire after 24 hours
-- Admin credentials should be changed in production
-- Consider implementing password change functionality
+**Note**: This system replaces any previous hardcoded credential systems for enhanced security. All user authentication is now handled through secure database lookup and password verification.

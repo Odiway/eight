@@ -16,7 +16,7 @@ interface User {
 interface AuthContextType {
   user: User | null
   isLoading: boolean
-  login: (token: string, user: User) => void
+  login: (user: User) => void
   logout: () => void
   isAdmin: boolean
 }
@@ -29,35 +29,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Check for existing auth on mount
-    const token = localStorage.getItem('auth-token')
-    const userInfo = localStorage.getItem('user-info')
-
-    if (token && userInfo) {
-      try {
-        const parsedUser = JSON.parse(userInfo)
-        setUser(parsedUser)
-      } catch (error) {
-        // Invalid user info, clear storage
-        localStorage.removeItem('auth-token')
-        localStorage.removeItem('user-info')
-      }
-    }
-
-    setIsLoading(false)
+    // Check for existing auth session from cookie
+    checkAuthStatus()
   }, [])
 
-  const login = (token: string, userData: User) => {
-    localStorage.setItem('auth-token', token)
-    localStorage.setItem('user-info', JSON.stringify(userData))
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch('/api/auth/check-session', {
+        method: 'GET',
+        credentials: 'include' // Include cookies
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.user) {
+          setUser(data.user)
+        }
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const login = (userData: User) => {
     setUser(userData)
   }
 
-  const logout = () => {
-    localStorage.removeItem('auth-token')
-    localStorage.removeItem('user-info')
-    setUser(null)
-    router.push('/login')
+  const logout = async () => {
+    try {
+      // Call logout API to clear cookie
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+    } catch (error) {
+      console.error('Logout request failed:', error)
+    } finally {
+      setUser(null)
+      router.push('/login')
+    }
   }
 
   const isAdmin = user?.role === 'ADMIN'

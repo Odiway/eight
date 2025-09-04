@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { Eye, EyeOff, User, Lock, Shield, UserCheck } from 'lucide-react'
 
 export default function LoginPage() {
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,17 +28,21 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include cookies
         body: JSON.stringify(formData),
       })
 
       const result = await response.json()
 
       if (response.ok && result.success) {
-        // For admin, redirect to dashboard
+        // Update auth context with user data
+        login(result.user)
+        
+        // Redirect based on role
         if (result.user.role === 'ADMIN') {
-          window.location.href = '/dashboard'
+          router.push('/dashboard')
         } else {
-          window.location.href = '/calendar'
+          router.push('/calendar')
         }
       } else {
         setError(result.message || 'Giriş başarısız')
@@ -220,12 +226,13 @@ export default function LoginPage() {
             </form>
           </div>
 
-          {/* Demo Credentials */}
+          {/* Security Notice */}
           <div className="mt-6 p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Demo Bilgileri:</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">🔒 Güvenlik Bildirimi:</h3>
             <div className="text-xs text-gray-600 space-y-1">
-              <div><strong>Yönetici:</strong> admin / Securepassword1</div>
-              <div><strong>Kullanıcı:</strong> Kullanıcı adları için USER_CREDENTIALS.md dosyasına bakınız</div>
+              <div>• Giriş bilgilerinizi güvenli tutun</div>
+              <div>• Giriş bilgilerinizi paylaşmayın</div>
+              <div>• Sistemden çıktıktan sonra tarayıcınızı kapatın</div>
             </div>
           </div>
         </div>

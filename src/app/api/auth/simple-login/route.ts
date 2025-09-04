@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash } from 'crypto'
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
+
+const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,9 +51,75 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // User login - for now return error to focus on admin
+    // User login - database authentication
+    if (loginType === 'user') {
+      try {
+        // Find user in database
+        const user = await prisma.user.findUnique({
+          where: { username }
+        })
+
+        if (!user) {
+          return NextResponse.json(
+            { success: false, message: 'Kullanıcı bulunamadı' },
+            { status: 401 }
+          )
+        }
+
+        // Verify password
+        const isValidPassword = await bcrypt.compare(password, user.password)
+        
+        if (!isValidPassword) {
+          return NextResponse.json(
+            { success: false, message: 'Geçersiz şifre' },
+            { status: 401 }
+          )
+        }
+
+        // Create session token
+        const sessionData = {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          name: user.name,
+          timestamp: Date.now()
+        }
+        
+        const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64')
+        
+        const response = NextResponse.json({
+          success: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            name: user.name,
+            email: user.email
+          }
+        })
+        
+        // Set HTTP-only cookie
+        response.cookies.set('auth-session', sessionToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 86400 // 24 hours
+        })
+        
+        return response
+
+      } catch (dbError) {
+        console.error('Database error during user login:', dbError)
+        return NextResponse.json(
+          { success: false, message: 'Veritabanı hatası' },
+          { status: 500 }
+        )
+      }
+    }
+
+    // Invalid login type
     return NextResponse.json(
-      { success: false, message: 'Kullanıcı girişi henüz hazır değil' },
+      { success: false, message: 'Geçersiz giriş türü' },
       { status: 400 }
     )
 
@@ -60,6 +129,8 @@ export async function POST(request: NextRequest) {
       { success: false, message: 'Sunucu hatası' },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
