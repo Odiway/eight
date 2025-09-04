@@ -35,15 +35,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch('/api/auth/check-session', {
-        method: 'GET',
-        credentials: 'include' // Include cookies
-      })
+      // Check localStorage first for immediate user data
+      const storedUser = localStorage.getItem('user')
+      const debugUser = localStorage.getItem('debug-login-user')
+      
+      console.log('=== AUTH CONTEXT DEBUG ===')
+      console.log('Stored user in localStorage:', storedUser)
+      console.log('Debug login user:', debugUser)
+      
+      if (storedUser) {
+        const userData = JSON.parse(storedUser)
+        console.log('Setting user from localStorage:', userData)
+        setUser(userData)
+        setIsLoading(false)
+        return
+      }
 
-      if (response.ok) {
-        const data = await response.json()
-        if (data.user) {
-          setUser(data.user)
+      // Fallback: try to get user from cookie by reading it client-side
+      const cookies = document.cookie.split(';')
+      const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-session='))
+      
+      if (authCookie) {
+        try {
+          const cookieValue = authCookie.split('=')[1]
+          const sessionData = JSON.parse(atob(cookieValue))
+          console.log('Session data from cookie:', sessionData)
+          
+          // Check if session is expired
+          const now = Date.now()
+          const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+          
+          if (now - sessionData.timestamp <= maxAge) {
+            const userData = {
+              id: sessionData.id,
+              username: sessionData.username,
+              name: sessionData.name,
+              email: sessionData.role === 'ADMIN' ? 'admin@temsa.com' : sessionData.email,
+              role: sessionData.role
+            }
+            console.log('Setting user from cookie:', userData)
+            setUser(userData)
+          } else {
+            console.log('Session expired')
+          }
+        } catch (cookieError) {
+          console.error('Error parsing cookie:', cookieError)
         }
       }
     } catch (error) {

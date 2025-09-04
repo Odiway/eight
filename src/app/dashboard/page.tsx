@@ -22,22 +22,35 @@ export default function AdminDashboard() {
   const router = useRouter()
 
   useEffect(() => {
+    console.log('=== DASHBOARD AUTH CHECK ===')
+    
     // Check authentication
     const token = localStorage.getItem('authToken') || localStorage.getItem('auth-token')
     const userInfo = localStorage.getItem('user') || localStorage.getItem('user-info')
+    const debugUser = localStorage.getItem('debug-login-user')
+    
+    console.log('Token found:', !!token)
+    console.log('User info:', userInfo)
+    console.log('Debug user:', debugUser)
     
     if (!token || !userInfo) {
+      console.log('No token or user info, redirecting to login')
       router.push('/login')
       return
     }
 
     const parsedUser = JSON.parse(userInfo)
+    console.log('Parsed user:', parsedUser)
+    console.log('User role:', parsedUser.role)
+    
     if (parsedUser.role !== 'ADMIN') {
+      console.log('User is not admin, redirecting to calendar')
       // Non-admin users get redirected to calendar only
       router.push('/calendar')
       return
     }
 
+    console.log('User is admin, setting user state')
     setUser(parsedUser)
   }, [router])
 
