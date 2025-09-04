@@ -63,14 +63,17 @@ export default function LoginPage() {
   }
 
   const handleLoginTypeChange = (type: 'user' | 'admin') => {
-    console.log('Button clicked:', type) // Debug log
-    setFormData({
-      ...formData,
+    console.log('Login type changing to:', type) // Enhanced debug log
+    setFormData(prev => ({
+      ...prev,
       loginType: type,
       username: type === 'admin' ? 'admin' : '',
       password: ''
-    })
+    }))
     setError('')
+    
+    // Visual feedback
+    console.log('Form data updated:', { loginType: type })
   }
 
   return (
@@ -99,32 +102,74 @@ export default function LoginPage() {
             <div className="flex bg-gray-100 rounded-t-2xl">
               <button
                 type="button"
+                tabIndex={0}
+                role="button"
+                aria-label="Kullanıcı girişi seç"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                   e.preventDefault()
+                  e.stopPropagation()
                   console.log('User tab clicked')
                   handleLoginTypeChange('user')
                 }}
-                className={`flex-1 py-4 px-6 text-sm font-medium cursor-pointer select-none transition-all duration-200 flex items-center justify-center space-x-2 ${
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleLoginTypeChange('user')
+                  }
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  handleLoginTypeChange('user')
+                }}
+                className={`flex-1 py-4 px-6 text-sm font-medium cursor-pointer select-none transition-all duration-200 flex items-center justify-center space-x-2 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
                   formData.loginType === 'user'
                     ? 'bg-blue-600 text-white shadow-lg'
                     : 'bg-transparent text-gray-600 hover:bg-white hover:shadow-sm'
                 }`}
+                style={{ 
+                  pointerEvents: 'auto',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
               >
                 <User className="w-4 h-4" />
                 <span>Kullanıcı Girişi</span>
               </button>
               <button
                 type="button"
+                tabIndex={0}
+                role="button"
+                aria-label="Yönetici girişi seç"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                   e.preventDefault()
+                  e.stopPropagation()
                   console.log('Admin tab clicked')
                   handleLoginTypeChange('admin')
                 }}
-                className={`flex-1 py-4 px-6 text-sm font-medium cursor-pointer select-none transition-all duration-200 flex items-center justify-center space-x-2 ${
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleLoginTypeChange('admin')
+                  }
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  handleLoginTypeChange('admin')
+                }}
+                className={`flex-1 py-4 px-6 text-sm font-medium cursor-pointer select-none transition-all duration-200 flex items-center justify-center space-x-2 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset ${
                   formData.loginType === 'admin'
                     ? 'bg-purple-600 text-white shadow-lg'
                     : 'bg-transparent text-gray-600 hover:bg-white hover:shadow-sm'
                 }`}
+                style={{ 
+                  pointerEvents: 'auto',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
               >
                 <Shield className="w-4 h-4" />
                 <span>Yönetici Girişi</span>
