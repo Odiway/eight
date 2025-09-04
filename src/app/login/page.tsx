@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Eye, EyeOff, User, Lock, Shield, UserCheck } from 'lucide-react'
@@ -16,6 +16,19 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const router = useRouter()
   const { login } = useAuth()
+
+  // Clear any existing auth data when login page loads
+  useEffect(() => {
+    // Clear cookies
+    document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    
+    // Clear localStorage
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('user')
+    localStorage.removeItem('auth-token')
+    localStorage.removeItem('user-info')
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,7 +51,14 @@ export default function LoginPage() {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        // Create session data for cookie
+        // IMPORTANT: Clear all existing auth cookies first to prevent conflicts
+        document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        
+        // Clear localStorage as well
+        localStorage.clear()
+        
+        // Create fresh session data for cookie
         const sessionData = {
           id: result.user.id,
           username: result.user.username,
@@ -47,17 +67,19 @@ export default function LoginPage() {
           timestamp: Date.now()
         }
         
-        // Store session in cookie (matching check-session expectations)
+        // Store NEW session in cookie
         const sessionCookie = Buffer.from(JSON.stringify(sessionData)).toString('base64')
         document.cookie = `auth-session=${sessionCookie}; path=/; max-age=86400; samesite=lax`
         
-        // Also store in localStorage as backup
+        // Store in localStorage with fresh data
         localStorage.setItem('authToken', result.token)
         localStorage.setItem('user', JSON.stringify(result.user))
         
-        // Force reload to ensure proper session
-        const redirectUrl = result.user.role === 'ADMIN' ? '/dashboard' : '/calendar'
-        window.location.href = redirectUrl
+        // Add a small delay to ensure cookies are set, then redirect
+        setTimeout(() => {
+          const redirectUrl = result.user.role === 'ADMIN' ? '/dashboard' : '/calendar'
+          window.location.href = redirectUrl
+        }, 100)
       } else {
         setError(result.message || 'Giriş başarısız')
       }
