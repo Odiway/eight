@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
+import SearchModal from '@/components/SearchModal'
 
 const allNavigation = [
   {
@@ -85,6 +86,7 @@ export default function Navbar() {
   const { user, logout, isAdmin } = useAuth()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
   // Filter navigation based on user role
@@ -97,6 +99,18 @@ export default function Navbar() {
     }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Handle keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsSearchOpen(true)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   // Close menus when clicking outside
@@ -206,6 +220,7 @@ export default function Navbar() {
           <div className='flex items-center space-x-2 flex-shrink-0'>
             {/* Search Button (Desktop) */}
             <button
+              onClick={() => setIsSearchOpen(true)}
               className={cn(
                 'hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-all duration-300 group',
                 scrolled
@@ -383,6 +398,9 @@ export default function Navbar() {
           </div>
         )}
       </div>
+      
+      {/* Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </nav>
   )
 }

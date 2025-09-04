@@ -97,40 +97,38 @@ export default function LoginPage() {
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
             {/* Login Type Selector */}
             <div className="flex bg-gray-100 rounded-t-2xl">
-              <div
-                onClick={() => {
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
                   console.log('User tab clicked')
                   handleLoginTypeChange('user')
                 }}
-                className={`flex-1 py-4 px-6 text-sm font-medium cursor-pointer select-none transition-all duration-200 ${
+                className={`flex-1 py-4 px-6 text-sm font-medium cursor-pointer select-none transition-all duration-200 flex items-center justify-center space-x-2 ${
                   formData.loginType === 'user'
                     ? 'bg-blue-600 text-white shadow-lg'
                     : 'bg-transparent text-gray-600 hover:bg-white hover:shadow-sm'
                 }`}
-                style={{ zIndex: 10 }}
               >
-                <div className="flex items-center justify-center space-x-2">
-                  <User className="w-4 h-4" />
-                  <span>Kullanıcı Girişi</span>
-                </div>
-              </div>
-              <div
-                onClick={() => {
+                <User className="w-4 h-4" />
+                <span>Kullanıcı Girişi</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
                   console.log('Admin tab clicked')
                   handleLoginTypeChange('admin')
                 }}
-                className={`flex-1 py-4 px-6 text-sm font-medium cursor-pointer select-none transition-all duration-200 ${
+                className={`flex-1 py-4 px-6 text-sm font-medium cursor-pointer select-none transition-all duration-200 flex items-center justify-center space-x-2 ${
                   formData.loginType === 'admin'
                     ? 'bg-purple-600 text-white shadow-lg'
                     : 'bg-transparent text-gray-600 hover:bg-white hover:shadow-sm'
                 }`}
-                style={{ zIndex: 10 }}
               >
-                <div className="flex items-center justify-center space-x-2">
-                  <Shield className="w-4 h-4" />
-                  <span>Yönetici Girişi</span>
-                </div>
-              </div>
+                <Shield className="w-4 h-4" />
+                <span>Yönetici Girişi</span>
+              </button>
             </div>
 
             {/* Form */}

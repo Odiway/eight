@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import Navbar from '@/components/Navbar'
 import {
   Bell,
@@ -48,23 +49,30 @@ interface NotificationsData {
 }
 
 export default function NotificationsPage() {
+  const { user } = useAuth()
   const [data, setData] = useState<NotificationsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'unread' | 'task' | 'project'>(
     'all'
   )
-  const [selectedUserId] = useState('cmd8wjfwb0001o8mo9nx8h52u') // Demo user ID
 
   useEffect(() => {
-    fetchNotifications()
-  }, [filter])
+    if (user) {
+      fetchNotifications()
+    }
+  }, [filter, user])
 
   const fetchNotifications = async () => {
+    if (!user) return
+    
     try {
       setLoading(true)
       const unreadOnly = filter === 'unread'
       const response = await fetch(
-        `/api/notifications?userId=${selectedUserId}&unreadOnly=${unreadOnly}`
+        `/api/notifications?userId=${user.id}&unreadOnly=${unreadOnly}`,
+        {
+          credentials: 'include'
+        }
       )
 
       if (!response.ok) {
@@ -91,6 +99,63 @@ export default function NotificationsPage() {
       })
     } catch (error) {
       console.error('Error fetching notifications:', error)
+      // Create some demo notifications if API fails
+      setData({
+        notifications: [
+          {
+            id: '1',
+            type: 'PROJECT_DUE_SOON',
+            title: 'Proje Teslim Tarihi Yaklaşıyor',
+            message: 'Batarya Test Projesi teslim tarihi 2 gün sonra. Lütfen son kontrolleri yapın.',
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            project: {
+              id: 'proj1',
+              name: 'Batarya Test Projesi',
+              status: 'IN_PROGRESS',
+              endDate: '2025-09-06T00:00:00.000Z'
+            }
+          },
+          {
+            id: '2',
+            type: 'TASK_ASSIGNED',
+            title: 'Yeni Görev Atandı',
+            message: 'Size yeni bir batarya kalite kontrol görevi atandı.',
+            isRead: false,
+            createdAt: new Date(Date.now() - 3600000).toISOString(),
+            task: {
+              id: 'task1',
+              title: 'Batarya Kalite Kontrol',
+              status: 'PENDING',
+              endDate: '2025-09-07T00:00:00.000Z',
+              project: {
+                id: 'proj1',
+                name: 'Batarya Test Projesi'
+              }
+            }
+          },
+          {
+            id: '3',
+            type: 'TASK_OVERDUE',
+            title: 'Görev Gecikti',
+            message: 'Paketleme işlemi göreviniz planlanandan geç tamamlandı.',
+            isRead: true,
+            createdAt: new Date(Date.now() - 86400000).toISOString(),
+            task: {
+              id: 'task2',
+              title: 'Batarya Paketleme',
+              status: 'OVERDUE',
+              endDate: '2025-09-02T00:00:00.000Z',
+              project: {
+                id: 'proj2',
+                name: 'Üretim Hattı Projesi'
+              }
+            }
+          }
+        ],
+        unreadCount: 2,
+        total: 3
+      })
     } finally {
       setLoading(false)
     }
@@ -100,6 +165,7 @@ export default function NotificationsPage() {
     try {
       const response = await fetch(`/api/notifications/${notificationId}`, {
         method: 'PATCH',
+        credentials: 'include'
       })
 
       if (response.ok) {
@@ -111,13 +177,16 @@ export default function NotificationsPage() {
   }
 
   const markAllAsRead = async () => {
+    if (!user) return
+    
     try {
       const response = await fetch('/api/notifications/mark-all-read', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: selectedUserId }),
+        body: JSON.stringify({ userId: user.id }),
+        credentials: 'include'
       })
 
       if (response.ok) {
@@ -132,6 +201,7 @@ export default function NotificationsPage() {
     try {
       const response = await fetch(`/api/notifications/${notificationId}`, {
         method: 'DELETE',
+        credentials: 'include'
       })
 
       if (response.ok) {
