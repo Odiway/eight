@@ -66,31 +66,28 @@ async function getCalendarData(projectId?: string, currentUser?: any) {
   // Base filter for projects/tasks
   const projectFilter = projectId ? { projectId } : {}
 
-  // For regular users, only show tasks assigned to them
-  // For admins, show all tasks
+  // Build task filter based on user role
   let taskFilter: any = {
     ...projectFilter,
     OR: [{ startDate: { not: null } }, { endDate: { not: null } }],
   }
 
+  // If user is NOT admin, only show tasks assigned to them
   if (currentUser.role !== 'ADMIN') {
-    // Regular users only see their own tasks
-    taskFilter = {
-      ...taskFilter,
-      OR: [
-        ...taskFilter.OR,
-        {
-          assignedId: currentUser.id
-        },
-        {
-          assignedUsers: {
-            some: {
-              userId: currentUser.id
+    taskFilter.AND = [
+      {
+        OR: [
+          { assignedId: currentUser.id },
+          {
+            assignedUsers: {
+              some: {
+                userId: currentUser.id
+              }
             }
           }
-        }
-      ]
-    }
+        ]
+      }
+    ]
   }
 
   const tasks = await prisma.task.findMany({
