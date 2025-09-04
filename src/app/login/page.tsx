@@ -21,7 +21,7 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth/simple-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,24 +31,18 @@ export default function LoginPage() {
 
       const result = await response.json()
 
-      if (response.ok) {
-        // Store token in localStorage and cookie
-        localStorage.setItem('auth-token', result.token)
-        localStorage.setItem('user-info', JSON.stringify(result.user))
-        
-        // Set cookie for middleware
-        document.cookie = `auth-token=${result.token}; path=/; max-age=86400; secure=${window.location.protocol === 'https:'}; samesite=strict`
-        
-        // Redirect based on role
+      if (response.ok && result.success) {
+        // For admin, redirect to dashboard
         if (result.user.role === 'ADMIN') {
-          router.push('/dashboard') // Admins go to dashboard with full system access
+          window.location.href = '/dashboard'
         } else {
-          router.push('/calendar') // Regular users only see calendar
+          window.location.href = '/calendar'
         }
       } else {
         setError(result.message || 'Giriş başarısız')
       }
     } catch (error) {
+      console.error('Login error:', error)
       setError('Bağlantı hatası oluştu')
     } finally {
       setIsLoading(false)
