@@ -7,7 +7,7 @@ import { Eye, EyeOff, User, Lock, Shield, UserCheck } from 'lucide-react'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: '',
     loginType: 'user' // 'user' or 'admin'
   })
@@ -23,13 +23,17 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/auth/simple-login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Include cookies
-        body: JSON.stringify(formData),
+        credentials: 'include',
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          isAdmin: formData.loginType === 'admin'
+        }),
       })
 
       const result = await response.json()
@@ -66,7 +70,7 @@ export default function LoginPage() {
     setFormData(prev => ({
       ...prev,
       loginType: type,
-      username: type === 'admin' ? 'admin' : '',
+      email: type === 'admin' ? 'admin' : '',
       password: ''
     }))
     setError('')
@@ -123,11 +127,11 @@ export default function LoginPage() {
             </div>
 
             {/* Form */}
-            <div className="p-8">
-              {/* Username Field */}
+            <form onSubmit={handleSubmit} className="p-8">
+              {/* Email Field */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Kullanıcı Adı
+                  E-posta / Kullanıcı Adı
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -139,10 +143,10 @@ export default function LoginPage() {
                   </div>
                   <input
                     type="text"
-                    name="username"
-                    value={formData.username}
+                    name="email"
+                    value={formData.email}
                     onChange={handleInputChange}
-                    placeholder={formData.loginType === 'admin' ? 'admin' : 'Kullanıcı adınızı giriniz'}
+                    placeholder={formData.loginType === 'admin' ? 'admin' : 'E-posta adresiniz veya kullanıcı adınız'}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     required
                   />
@@ -190,20 +194,8 @@ export default function LoginPage() {
 
               {/* Submit Button */}
               <button
-                type="button"
-                onClick={() => {
-                  console.log('Submit button clicked!')
-                  alert('Submit button clicked!')
-                  handleSubmit(new Event('submit') as any)
-                }}
-                style={{
-                  cursor: 'pointer',
-                  pointerEvents: 'auto',
-                  zIndex: 999,
-                  position: 'relative',
-                  border: 'none',
-                  outline: 'none'
-                }}
+                type="submit"
+                disabled={isLoading}
                 className={`w-full py-3 px-4 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer ${
                   formData.loginType === 'admin'
                     ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
@@ -224,7 +216,7 @@ export default function LoginPage() {
                   </div>
                 )}
               </button>
-            </div>
+            </form>
           </div>
 
           {/* Security Notice */}
