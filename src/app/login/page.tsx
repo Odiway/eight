@@ -69,6 +69,7 @@ export default function LoginPage() {
   }
 
   const handleLoginTypeChange = (type: 'user' | 'admin') => {
+    console.log('Login type change clicked:', type)
     setFormData(prev => ({
       ...prev,
       loginType: type,
@@ -81,7 +82,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+      <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
       
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         {/* Logo and Brand */}
@@ -105,7 +106,18 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleLoginTypeChange('user')}
-                className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                onMouseDown={(e) => {
+                  console.log('User button mouse down', e)
+                  e.preventDefault()
+                }}
+                onMouseUp={() => console.log('User button mouse up')}
+                style={{ 
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  zIndex: 10,
+                  position: 'relative'
+                }}
+                className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer ${
                   formData.loginType === 'user'
                     ? 'bg-blue-600 text-white shadow-lg'
                     : 'bg-transparent text-gray-600 hover:bg-white hover:shadow-sm'
@@ -117,7 +129,18 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleLoginTypeChange('admin')}
-                className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                onMouseDown={(e) => {
+                  console.log('Admin button mouse down', e)
+                  e.preventDefault()
+                }}
+                onMouseUp={() => console.log('Admin button mouse up')}
+                style={{ 
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  zIndex: 10,
+                  position: 'relative'
+                }}
+                className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer ${
                   formData.loginType === 'admin'
                     ? 'bg-purple-600 text-white shadow-lg'
                     : 'bg-transparent text-gray-600 hover:bg-white hover:shadow-sm'
