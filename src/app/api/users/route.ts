@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { assignUserToTeam } from '@/lib/team-utils'
 import { revalidatePath } from 'next/cache'
+import bcrypt from 'bcryptjs'
 
 export async function GET() {
   try {
@@ -62,6 +63,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Generate username from email (part before @)
+    const emailUsername = body.email.split('@')[0]
+    
+    // Check if username already exists, if so add a number
+    let username = emailUsername
+    let counter = 1
+    while (await prisma.user.findUnique({ where: { username } })) {
+      username = `${emailUsername}${counter}`
+      counter++
+    }
+
+    // Generate default password (can be customized)
+    const defaultPassword = body.password || '123456' // Allow custom password or default
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10)
+
+    // Determine user role (admin if management position)
+    const isAdmin = body.position.toLowerCase().includes('müdür') || 
+                    body.position.toLowerCase().includes('yönetici') ||
+                    body.department.toLowerCase() === 'yönetim'
+
     const user = await prisma.user.create({
       data: {
         name: body.name,
@@ -71,6 +92,12 @@ export async function POST(request: NextRequest) {
         photo: body.photo || null,
         maxHoursPerDay: body.maxHoursPerDay || 8,
         workingDays: body.workingDays || "1,2,3,4,5",
+        
+        // Authentication fields
+        username: username,
+        password: hashedPassword,
+        role: isAdmin ? 'ADMIN' : 'USER',
+        isActive: true,
       },
       include: {
         assignedTasks: true,
@@ -109,7 +136,18 @@ export async function POST(request: NextRequest) {
     revalidatePath('/team')
     revalidatePath('/projects')
 
-    return NextResponse.json(updatedUser, { status: 201 })
+    // Return user info with login credentials (for admin reference)
+    const userResponse = {
+      ...updatedUser,
+      // Include login credentials in response for the admin creating the user
+      loginCredentials: {
+        username: username,
+        password: body.password || '123456', // Return the plain password for admin reference
+        role: isAdmin ? 'ADMIN' : 'USER'
+      }
+    }
+
+    return NextResponse.json(userResponse, { status: 201 })
   } catch (error) {
     console.error('Error creating user:', error)
     return NextResponse.json(
