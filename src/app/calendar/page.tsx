@@ -81,32 +81,49 @@ async function getCalendarData(projectId?: string, currentUser?: any) {
     return { tasks: [], projects: [] }
   }
 
+  console.log('=== CALENDAR FILTERING DEBUG ===')
+  console.log('Current user:', currentUser)
+  console.log('User role:', currentUser.role)
+  console.log('User name:', currentUser.name)
+
   // Base filter for projects/tasks
   const projectFilter = projectId ? { projectId } : {}
 
-  // Build task filter based on user role
   let taskFilter: any = {
     ...projectFilter,
     OR: [{ startDate: { not: null } }, { endDate: { not: null } }],
   }
 
-  // If user is NOT admin, only show tasks assigned to them
+  // SIMPLE APPROACH: If not admin, only show tasks where this user is specifically assigned
   if (currentUser.role !== 'ADMIN') {
+    // For regular users: Only show tasks where THEIR NAME appears
+    // Either as the main assignedUser OR in the assignedUsers list
     taskFilter.AND = [
       {
         OR: [
+          // Task assigned directly to this user
           { assignedId: currentUser.id },
+          // Task assigned to this user through assignedUsers relationship
           {
             assignedUsers: {
               some: {
                 userId: currentUser.id
               }
             }
+          },
+          // Backup: check by name if ID matching fails
+          {
+            assignedUser: {
+              name: currentUser.name
+            }
           }
         ]
       }
     ]
   }
+  // If ADMIN: show all tasks (no additional filters)
+
+  console.log('Task filter:', JSON.stringify(taskFilter, null, 2))
 
   const tasks = await prisma.task.findMany({
     where: taskFilter,
@@ -124,7 +141,16 @@ async function getCalendarData(projectId?: string, currentUser?: any) {
     },
   })
 
-  // For regular users, only show projects they're assigned to
+  console.log(`Found ${tasks.length} tasks for user: ${currentUser.name}`)
+  
+  // Debug: Log task assignments to verify filtering
+  tasks.forEach(task => {
+    console.log(`Task: ${task.title}`)
+    console.log(`  - Assigned to: ${task.assignedUser?.name || 'No one'}`)
+    console.log(`  - Multiple assignees: ${task.assignedUsers.map(au => au.user.name).join(', ')}`)
+  })
+
+  // For projects: same logic
   let projectsFilter: any = {}
   if (currentUser.role !== 'ADMIN') {
     projectsFilter = {
@@ -141,7 +167,16 @@ async function getCalendarData(projectId?: string, currentUser?: any) {
             some: {
               OR: [
                 { assignedId: currentUser.id },
-                { assignedUsers: { some: { userId: currentUser.id } } }
+                { 
+                  assignedUsers: { 
+                    some: { userId: currentUser.id } 
+                  } 
+                },
+                {
+                  assignedUser: {
+                    name: currentUser.name
+                  }
+                }
               ]
             }
           }
@@ -158,6 +193,8 @@ async function getCalendarData(projectId?: string, currentUser?: any) {
     },
     orderBy: { name: 'asc' },
   })
+
+  console.log(`Found ${projects.length} projects for user: ${currentUser.name}`)
 
   return { tasks, projects }
 }
