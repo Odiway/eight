@@ -38,18 +38,25 @@ export default function LoginPage() {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        // Store token in cookie for server-side authentication
-        document.cookie = `auth-token=${result.token}; path=/; max-age=86400; secure; samesite=strict`
-        
-        // Also update auth context with user data
-        login(result.user)
-        
-        // Redirect based on role
-        if (result.user.role === 'ADMIN') {
-          router.push('/dashboard')
-        } else {
-          router.push('/calendar')
+        // Create session data for cookie
+        const sessionData = {
+          id: result.user.id,
+          username: result.user.username,
+          name: result.user.name,
+          role: result.user.role,
+          timestamp: Date.now()
         }
+        
+        // Store session in cookie (matching check-session expectations)
+        const sessionCookie = Buffer.from(JSON.stringify(sessionData)).toString('base64')
+        document.cookie = `auth-session=${sessionCookie}; path=/; max-age=86400; samesite=lax`
+        
+        // Also store in localStorage as backup
+        localStorage.setItem('authToken', result.token)
+        localStorage.setItem('user', JSON.stringify(result.user))
+        
+        // Force reload to ensure proper session
+        window.location.href = result.user.role === 'ADMIN' ? '/dashboard' : '/calendar'
       } else {
         setError(result.message || 'Giriş başarısız')
       }
