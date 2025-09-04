@@ -38,10 +38,21 @@ export default function LoginPage() {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        // Clear only conflicting cookies before setting new ones
-        document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        console.log('=== LOGIN SUCCESS DEBUG ===')
+        console.log('API Response user:', result.user)
         
-        // Create session data for the specific user who just logged in
+        // NUCLEAR OPTION: Clear ALL possible cookies and storage
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
+        // Clear all localStorage and sessionStorage
+        localStorage.clear()
+        sessionStorage.clear()
+        
+        console.log('All cookies and storage cleared')
+        
+        // Create session data for the user who ACTUALLY logged in
         const sessionData = {
           id: result.user.id,
           username: result.user.username,
@@ -50,17 +61,23 @@ export default function LoginPage() {
           timestamp: Date.now()
         }
         
+        console.log('Creating session for:', sessionData)
+        
         // Set the new session cookie
         const sessionCookie = Buffer.from(JSON.stringify(sessionData)).toString('base64')
         document.cookie = `auth-session=${sessionCookie}; path=/; max-age=86400; samesite=lax`
         
-        // Store in localStorage for backup (clear old first)
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('user')
+        // Verify the cookie was set
+        console.log('Cookie set, document.cookie:', document.cookie)
+        
+        // Store in localStorage for verification
         localStorage.setItem('authToken', result.token)
         localStorage.setItem('user', JSON.stringify(result.user))
+        localStorage.setItem('debug-login-user', result.user.username)
         
-        // Redirect immediately without delay
+        console.log('Redirecting to:', result.user.role === 'ADMIN' ? '/dashboard' : '/calendar')
+        
+        // Redirect
         if (result.user.role === 'ADMIN') {
           window.location.href = '/dashboard'
         } else {

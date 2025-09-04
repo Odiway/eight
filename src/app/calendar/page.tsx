@@ -15,14 +15,20 @@ async function getCurrentUser() {
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get('auth-session')?.value
 
+    console.log('=== CALENDAR AUTH DEBUG ===')
+    console.log('Raw session cookie:', sessionCookie)
+
     if (!sessionCookie) {
+      console.log('No session cookie found')
       return null
     }
 
     // Decode the session data from the cookie
     const sessionData = JSON.parse(Buffer.from(sessionCookie, 'base64').toString())
+    console.log('Decoded session data:', sessionData)
     
     if (!sessionData.id) {
+      console.log('No user ID in session')
       return null
     }
 
@@ -31,18 +37,21 @@ async function getCurrentUser() {
     const maxAge = 24 * 60 * 60 * 1000 // 24 hours
     
     if (now - sessionData.timestamp > maxAge) {
+      console.log('Session expired')
       return null // Session expired
     }
 
     // For admin users, return the session data directly
     if (sessionData.role === 'ADMIN') {
-      return {
+      const adminUser = {
         id: sessionData.id,
         name: sessionData.name,
         email: 'admin@temsa.com',
         role: sessionData.role,
         username: sessionData.username
       }
+      console.log('Returning admin user:', adminUser)
+      return adminUser
     }
 
     // For regular users, fetch from database to get the most current data
@@ -59,6 +68,7 @@ async function getCurrentUser() {
       }
     })
 
+    console.log('Database user found:', user)
     return user
   } catch (error) {
     console.error('Error getting current user:', error)
