@@ -1,5 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import jwt from 'jsonwebtoken'
+
+// Helper function to get current user from request
+async function getCurrentUser(request: NextRequest) {
+  try {
+    const token = request.cookies.get('auth-token')?.value
+
+    if (!token) {
+      return null
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret') as any
+    
+    if (!decoded.userId) {
+      return null
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        position: true
+      }
+    })
+
+    return user
+  } catch (error) {
+    console.error('Error getting current user:', error)
+    return null
+  }
+}
 
 // Helper function to calculate workload percentage
 function calculateWorkloadPercentage(task: any): number {
@@ -43,6 +78,15 @@ function getWorkingDaysBetween(startDate: Date, endDate: Date): number {
 
 export async function GET(request: NextRequest) {
   try {
+    const currentUser = await getCurrentUser(request)
+    
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const projectId = searchParams.get('projectId')
     const userId = searchParams.get('userId')
@@ -50,29 +94,48 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate')
     const enhanced = searchParams.get('enhanced') === 'true'
 
+    // Build base filter
+    let baseFilter: any = {}
+
+    if (projectId) {
+      baseFilter.projectId = projectId
+    }
+
+    if (userId) {
+      baseFilter.assignedId = userId
+    }
+
+    if (startDate && endDate) {
+      baseFilter.OR = [
+        {
+          startDate: {
+            gte: new Date(startDate),
+            lte: new Date(endDate)
+          }
+        },
+        {
+          endDate: {
+            gte: new Date(startDate),
+            lte: new Date(endDate)
+          }
+        }
+      ]
+    }
+
+    // Apply user-based filtering
+    if (currentUser.role !== 'ADMIN') {
+      // Regular users only see their own tasks
+      baseFilter.OR = [
+        ...(baseFilter.OR || []),
+        { assignedId: currentUser.id },
+        { assignedUsers: { some: { userId: currentUser.id } } }
+      ]
+    }
+
     if (enhanced && projectId) {
       // Enhanced mode with workload and bottleneck data
       const tasks = await prisma.task.findMany({
-        where: {
-          projectId,
-          ...(userId && { assignedId: userId }),
-          ...(startDate && endDate && {
-            OR: [
-              {
-                startDate: {
-                  gte: new Date(startDate),
-                  lte: new Date(endDate)
-                }
-              },
-              {
-                endDate: {
-                  gte: new Date(startDate),
-                  lte: new Date(endDate)
-                }
-              }
-            ]
-          })
-        },
+        where: baseFilter,
         include: {
           project: true,
           assignedUser: true,
@@ -87,45 +150,52 @@ export async function GET(request: NextRequest) {
         },
       })
 
-      // Get workload analysis
+      // Get workload analysis (only for current user if not admin)
+      const workloadFilter: any = { projectId }
+      if (currentUser.role !== 'ADMIN') {
+        workloadFilter.userId = currentUser.id
+      }
+      if (userId) {
+        workloadFilter.userId = userId
+      }
+      if (startDate && endDate) {
+        workloadFilter.date = {
+          gte: new Date(startDate),
+          lte: new Date(endDate)
+        }
+      }
+
       const workloadAnalysis = await prisma.workloadAnalysis.findMany({
-        where: {
-          projectId,
-          ...(userId && { userId }),
-          ...(startDate && endDate && {
-            date: {
-              gte: new Date(startDate),
-              lte: new Date(endDate)
-            }
-          })
-        },
+        where: workloadFilter,
         include: {
           user: true
         }
       })
 
-      // Get bottlenecks
-      const bottlenecks = await prisma.projectBottleneck.findMany({
-        where: {
-          projectId,
-          ...(startDate && endDate && {
-            date: {
-              gte: new Date(startDate),
-              lte: new Date(endDate)
-            }
-          })
+      // Get bottlenecks (admins see all, users see project-level only)
+      const bottleneckFilter: any = { projectId }
+      if (startDate && endDate) {
+        bottleneckFilter.date = {
+          gte: new Date(startDate),
+          lte: new Date(endDate)
         }
+      }
+
+      const bottlenecks = await prisma.projectBottleneck.findMany({
+        where: bottleneckFilter
       })
 
       return NextResponse.json({
         tasks,
         workloadAnalysis,
-        bottlenecks
+        bottlenecks,
+        userRole: currentUser.role
       })
     }
 
     // Standard mode
     const tasks = await prisma.task.findMany({
+      where: baseFilter,
       include: {
         project: true,
         assignedUser: true,
@@ -137,7 +207,11 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(tasks)
+    return NextResponse.json({
+      tasks,
+      userRole: currentUser.role,
+      totalTasks: tasks.length
+    })
   } catch (error) {
     console.error('Error fetching tasks:', error)
     return NextResponse.json(
