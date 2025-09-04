@@ -19,21 +19,35 @@ async function getCurrentUser() {
       return null
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret') as any
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-change-in-production') as any
     
-    if (!decoded.userId) {
+    // The JWT payload contains user info directly, not userId
+    if (!decoded.id) {
       return null
     }
 
+    // For admin users, return the decoded data directly
+    if (decoded.role === 'ADMIN') {
+      return {
+        id: decoded.id,
+        name: decoded.name,
+        email: decoded.email,
+        role: decoded.role,
+        username: decoded.username
+      }
+    }
+
+    // For regular users, fetch from database to get the most current data
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: decoded.id },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
         department: true,
-        position: true
+        position: true,
+        username: true
       }
     })
 

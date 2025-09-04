@@ -7,7 +7,7 @@ import { Eye, EyeOff, User, Lock, Shield, UserCheck } from 'lucide-react'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: '',
     loginType: 'user' // 'user' or 'admin'
   })
@@ -28,18 +28,20 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({
-          email: formData.email,
+          username: formData.username,
           password: formData.password,
-          isAdmin: formData.loginType === 'admin'
+          loginType: formData.loginType
         }),
       })
 
       const result = await response.json()
 
       if (response.ok && result.success) {
-        // Update auth context with user data
+        // Store token in cookie for server-side authentication
+        document.cookie = `auth-token=${result.token}; path=/; max-age=86400; secure; samesite=strict`
+        
+        // Also update auth context with user data
         login(result.user)
         
         // Redirect based on role
@@ -70,7 +72,7 @@ export default function LoginPage() {
     setFormData(prev => ({
       ...prev,
       loginType: type,
-      email: type === 'admin' ? 'admin' : '',
+      username: type === 'admin' ? 'admin' : '',
       password: ''
     }))
     setError('')
@@ -127,11 +129,11 @@ export default function LoginPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-8">
-              {/* Email Field */}
+            <div className="p-8">
+              {/* Username Field */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  E-posta / Kullanıcı Adı
+                  Kullanıcı Adı
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -143,10 +145,10 @@ export default function LoginPage() {
                   </div>
                   <input
                     type="text"
-                    name="email"
-                    value={formData.email}
+                    name="username"
+                    value={formData.username}
                     onChange={handleInputChange}
-                    placeholder={formData.loginType === 'admin' ? 'admin' : 'E-posta adresiniz veya kullanıcı adınız'}
+                    placeholder={formData.loginType === 'admin' ? 'admin' : 'Kullanıcı adınızı giriniz'}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     required
                   />
@@ -194,7 +196,8 @@ export default function LoginPage() {
 
               {/* Submit Button */}
               <button
-                type="submit"
+                type="button"
+                onClick={(e) => handleSubmit(e)}
                 disabled={isLoading}
                 className={`w-full py-3 px-4 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer ${
                   formData.loginType === 'admin'
@@ -216,7 +219,7 @@ export default function LoginPage() {
                   </div>
                 )}
               </button>
-            </form>
+            </div>
           </div>
 
           {/* Security Notice */}
