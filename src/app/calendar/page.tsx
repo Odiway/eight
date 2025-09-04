@@ -141,13 +141,23 @@ async function getCalendarData(projectId?: string, currentUser?: any) {
     const isDirectlyAssigned = task.assignedUser?.id === currentUser.id
     const isInMultipleAssignees = task.assignedUsers.some(au => au.user.id === currentUser.id)
     const isAssignedByName = task.assignedUser?.name === currentUser.name
+    const isInMultipleAssigneesByName = task.assignedUsers.some(au => au.user.name === currentUser.name)
     
-    const shouldShow = isDirectlyAssigned || isInMultipleAssignees || isAssignedByName
+    const shouldShow = isDirectlyAssigned || isInMultipleAssignees || isAssignedByName || isInMultipleAssigneesByName
+    
+    console.log(`\n--- Task: "${task.title}" ---`)
+    console.log(`Direct assignment: ${task.assignedUser?.name || 'none'} (${isDirectlyAssigned})`)
+    console.log(`Multiple assignees: [${task.assignedUsers.map(au => `${au.user.name} (ID: ${au.user.id})`).join(', ')}]`)
+    console.log(`Current user: ${currentUser.name} (ID: ${currentUser.id})`)
+    console.log(`Current user username: ${currentUser.username}`)
+    console.log(`Multiple assignees check: ${isInMultipleAssignees}`)
+    console.log(`Multiple assignees by name check: ${isInMultipleAssigneesByName}`)
+    console.log(`Should show: ${shouldShow}`)
     
     if (shouldShow) {
-      console.log(`✅ Showing task "${task.title}" - assigned to: ${task.assignedUser?.name}`)
+      console.log(`✅ SHOWING this task`)
     } else {
-      console.log(`❌ Hiding task "${task.title}" - assigned to: ${task.assignedUser?.name}`)
+      console.log(`❌ HIDING this task`)
     }
     
     return shouldShow
