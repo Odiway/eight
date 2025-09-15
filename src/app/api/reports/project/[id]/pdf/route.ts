@@ -102,18 +102,19 @@ interface ProjectReportData {
 
 // ===== ULTRA-PREMIUM HTML TEMPLATE =====
 function generateExecutiveHTMLReport(data: any): string {
-  console.log('🎨 Starting HTML generation with data:', {
-    hasProject: !!data?.project,
-    tasksCount: data?.tasks?.length || 0,
-    teamMembersCount: data?.teamMembers?.length || 0,
-    projectName: data?.project?.name || 'Unknown'
-  })
-  
-  // Safely handle data with null checks
-  const tasks = data?.tasks || []
-  const teamMembers = data?.teamMembers || []
-  const project = data?.project || {}
-  const workloadData = data?.workloadData || { efficiency: 0 }
+  try {
+    console.log('🎨 Starting HTML generation with data:', {
+      hasProject: !!data?.project,
+      tasksCount: data?.tasks?.length || 0,
+      teamMembersCount: data?.teamMembers?.length || 0,
+      projectName: data?.project?.name || 'Unknown'
+    })
+    
+    // Safely handle data with null checks
+    const tasks = data?.tasks || []
+    const teamMembers = data?.teamMembers || []
+    const project = data?.project || {}
+    const workloadData = data?.workloadData || { efficiency: 0 }
   
   // Calculate KPIs with safe access
   const totalTasks = tasks.length
@@ -166,7 +167,7 @@ function generateExecutiveHTMLReport(data: any): string {
     }
   }
 
-  return `
+  const htmlResult = `
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -1726,8 +1727,12 @@ function generateExecutiveHTMLReport(data: any): string {
 </html>
   `
   
-  console.log('✅ HTML template generated successfully, length:', result.length)
-  return result
+  console.log('✅ HTML template generated successfully, length:', htmlResult.length)
+  return htmlResult
+  } catch (htmlError) {
+    console.error('❌ HTML generation error:', htmlError)
+    throw new Error('HTML generation failed: ' + (htmlError as Error).message)
+  }
 }
 
 // Helper function to build report data
