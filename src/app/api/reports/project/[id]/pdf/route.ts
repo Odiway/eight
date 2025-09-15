@@ -1296,11 +1296,11 @@ function generateExecutiveHTMLReport(data: any): string {
                 <div class="kpi-subtitle">${completedTasks}/${totalTasks} Görev</div>
             </div>
             
-            <div class="kpi-card tasks">
-                <span class="kpi-icon">⚠</span>
-                <div class="kpi-value">24</div>
-                <div class="kpi-label">Gecikme Günü</div>
-                <div class="kpi-subtitle">Hesaplanan</div>
+            <div class="kpi-card efficiency">
+                <span class="kpi-icon">📊</span>
+                <div class="kpi-value">${efficiency.toFixed(1)}%</div>
+                <div class="kpi-label">Verimlilik</div>
+                <div class="kpi-subtitle">Performans Oranı</div>
             </div>
             
             <div class="kpi-card team">
@@ -1346,91 +1346,104 @@ function generateExecutiveHTMLReport(data: any): string {
             </div>
         </div>
         
-        <!-- ===== GECIKMIŞ GÖREVLER SECTION ===== -->
+        <!-- ===== GANTT CHART SECTION ===== -->
         <div class="analytics-section">
             <div class="section-header">
-                <h2>GECİKMİŞ GÖREVLER</h2>
-                <p>Planlanan Tarihini Geçen Görevler</p>
+                <h2>PROJE GANTT DİYAGRAMI</h2>
+                <p>Görev Zaman Çizelgesi ve Proje İlerlemesi</p>
             </div>
             
-            ${(() => {
-              // Find overdue tasks (simple calculation)
-              const now = new Date()
-              const overdueTasks = data.tasks.filter((task: any) => {
-                if (task.status === 'COMPLETED' || !task.endDate) return false
-                const taskEndDate = new Date(task.endDate)
-                return taskEndDate < now
-              })
-
-              if (overdueTasks.length > 0) {
-                return `
-                <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); padding: 25px; border-radius: 12px; border: 2px solid #f87171; margin-bottom: 25px;">
-                    <h4 style="color: #dc2626; margin-bottom: 20px; font-size: 18px; font-weight: 600;">⚠️ Gecikmiş Görevler (${overdueTasks.length} adet)</h4>
-                    
-                    <div style="display: grid; gap: 12px;">
-                        ${overdueTasks.slice(0, 8).map((task: any) => {
-                          const daysOverdue = task.endDate ? Math.ceil((now.getTime() - new Date(task.endDate).getTime()) / (1000 * 60 * 60 * 24)) : 0
-                          return `
-                            <div style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(220, 38, 38, 0.2);">
-                                <div style="color: #7f1d1d; font-weight: 500; font-size: 14px; flex: 1;">
-                                    ${formatTurkishText(task.title)}
-                                    <div style="font-size: 12px; opacity: 0.7; margin-top: 2px;">Bitmesi gereken: ${task.endDate ? new Date(task.endDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</div>
-                                </div>
-                                <div style="color: #dc2626; font-weight: 700; font-size: 16px; text-align: center; background: rgba(220, 38, 38, 0.1); padding: 8px 12px; border-radius: 6px;">
-                                    ${daysOverdue} gün
-                                </div>
-                            </div>`
-                        }).join('')}
-                        ${overdueTasks.length > 8 ? `
-                            <div style="color: #7f1d1d; font-size: 12px; text-align: center; margin-top: 8px; font-weight: 500;">
-                                +${overdueTasks.length - 8} görev daha gecikmiş durumda...
-                            </div>
-                        ` : ''}
-                    </div>
-                    
-                    <div style="margin-top: 20px; padding: 15px; background: rgba(220, 38, 38, 0.1); border-radius: 8px; text-align: center;">
-                        <div style="color: #dc2626; font-weight: 700; font-size: 18px;">Toplam: ${overdueTasks.reduce((sum: number, task: any) => {
-                          const daysOverdue = task.endDate ? Math.ceil((now.getTime() - new Date(task.endDate).getTime()) / (1000 * 60 * 60 * 24)) : 0
-                          return sum + daysOverdue
-                        }, 0)} Gecikme Günü</div>
-                        <div style="color: #7f1d1d; font-size: 12px; margin-top: 4px;">Tüm gecikmiş görevlerin toplam gecikmesi</div>
-                    </div>
-                </div>`
-              } else {
-                return `
-                <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 25px; border-radius: 12px; border: 2px solid #10b981; margin-bottom: 25px; text-align: center;">
-                    <div style="color: #059669; font-size: 18px; font-weight: 600; margin-bottom: 10px;">✅ Tüm Görevler Zamanında</div>
-                    <div style="color: #065f46; font-size: 14px;">Hiç gecikmiş görev bulunmuyor. Proje planlandığı gibi ilerliyor.</div>
-                </div>`
-              }
-            })()}
-        </div>
-        
-        <!-- ===== PROJE TARİHLERİ SECTION ===== -->
-        <div class="analytics-section">
-            <div class="section-header">
-                <h2>PROJE TARİHLERİ</h2>
-                <p>Planlanan ve Gerçek Bitiş Tarihleri</p>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
-                <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">📅 Planlanan Bitiş Tarihi</div>
-                    <div style="font-size: 18px; font-weight: 700;">27.03.2026</div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Hedef tarih</div>
+            <!-- Gantt Chart Container -->
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0; margin-bottom: 30px;">
+                <h3 style="color: #1e293b; margin-bottom: 20px; font-size: 18px; font-weight: 700;">📊 Görev Zaman Çizelgesi</h3>
+                
+                <!-- Timeline Header -->
+                <div style="display: grid; grid-template-columns: 300px repeat(12, 1fr); gap: 2px; margin-bottom: 15px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                    <div style="font-weight: 600; color: #374151; padding: 8px;">Görev Adı</div>
+                    ${Array.from({length: 12}, (_, i) => {
+                      const month = new Date(2024, i).toLocaleDateString('tr-TR', { month: 'short' })
+                      return `<div style="text-align: center; font-size: 11px; font-weight: 600; color: #6b7280; padding: 4px;">${month}</div>`
+                    }).join('')}
                 </div>
                 
-                <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">⏱️ Gerçek Bitiş Tarihi</div>
-                    <div style="font-size: 18px; font-weight: 700;">20.04.2026</div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Tahmini bitiş</div>
+                <!-- Gantt Chart Rows -->
+                ${data.tasks.slice(0, 8).map((task: any, index: number) => {
+                  const taskTitle = formatTurkishText(task.title)
+                  const startMonth = task.startDate ? new Date(task.startDate).getMonth() : 0
+                  const endMonth = task.endDate ? new Date(task.endDate).getMonth() : startMonth + 2
+                  const duration = Math.max(1, endMonth - startMonth + 1)
+                  
+                  // Color based on status
+                  let barColor = '#94a3b8' // default gray
+                  if (task.status === 'COMPLETED') barColor = '#10b981' // green
+                  else if (task.status === 'IN_PROGRESS') barColor = '#3b82f6' // blue
+                  else if (task.status === 'PENDING') barColor = '#f59e0b' // amber
+                  
+                  return `
+                    <div style="display: grid; grid-template-columns: 300px repeat(12, 1fr); gap: 2px; margin-bottom: 8px; align-items: center;">
+                        <div style="padding: 8px; font-size: 13px; color: #374151; font-weight: 500; background: #f9fafb; border-radius: 6px;">
+                            ${taskTitle.length > 35 ? taskTitle.substring(0, 35) + '...' : taskTitle}
+                            <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">${task.status === 'COMPLETED' ? '✅' : task.status === 'IN_PROGRESS' ? '🔄' : '⏳'} ${getStatusText(task.status)}</div>
+                        </div>
+                        ${Array.from({length: 12}, (_, monthIndex) => {
+                          const isInRange = monthIndex >= startMonth && monthIndex < startMonth + duration
+                          const isStart = monthIndex === startMonth
+                          const isEnd = monthIndex === startMonth + duration - 1
+                          
+                          if (isInRange) {
+                            const borderRadius = isStart && isEnd ? '6px' : 
+                                               isStart ? '6px 0 0 6px' :
+                                               isEnd ? '0 6px 6px 0' : '0'
+                            return `<div style="height: 20px; background: ${barColor}; border-radius: ${borderRadius}; margin: 2px 1px;"></div>`
+                          } else {
+                            return `<div style="height: 20px; margin: 2px 1px;"></div>`
+                          }
+                        }).join('')}
+                    </div>
+                  `
+                }).join('')}
+                
+                ${data.tasks.length > 8 ? `
+                <div style="text-align: center; padding: 15px; color: #6b7280; font-size: 12px; font-style: italic;">
+                    +${data.tasks.length - 8} görev daha var... (Ana görevler gösteriliyor)
                 </div>
-            </div>
-            
-            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%); padding: 20px; border-radius: 12px; border: 2px solid #f59e0b; text-align: center;">
-                <div style="color: #d97706; font-size: 16px; font-weight: 600; margin-bottom: 8px;">⚠️ Gecikme Durumu</div>
-                <div style="color: #92400e; font-size: 24px; font-weight: 700;">24 GÜN GECİKME</div>
-                <div style="color: #78350f; font-size: 12px; margin-top: 4px;">Planlanan tarihe göre gecikme süresi</div>
+                ` : ''}
+                
+                <!-- Legend -->
+                <div style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 16px; height: 16px; background: #10b981; border-radius: 4px;"></div>
+                        <span style="font-size: 12px; color: #374151;">Tamamlandı</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 16px; height: 16px; background: #3b82f6; border-radius: 4px;"></div>
+                        <span style="font-size: 12px; color: #374151;">Devam Ediyor</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 16px; height: 16px; background: #f59e0b; border-radius: 4px;"></div>
+                        <span style="font-size: 12px; color: #374151;">Beklemede</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 16px; height: 16px; background: #94a3b8; border-radius: 4px;"></div>
+                        <span style="font-size: 12px; color: #374151;">Henüz Başlanmadı</span>
+                    </div>
+                </div>
+                
+                <!-- Project Timeline Summary -->
+                <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 8px;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">📅 Proje Başlangıç</div>
+                        <div style="font-size: 16px; font-weight: 700;">${data.project.startDate ? new Date(data.project.startDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 8px;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">🎯 Hedef Bitiş</div>
+                        <div style="font-size: 16px; font-weight: 700;">${data.project.endDate ? new Date(data.project.endDate).toLocaleDateString('tr-TR') : '27.03.2026'}</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border-radius: 8px;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">📊 İlerleme</div>
+                        <div style="font-size: 16px; font-weight: 700;">${completionRate.toFixed(1)}%</div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -1456,194 +1469,30 @@ function generateExecutiveHTMLReport(data: any): string {
                           )
                         : 'Belirtilmemiş'
                     }</div>
-                    <div class="timeline-label">Gerçek Başlangıç</div>
+                    <div class="timeline-label">Proje Başlangıç</div>
                 </div>
                 
                 <div class="timeline-card estimated-date">
                     <span class="timeline-icon">📅</span>
-                    <div class="timeline-value">20.04.2026</div>
-                    <div class="timeline-label">Gerçek Bitiş</div>
-                </div>
-                
-                <div class="timeline-card remaining-days">
-                    <span class="timeline-icon">⏰</span>
-                    <div class="timeline-value">24</div>
-                    <div class="timeline-label">Gecikme Günü</div>
+                    <div class="timeline-value">${data.project.endDate ? new Date(data.project.endDate).toLocaleDateString('tr-TR') : '27.03.2026'}</div>
+                    <div class="timeline-label">Hedef Bitiş</div>
                 </div>
                 
                 <div class="timeline-card critical-path">
                     <span class="timeline-icon">🔴</span>
-                    <div class="timeline-value">4</div>
-                    <div class="timeline-label">Kritik Görev</div>
-                </div>
-            </div>
-            
-            <!-- ===== GELİŞMİŞ BİTİŞ TARİHİ ANALİZİ ===== -->
-            <div class="date-analysis-section" style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 15px; border: 2px solid #cbd5e1;">
-                <h3 style="color: #1e293b; margin-bottom: 20px; font-size: 22px; font-weight: 700;">📅 Takvim Senkron Analizi</h3>
-                
-                <!-- Basit Tarih Karşılaştırması (Takvim ile Senkron) -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-                    <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">📅 Planlanan Bitiş Tarihi</div>
-                        <div style="font-size: 18px; font-weight: 700;">27.03.2026</div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Takvimden alınan</div>
-                    </div>
-                    
-                    <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">📅 Gerçek/Tahmini Bitiş</div>
-                        <div style="font-size: 18px; font-weight: 700;">20.04.2026</div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Gecikmiş</div>
-                    </div>
+                    <div class="timeline-value">${data.tasks.filter((t: any) => t.priority === 'HIGH').length}</div>
+                    <div class="timeline-label">Yüksek Öncelikli</div>
                 </div>
                 
-                <!-- Status calculation section - using direct hardcoded values -->
-                <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 30px;">
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">⏱️ Gerçek Bitiş Tarihi</div>
-                    <div style="font-size: 18px; font-weight: 700;">20.04.2026</div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Görev bazlı hesaplama</div>
+                <div class="timeline-card">
+                    <span class="timeline-icon">�</span>
+                    <div class="timeline-value">${completionRate.toFixed(0)}%</div>
+                    <div class="timeline-label">Tamamlanma</div>
                 </div>
-
-                <!-- 4 Faktörlü Gecikme Analizi -->
-                ${data.dynamicDates.delayBreakdown ? `
-                <div style="background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 2px solid #e5e7eb;">
-                    <h4 style="color: #374151; margin-bottom: 20px; font-size: 18px; font-weight: 600;">📊 4 Faktörlü Gecikme Analizi</h4>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
-                        <div style="background: ${data.dynamicDates.delayBreakdown.dominantFactor === 'tasks' ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'}; color: white; padding: 15px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 20px; font-weight: 700;">${data.dynamicDates.delayBreakdown.taskBasedDelay}</div>
-                            <div style="font-size: 11px; opacity: 0.9;">Görev Bazlı</div>
-                            ${data.dynamicDates.delayBreakdown.dominantFactor === 'tasks' ? '<div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">🏆 Dominant</div>' : ''}
-                        </div>
-                        
-                        <div style="background: ${data.dynamicDates.delayBreakdown.dominantFactor === 'schedule' ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'}; color: white; padding: 15px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 20px; font-weight: 700;">${data.dynamicDates.delayBreakdown.scheduleBasedDelay}</div>
-                            <div style="font-size: 11px; opacity: 0.9;">Program Bazlı</div>
-                            ${data.dynamicDates.delayBreakdown.dominantFactor === 'schedule' ? '<div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">🏆 Dominant</div>' : ''}
-                        </div>
-                        
-                        <div style="background: ${data.dynamicDates.delayBreakdown.dominantFactor === 'progress' ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'}; color: white; padding: 15px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 20px; font-weight: 700;">${data.dynamicDates.delayBreakdown.progressBasedDelay}</div>
-                            <div style="font-size: 11px; opacity: 0.9;">İlerleme Bazlı</div>
-                            ${data.dynamicDates.delayBreakdown.dominantFactor === 'progress' ? '<div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">🏆 Dominant</div>' : ''}
-                        </div>
-                        
-                        <div style="background: ${data.dynamicDates.delayBreakdown.dominantFactor === 'overdue' ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'}; color: white; padding: 15px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 20px; font-weight: 700;">${data.dynamicDates.delayBreakdown.overdueTasksDelay}</div>
-                            <div style="font-size: 11px; opacity: 0.9;">Gecikmiş Görev</div>
-                            ${data.dynamicDates.delayBreakdown.dominantFactor === 'overdue' ? '<div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">🏆 Dominant</div>' : ''}
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border-radius: 8px;">
-                        <div style="font-size: 14px; color: #374151; margin-bottom: 5px;">📈 Maksimum Gecikme (Seçilen Büyük Sayı)</div>
-                        <div style="font-size: 32px; font-weight: 900; color: #dc2626;">${data.dynamicDates.delayDays} GÜN</div>
-                        <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">Dominant Faktör: ${(() => {
-                          switch(data.dynamicDates.delayBreakdown.dominantFactor) {
-                            case 'tasks': return 'Görev Tabanlı Gecikme'
-                            case 'schedule': return 'Program Tabanlı Gecikme' 
-                            case 'progress': return 'İlerleme Tabanlı Gecikme'
-                            case 'overdue': return 'Gecikmiş Görevler'
-                            default: return 'Belirtilmemiş'
-                          }
-                        })()}</div>
-                    </div>
-                </div>
-                ` : ''}
-                
-                <!-- Durum Özeti ve Öncelikli Eylemler -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 24px; font-weight: 700; color: #059669;">${data.dynamicDates.completionPercentage.toFixed(0)}%</div>
-                        <div style="font-size: 12px; color: #64748b;">Tamamlanma Oranı</div>
-                    </div>
-                    
-                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 24px; font-weight: 700; color: #dc2626;">${data.dynamicDates.criticalPath.length}</div>
-                        <div style="font-size: 12px; color: #64748b;">Kritik Görev</div>
-                    </div>
-                    
-                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 24px; font-weight: 700; color: #3b82f6;">${data.tasks.filter((t: any) => t.status === 'IN_PROGRESS').length}</div>
-                        <div style="font-size: 12px; color: #64748b;">Devam Eden</div>
-                    </div>
-                </div>
-                
-                <!-- Gecikmiş Görevler Detayı -->
-                ${data.dynamicDates.delayBreakdown && data.dynamicDates.delayBreakdown.overdueTaskDetails.length > 0 ? `
-                <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); padding: 20px; border-radius: 10px; border: 1px solid #f87171;">
-                    <h5 style="color: #dc2626; font-weight: 600; margin-bottom: 15px; font-size: 16px;">⚠️ Gecikmiş Görevler (${data.dynamicDates.delayBreakdown.overdueTaskDetails.length} adet)</h5>
-                    <div style="display: grid; gap: 10px;">
-                        ${data.dynamicDates.delayBreakdown.overdueTaskDetails.slice(0, 5).map((task: any) => `
-                            <div style="background: rgba(255,255,255,0.7); padding: 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-                                <div style="color: #7f1d1d; font-weight: 500; font-size: 14px; flex: 1;">${formatTurkishText(task.title)}</div>
-                                <div style="color: #dc2626; font-weight: 700; font-size: 14px;">${task.daysOverdue} gün</div>
-                            </div>
-                        `).join('')}
-                        ${data.dynamicDates.delayBreakdown.overdueTaskDetails.length > 5 ? `
-                            <div style="color: #7f1d1d; font-size: 12px; text-align: center; margin-top: 8px;">
-                                +${data.dynamicDates.delayBreakdown.overdueTaskDetails.length - 5} görev daha...
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-                ` : ''}
-
-                <!-- Proje Durum Uyarıları -->
-                ${(() => {
-                  const status = data.dynamicDates.status
-                  const delayDays = data.dynamicDates.delayDays
-                  const isDelayed = data.dynamicDates.isDelayed
-
-                  if (status === 'completed') {
-                    return `
-                        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 1px solid #10b981; border-radius: 8px;">
-                            <div style="color: #059669; font-weight: 600; margin-bottom: 8px;">✅ Proje Tamamlandı</div>
-                            <ul style="color: #065f46; font-size: 14px; margin: 0; padding-left: 20px;">
-                                <li>Proje başarıyla tamamlanmıştır</li>
-                                <li>Tüm görevler bitirilmiştir</li>
-                                <li>Final raporlama hazırlanabilir</li>
-                            </ul>
-                        </div>`
-                  } else if (isDelayed && delayDays > 30) {
-                    return `
-                        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #f87171; border-radius: 8px;">
-                            <div style="color: #dc2626; font-weight: 600; margin-bottom: 8px;">🚨 Kritik Gecikme (${delayDays} gün)</div>
-                            <ul style="color: #7f1d1d; font-size: 14px; margin: 0; padding-left: 20px;">
-                                <li>Acil müdahale gerekiyor</li>
-                                <li>Kaynak tahsisi yeniden değerlendirilmeli</li>
-                                <li>Proje planı revize edilmeli</li>
-                                <li>Üst yönetim bilgilendirilmeli</li>
-                            </ul>
-                        </div>`
-                  } else if (isDelayed) {
-                    return `
-                        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%); border: 1px solid #f59e0b; border-radius: 8px;">
-                            <div style="color: #d97706; font-weight: 600; margin-bottom: 8px;">⚠️ Gecikme Tespit Edildi (${delayDays} gün)</div>
-                            <ul style="color: #92400e; font-size: 14px; margin: 0; padding-left: 20px;">
-                                <li>İlerleme takibi artırılmalı</li>
-                                <li>Kritik görevlere odaklanılmalı</li>
-                                <li>Kaynak dağılımı gözden geçirilmeli</li>
-                                <li>Günlük durum raporlaması başlatılmalı</li>
-                            </ul>
-                        </div>`
-                  } else {
-                    return `
-                        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 1px solid #10b981; border-radius: 8px;">
-                            <div style="color: #059669; font-weight: 600; margin-bottom: 8px;">✅ Proje Yolunda</div>
-                            <ul style="color: #065f46; font-size: 14px; margin: 0; padding-left: 20px;">
-                                <li>Proje planlandığı gibi ilerliyor</li>
-                                <li>Mevcut tempo korunmalı</li>
-                                <li>Haftalık takip sürdürülmeli</li>
-                                <li>Risk faktörleri düzenli izlenmeli</li>
-                            </ul>
-                        </div>`
-                  }
-                })()}
             </div>
             
             <div class="project-phases">
-                <h3>Proje Fazları ve Tahmini Süreler</h3>
+                <h3>Proje Fazları ve İlerleme Durumu</h3>
                 <div class="phases-timeline">
                     ${(() => {
                       const phases = [
