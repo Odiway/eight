@@ -102,6 +102,13 @@ interface ProjectReportData {
 
 // ===== ULTRA-PREMIUM HTML TEMPLATE =====
 function generateExecutiveHTMLReport(data: any): string {
+  console.log('🎨 Starting HTML generation with data:', {
+    hasProject: !!data?.project,
+    tasksCount: data?.tasks?.length || 0,
+    teamMembersCount: data?.teamMembers?.length || 0,
+    projectName: data?.project?.name || 'Unknown'
+  })
+  
   // Safely handle data with null checks
   const tasks = data?.tasks || []
   const teamMembers = data?.teamMembers || []
@@ -1718,6 +1725,9 @@ function generateExecutiveHTMLReport(data: any): string {
 </body>
 </html>
   `
+  
+  console.log('✅ HTML template generated successfully, length:', result.length)
+  return result
 }
 
 // Helper function to build report data
@@ -1725,6 +1735,8 @@ async function buildReportData(
   projectId: string
 ): Promise<ProjectReportData | null> {
   try {
+    console.log('🔍 Starting data fetch for project:', projectId)
+    
     const projectData = await prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -1763,9 +1775,17 @@ async function buildReportData(
     })
 
     if (!projectData) {
-      console.error(`Project not found for ID: ${projectId}`)
+      console.error(`❌ Project not found for ID: ${projectId}`)
       return null
     }
+
+    console.log('✅ Raw project data fetched:', {
+      name: projectData.name,
+      id: projectData.id,
+      tasksCount: projectData.tasks?.length || 0,
+      membersCount: projectData.members?.length || 0,
+      status: projectData.status
+    })
 
     // Safely process team members with null checks
     const teamMembers = (projectData.members || []).map((pm: any) => ({
@@ -1871,23 +1891,40 @@ export async function GET(
     await ensureMigrations()
 
     const projectId = params.id
-    console.log('Fetching project data for ID:', projectId)
+    console.log('🔍 Fetching project data for ID:', projectId)
 
-    // Build comprehensive report data
+    // Build comprehensive report data with enhanced error handling
     const reportData = await buildReportData(projectId)
     if (!reportData) {
-      console.log('Project not found for ID:', projectId)
+      console.log('❌ Project not found for ID:', projectId)
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    console.log('Project data fetched successfully:', reportData.project.name)
+    console.log('✅ Project data fetched successfully:', reportData?.project?.name || 'Unknown Project')
+    console.log('📋 Tasks count:', reportData?.tasks?.length || 0)
+    console.log('👥 Team members count:', reportData?.teamMembers?.length || 0)
 
-    // Generate HTML report
-    console.log('Generating HTML content...')
-    const htmlContent = generateExecutiveHTMLReport(reportData)
+    // Generate HTML report with error handling
+    console.log('🔨 Generating HTML content...')
+    let htmlContent: string
+    try {
+      htmlContent = generateExecutiveHTMLReport(reportData)
+      console.log('✅ HTML content generated successfully, length:', htmlContent.length)
+    } catch (htmlError) {
+      console.error('❌ HTML generation failed:', htmlError)
+      throw new Error('Failed to generate HTML content: ' + (htmlError as Error).message)
+    }
+
+    // FOR DEBUGGING: Return HTML first to check if the issue is with data processing
+    // Uncomment the next 6 lines to get HTML output for debugging
+    return new NextResponse(htmlContent, {
+      headers: {
+        'Content-Type': 'text/html',
+      },
+    })
 
     // Launch Puppeteer with Vercel-optimized settings
-    console.log('Launching Puppeteer browser...')
+    console.log('🚀 Launching Puppeteer browser...')
 
     const isVercel = !!process.env.VERCEL || !!process.env.AWS_REGION
     let browser: any
@@ -1943,7 +1980,7 @@ export async function GET(
     })
 
     // Generate premium filename
-    const sanitizedName = formatTurkishText(reportData.project.name)
+    const sanitizedName = formatTurkishText(reportData?.project?.name || 'Unknown_Project')
       .replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ0-9\s]/g, '')
       .replace(/\s+/g, '_')
       .toLowerCase()
