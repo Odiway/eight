@@ -102,21 +102,28 @@ interface ProjectReportData {
 
 // ===== ULTRA-PREMIUM HTML TEMPLATE =====
 function generateExecutiveHTMLReport(data: any): string {
-  // Calculate KPIs
-  const totalTasks = data.tasks.length
-  const completedTasks = data.tasks.filter(
-    (t: any) => t.status === 'COMPLETED'
+  // Safely handle data with null checks
+  const tasks = data?.tasks || []
+  const teamMembers = data?.teamMembers || []
+  const project = data?.project || {}
+  const workloadData = data?.workloadData || { efficiency: 0 }
+  
+  // Calculate KPIs with safe access
+  const totalTasks = tasks.length
+  const completedTasks = tasks.filter(
+    (t: any) => t?.status === 'COMPLETED'
   ).length
-  const inProgressTasks = data.tasks.filter(
-    (t: any) => t.status === 'IN_PROGRESS'
+  const inProgressTasks = tasks.filter(
+    (t: any) => t?.status === 'IN_PROGRESS'
   ).length
   const completionRate =
     totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
-  const efficiency = data.workloadData.efficiency
+  const efficiency = workloadData?.efficiency || 0
 
-  // Calculate status distribution for chart
-  const statusStats = data.tasks.reduce((acc: any, task: any) => {
-    acc[task.status] = (acc[task.status] || 0) + 1
+  // Calculate status distribution for chart with safe access
+  const statusStats = tasks.reduce((acc: any, task: any) => {
+    const status = task?.status || 'UNKNOWN'
+    acc[status] = (acc[status] || 0) + 1
     return acc
   }, {} as Record<string, number>)
 
@@ -159,7 +166,7 @@ function generateExecutiveHTMLReport(data: any): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Executive Project Report - ${formatTurkishText(
-      data.project.name
+      project?.name || 'Unknown Project'
     )}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -1251,7 +1258,7 @@ function generateExecutiveHTMLReport(data: any): string {
         <div class="project-name">
             <div class="project-label">PROJE:</div>
             <div class="project-title">${formatTurkishText(
-              data.project.name
+              project?.name || 'Unknown Project'
             ).toUpperCase()}</div>
         </div>
         
@@ -1319,18 +1326,18 @@ function generateExecutiveHTMLReport(data: any): string {
             </div>
             
             <div class="team-members-grid">
-                ${data.teamMembers
+                ${teamMembers
                   .map((member: any) => {
-                    const compactName = formatCompactName(member.name)
-                    const positionTitle = getFormattedPosition(member.position)
+                    const compactName = formatCompactName(member?.name || 'Unknown')
+                    const positionTitle = getFormattedPosition(member?.position || '')
                     const department = formatTurkishText(
-                      member.department || 'Genel'
+                      member?.department || 'Genel'
                     )
 
                     return `
                     <div class="team-member-card">
                         <div class="member-avatar">
-                            <span class="member-initial">${member.name
+                            <span class="member-initial">${(member?.name || 'U')
                               .charAt(0)
                               .toUpperCase()}</span>
                         </div>
@@ -1367,23 +1374,24 @@ function generateExecutiveHTMLReport(data: any): string {
                 </div>
                 
                 <!-- Gantt Chart Rows -->
-                ${data.tasks.slice(0, 8).map((task: any, index: number) => {
-                  const taskTitle = formatTurkishText(task.title)
-                  const startMonth = task.startDate ? new Date(task.startDate).getMonth() : 0
-                  const endMonth = task.endDate ? new Date(task.endDate).getMonth() : startMonth + 2
+                ${tasks.slice(0, 8).map((task: any, index: number) => {
+                  const taskTitle = formatTurkishText(task?.title || 'Unknown Task')
+                  const startMonth = task?.startDate ? new Date(task.startDate).getMonth() : 0
+                  const endMonth = task?.endDate ? new Date(task.endDate).getMonth() : startMonth + 2
                   const duration = Math.max(1, endMonth - startMonth + 1)
                   
                   // Color based on status
                   let barColor = '#94a3b8' // default gray
-                  if (task.status === 'COMPLETED') barColor = '#10b981' // green
-                  else if (task.status === 'IN_PROGRESS') barColor = '#3b82f6' // blue
-                  else if (task.status === 'PENDING') barColor = '#f59e0b' // amber
+                  const status = task?.status || 'TODO'
+                  if (status === 'COMPLETED') barColor = '#10b981' // green
+                  else if (status === 'IN_PROGRESS') barColor = '#3b82f6' // blue
+                  else if (status === 'PENDING') barColor = '#f59e0b' // amber
                   
                   return `
                     <div style="display: grid; grid-template-columns: 300px repeat(12, 1fr); gap: 2px; margin-bottom: 8px; align-items: center;">
                         <div style="padding: 8px; font-size: 13px; color: #374151; font-weight: 500; background: #f9fafb; border-radius: 6px;">
                             ${taskTitle.length > 35 ? taskTitle.substring(0, 35) + '...' : taskTitle}
-                            <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">${task.status === 'COMPLETED' ? '✅' : task.status === 'IN_PROGRESS' ? '🔄' : '⏳'} ${getStatusText(task.status)}</div>
+                            <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">${status === 'COMPLETED' ? '✅' : status === 'IN_PROGRESS' ? '🔄' : '⏳'} ${getStatusText(status)}</div>
                         </div>
                         ${Array.from({length: 12}, (_, monthIndex) => {
                           const isInRange = monthIndex >= startMonth && monthIndex < startMonth + duration
@@ -1403,9 +1411,9 @@ function generateExecutiveHTMLReport(data: any): string {
                   `
                 }).join('')}
                 
-                ${data.tasks.length > 8 ? `
+                ${tasks.length > 8 ? `
                 <div style="text-align: center; padding: 15px; color: #6b7280; font-size: 12px; font-style: italic;">
-                    +${data.tasks.length - 8} görev daha var... (Ana görevler gösteriliyor)
+                    +${tasks.length - 8} görev daha var... (Ana görevler gösteriliyor)
                 </div>
                 ` : ''}
                 
@@ -1458,8 +1466,8 @@ function generateExecutiveHTMLReport(data: any): string {
                 <div class="timeline-card start-date">
                     <span class="timeline-icon">🚀</span>
                     <div class="timeline-value">${
-                      data.project.startDate
-                        ? new Date(data.project.startDate).toLocaleDateString(
+                      project?.startDate
+                        ? new Date(project.startDate).toLocaleDateString(
                             'tr-TR',
                             {
                               day: 'numeric',
@@ -1754,17 +1762,20 @@ async function buildReportData(
       },
     })
 
-    if (!projectData) return null
+    if (!projectData) {
+      console.error(`Project not found for ID: ${projectId}`)
+      return null
+    }
 
-    // Process team members
-    const teamMembers = projectData.members.map((pm: any) => ({
-      id: pm.user.id,
-      name: pm.user.name,
-      department: pm.user.department,
-      position: pm.user.position,
+    // Safely process team members with null checks
+    const teamMembers = (projectData.members || []).map((pm: any) => ({
+      id: pm?.user?.id || 'unknown',
+      name: pm?.user?.name || 'Unknown User',
+      department: pm?.user?.department || 'Unassigned',
+      position: pm?.user?.position || 'No Position',
     }))
 
-    // Calculate departments
+    // Calculate departments with safe access
     const departmentCounts = teamMembers.reduce((acc: any, member: any) => {
       const dept = member.department || 'Atanmadı'
       acc[dept] = (acc[dept] || 0) + 1
@@ -1778,21 +1789,20 @@ async function buildReportData(
       })
     )
 
-    // Calculate workload analytics
-    const totalEstimated = projectData.tasks.reduce(
-      (sum: any, task: any) => sum + (task.estimatedHours || 0),
+    // Safely calculate workload analytics with null checks
+    const tasks = projectData.tasks || []
+    const totalEstimated = tasks.reduce(
+      (sum: any, task: any) => sum + (task?.estimatedHours || 0),
       0
     )
-    const totalActual = projectData.tasks.reduce(
-      (sum: any, task: any) => sum + (task.actualHours || 0),
+    const totalActual = tasks.reduce(
+      (sum: any, task: any) => sum + (task?.actualHours || 0),
       0
     )
     const efficiency =
       totalEstimated > 0 ? (totalActual / totalEstimated) * 100 : 100
     const averageTaskHours =
-      projectData.tasks.length > 0
-        ? totalEstimated / projectData.tasks.length
-        : 0
+      tasks.length > 0 ? totalEstimated / tasks.length : 0
 
     const workloadData = {
       totalEstimated,
@@ -1801,15 +1811,15 @@ async function buildReportData(
       averageTaskHours,
     }
 
-    console.log('📊 PDF Report Data Generated for:', projectData.name)
+    console.log('📊 PDF Report Data Generated for:', projectData.name || 'Unknown Project')
 
-    // Calculate completion stats for mock data
-    const totalTasks = projectData.tasks.length
-    const completedTasks = projectData.tasks.filter(task => task.status === 'COMPLETED').length
+    // Calculate completion stats for mock data with safe access
+    const totalTasks = tasks.length
+    const completedTasks = tasks.filter(task => task?.status === 'COMPLETED').length
     
     // Mock dynamicDates to avoid TypeScript errors
     const mockDynamicDates = {
-      actualStartDate: projectData.startDate?.toISOString(),
+      actualStartDate: projectData.startDate?.toISOString() || null,
       actualEndDate: '2026-04-20T00:00:00.000Z', // Hardcoded from your calendar
       isDelayed: true,
       delayDays: 24,
@@ -1828,14 +1838,22 @@ async function buildReportData(
 
     return {
       project: projectData,
-      tasks: projectData.tasks,
+      tasks: tasks,
       teamMembers,
       departments,
       workloadData,
       dynamicDates: mockDynamicDates,
     } as any // Use 'as any' to bypass TypeScript for now
   } catch (error) {
-    console.error('Failed to build report data:', error)
+    console.error('Failed to build report data for project:', projectId, error)
+    
+    // Log specific error details
+    if (error instanceof Error) {
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
+    
     return null
   }
 }
