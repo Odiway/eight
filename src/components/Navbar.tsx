@@ -76,11 +76,6 @@ const allNavigation = [
   },
 ]
 
-const userMenuItems = [
-  { name: 'Profil', icon: User, href: '/profile' },
-  { name: 'Ayarlar', icon: Settings, href: '/settings' },
-]
-
 export default function Navbar() {
   const pathname = usePathname()
   const { user, logout, isAdmin } = useAuth()
@@ -88,9 +83,38 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [taskNotifications, setTaskNotifications] = useState<any[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false)
 
   // Filter navigation based on user role
   const navigation = allNavigation.filter(item => !item.requiresAdmin || isAdmin)
+
+  // Fetch task notifications
+  const fetchTaskNotifications = async () => {
+    if (!user) return
+    
+    try {
+      const response = await fetch(
+        `/api/notifications?userId=${user.id}&unreadOnly=false`,
+        {
+          credentials: 'include'
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        // Filter only task-related notifications
+        const taskNotifs = data.notifications.filter((notif: any) => 
+          notif.type.includes('TASK') && notif.task
+        )
+        setTaskNotifications(taskNotifs.slice(0, 5)) // Show only 5 latest
+        setUnreadCount(data.unreadCount)
+      }
+    } catch (error) {
+      console.error('Error fetching task notifications:', error)
+    }
+  }
 
   // Handle scroll effect
   useEffect(() => {
@@ -100,6 +124,16 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Fetch task notifications when user is available
+  useEffect(() => {
+    if (user) {
+      fetchTaskNotifications()
+      // Refresh notifications every 5 minutes
+      const interval = setInterval(fetchTaskNotifications, 5 * 60 * 1000)
+      return () => clearInterval(interval)
+    }
+  }, [user])
 
   // Handle keyboard shortcut for search
   useEffect(() => {
@@ -117,10 +151,40 @@ export default function Navbar() {
   useEffect(() => {
     const handleClickOutside = () => {
       setIsUserMenuOpen(false)
+      setIsNotificationOpen(false)
     }
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'TASK_ASSIGNED':
+        return <Bell className='w-4 h-4 text-blue-500' />
+      case 'TASK_DUE_SOON':
+        return <Calendar className='w-4 h-4 text-yellow-500' />
+      case 'TASK_OVERDUE':
+        return <Bell className='w-4 h-4 text-red-500' />
+      case 'TASK_COMPLETED':
+        return <Bell className='w-4 h-4 text-green-500' />
+      case 'TASK_STATUS_CHANGED':
+        return <Bell className='w-4 h-4 text-blue-500' />
+      default:
+        return <Bell className='w-4 h-4 text-gray-500' />
+    }
+  }
+
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date()
+    const date = new Date(dateString)
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
+    
+    if (diffInHours < 1) return 'Az önce'
+    if (diffInHours < 24) return `${diffInHours} saat önce`
+    const diffInDays = Math.floor(diffInHours / 24)
+    if (diffInDays < 7) return `${diffInDays} gün önce`
+    return date.toLocaleDateString('tr-TR')
+  }
 
   return (
     <nav
@@ -135,7 +199,7 @@ export default function Navbar() {
         <div className='flex justify-between items-center h-16'>
           {/* Logo and Brand - Compact */}
           <div className='flex items-center flex-shrink-0'>
-            <Link href='/' className='group flex items-center space-x-3'>
+            <Link href='/dashboard' className='group flex items-center space-x-3'>
               <div
                 className={cn(
                   'relative w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-105',
@@ -242,18 +306,106 @@ export default function Navbar() {
               </div>
             </button>
 
-            {/* Notifications */}
-            <button
-              className={cn(
-                'relative p-2 rounded-lg transition-all duration-300',
-                scrolled
-                  ? 'text-gray-600 hover:bg-gray-100'
-                  : 'text-white hover:bg-white/10'
+            {/* Task Notifications */}
+            <div className='relative'>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsNotificationOpen(!isNotificationOpen)
+                  setIsUserMenuOpen(false) // Close user menu when opening notifications
+                }}
+                className={cn(
+                  'relative p-2 rounded-lg transition-all duration-300',
+                  scrolled
+                    ? 'text-gray-600 hover:bg-gray-100'
+                    : 'text-white hover:bg-white/10'
+                )}
+              >
+                <Bell className='w-5 h-5' />
+                {unreadCount > 0 && (
+                  <span className='absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse'>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Task Notifications Dropdown */}
+              {isNotificationOpen && (
+                <div className='absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 animate-in slide-in-from-top-2 duration-200'>
+                  <div className='px-4 py-3 border-b border-gray-100'>
+                    <h3 className='text-sm font-semibold text-gray-900'>Görev Bildirimleri</h3>
+                    <p className='text-xs text-gray-500'>Son görev güncellemeleri</p>
+                  </div>
+                  
+                  <div className='max-h-96 overflow-y-auto'>
+                    {taskNotifications.length === 0 ? (
+                      <div className='px-4 py-6 text-center'>
+                        <Bell className='w-8 h-8 text-gray-400 mx-auto mb-2' />
+                        <p className='text-sm text-gray-500'>Henüz görev bildirimi yok</p>
+                      </div>
+                    ) : (
+                      taskNotifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={cn(
+                            'px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors duration-200 cursor-pointer',
+                            !notification.isRead && 'bg-blue-50'
+                          )}
+                          onClick={() => {
+                            // Mark as read and navigate to task
+                            if (notification.task) {
+                              window.location.href = `/projects/${notification.task.project.id}?task=${notification.task.id}`
+                            }
+                            setIsNotificationOpen(false)
+                          }}
+                        >
+                          <div className='flex items-start space-x-3'>
+                            <div className='flex-shrink-0 mt-1'>
+                              {getNotificationIcon(notification.type)}
+                            </div>
+                            <div className='flex-1 min-w-0'>
+                              <p className={cn(
+                                'text-sm font-medium truncate',
+                                notification.isRead ? 'text-gray-600' : 'text-gray-900'
+                              )}>
+                                {notification.title}
+                              </p>
+                              <p className={cn(
+                                'text-xs mt-1 line-clamp-2',
+                                notification.isRead ? 'text-gray-400' : 'text-gray-600'
+                              )}>
+                                {notification.message}
+                              </p>
+                              {notification.task && (
+                                <p className='text-xs text-blue-600 mt-1 font-medium'>
+                                  {notification.task.title} - {notification.task.project.name}
+                                </p>
+                              )}
+                              <p className='text-xs text-gray-400 mt-1'>
+                                {formatTimeAgo(notification.createdAt)}
+                              </p>
+                            </div>
+                            {!notification.isRead && (
+                              <div className='w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2'></div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  
+                  <div className='px-4 py-2 border-t border-gray-100'>
+                    <Link
+                      href='/notifications'
+                      className='text-xs text-blue-600 hover:text-blue-800 font-medium'
+                      onClick={() => setIsNotificationOpen(false)}
+                    >
+                      Tüm bildirimleri görüntüle →
+                    </Link>
+                  </div>
+                </div>
               )}
-            >
-              <Bell className='w-5 h-5' />
-              <span className='absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse' />
-            </button>
+            </div>
 
             {/* User Menu */}
             <div className='relative'>
@@ -261,6 +413,7 @@ export default function Navbar() {
                 onClick={(e) => {
                   e.stopPropagation()
                   setIsUserMenuOpen(!isUserMenuOpen)
+                  setIsNotificationOpen(false) // Close notifications when opening user menu
                 }}
                 className={cn(
                   'flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-300 group',
@@ -285,16 +438,14 @@ export default function Navbar() {
                       scrolled ? 'text-gray-900' : 'text-white'
                     )}
                   >
-                    {user?.name || 'Kullanıcı'}
+                    System Administrator
                   </p>
-                  {isAdmin && (
-                    <p className={cn(
-                      'text-xs truncate',
-                      scrolled ? 'text-gray-600' : 'text-white/70'
-                    )}>
-                      Yönetici
-                    </p>
-                  )}
+                  <p className={cn(
+                    'text-xs truncate',
+                    scrolled ? 'text-gray-600' : 'text-white/70'
+                  )}>
+                    {user?.name || 'Yönetici'}
+                  </p>
                 </div>
                 <ChevronDown
                   className={cn(
@@ -310,26 +461,38 @@ export default function Navbar() {
                 <div className='absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 animate-in slide-in-from-top-2 duration-200'>
                   <div className='px-4 py-3 border-b border-gray-100'>
                     <p className='text-sm font-medium text-gray-900'>
-                      {user?.name || 'Kullanıcı'}
+                      System Administrator
                     </p>
                     <p className='text-xs text-gray-500'>{user?.email}</p>
+                    <p className='text-xs text-gray-500'>{user?.name || 'Yönetici'}</p>
                     {user?.department && (
                       <p className='text-xs text-gray-500 mt-1'>{user.department}</p>
                     )}
                   </div>
-                  {userMenuItems.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className='flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200'
-                      >
-                        <Icon className='w-4 h-4 mr-3 text-gray-400' />
-                        {item.name}
-                      </Link>
-                    )
-                  })}
+                  
+                  {/* Profile Link */}
+                  <Link
+                    href='/profile'
+                    className='flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200'
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <User className='w-4 h-4 mr-3 text-gray-400' />
+                    Profil
+                  </Link>
+
+                  {/* Settings Link */}
+                  <Link
+                    href='/settings'
+                    className='flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200'
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <Settings className='w-4 h-4 mr-3 text-gray-400' />
+                    Ayarlar
+                  </Link>
+
+                  {/* Divider */}
+                  <hr className='my-2 border-gray-100' />
+
                   {/* Logout Button */}
                   <button
                     onClick={() => {
@@ -347,7 +510,11 @@ export default function Navbar() {
 
             {/* Mobile menu button */}
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={() => {
+                setIsMobileMenuOpen(!isMobileMenuOpen)
+                setIsUserMenuOpen(false)
+                setIsNotificationOpen(false)
+              }}
               className={cn(
                 'lg:hidden p-2 rounded-lg transition-all duration-300',
                 scrolled
