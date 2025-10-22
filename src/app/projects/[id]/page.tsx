@@ -1274,7 +1274,7 @@ export default function ProjectDetailsPage() {
               endDate: task.endDate,
               estimatedHours: task.estimatedHours,
               status: task.status,
-              completedAt: task.completedAt
+              completedAt: task.completedAt,
             }))}
           />
         </div>
@@ -2495,58 +2495,6 @@ export default function ProjectDetailsPage() {
 
             {/* Status Notes Content */}
             <div className='p-6 overflow-y-auto max-h-[60vh]'>
-              {/* Task Team Members Section */}
-              <div className='mb-6 bg-white/10 rounded-xl p-5 backdrop-blur-sm border border-white/20'>
-                <div className='flex items-center gap-2 mb-4'>
-                  <Users className='w-5 h-5 text-white' />
-                  <span className='text-white font-bold'>
-                    Bu Görevde Çalışanlar
-                  </span>
-                </div>
-                <div className='flex flex-wrap gap-3'>
-                  {selectedTaskDetails?.assignedUser && (
-                    <div className='flex items-center gap-2 bg-white/20 rounded-lg px-3 py-2'>
-                      <div className='w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm'>
-                        {selectedTaskDetails.assignedUser.name
-                          .charAt(0)
-                          .toUpperCase()}
-                      </div>
-                      <div>
-                        <div className='text-white text-sm font-medium'>
-                          {selectedTaskDetails.assignedUser.name}
-                        </div>
-                        <div className='text-white/60 text-xs'>Ana Sorumlu</div>
-                      </div>
-                    </div>
-                  )}
-                  {/* Add other team members from project */}
-                  {users
-                    .filter(
-                      (user) =>
-                        user.id !== selectedTaskDetails?.assignedUser?.id
-                    )
-                    .slice(0, 3)
-                    .map((user) => (
-                      <div
-                        key={user.id}
-                        className='flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2'
-                      >
-                        <div className='w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm'>
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className='text-white text-sm font-medium'>
-                            {user.name}
-                          </div>
-                          <div className='text-white/60 text-xs'>
-                            Takım Üyesi
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
               {/* Add New Status Note Form */}
               <div className='mb-6 bg-white/10 rounded-xl p-5 backdrop-blur-sm border border-white/20'>
                 <div className='flex items-center gap-2 mb-4'>
