@@ -313,44 +313,45 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
         </div>
       </div>
 
-      {/* Main Chart Container */}
-      <div className="flex flex-col">
-        {/* Timeline Header */}
-        <div className="flex border-b border-gray-200 bg-gray-50">
-          {/* Project Names Column Header */}
-          <div className="w-80 p-3 font-semibold text-gray-700 bg-white border-r border-gray-200">
-            <span>Görev Adı</span>
-          </div>
-          
-          {/* Timeline Headers */}
-          <div ref={timelineRef} className="flex-1 overflow-x-auto">
-            <div className="flex" style={{ 
-              minWidth: `${timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px`
-            }}>
-              {timeUnits.map((date, index) => (
-                <div
-                  key={index}
-                  className={`flex-shrink-0 p-2 text-center text-sm border-r border-gray-200 ${
-                    isWeekend(date) && viewMode === 'days' ? 'bg-red-50' : 'bg-gray-50'
-                  }`}
-                  style={{ 
-                    width: `${viewMode === 'weeks' ? 100 : 120}px`,
-                    minWidth: `${viewMode === 'weeks' ? 100 : 120}px`
-                  }}
-                >
-                  <div className="font-medium text-gray-700">{formatTimelineHeader(date)}</div>
-                </div>
-              ))}
+      {/* Main Chart Container - Single Scroll for Everything */}
+      <div className="flex-1 flex flex-col">
+        {/* Single Scrollable Container */}
+        <div ref={chartRef} className="flex-1 overflow-auto">
+          <div style={{ 
+            minWidth: `${320 + timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px`,
+          }}>
+            {/* Timeline Header */}
+            <div className="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
+              {/* Project Names Column Header */}
+              <div className="w-80 p-3 font-semibold text-gray-700 bg-white border-r border-gray-200 flex-shrink-0">
+                <span>Görev Adı</span>
+              </div>
+              
+              {/* Timeline Headers */}
+              <div className="flex">
+                {timeUnits.map((date, index) => (
+                  <div
+                    key={index}
+                    className={`flex-shrink-0 p-2 text-center text-sm border-r border-gray-200 ${
+                      isWeekend(date) && viewMode === 'days' ? 'bg-red-50' : 'bg-gray-50'
+                    }`}
+                    style={{ 
+                      width: `${viewMode === 'weeks' ? 100 : 120}px`,
+                      minWidth: `${viewMode === 'weeks' ? 100 : 120}px`
+                    }}
+                  >
+                    <div className="font-medium text-gray-700">{formatTimelineHeader(date)}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Projects and Chart Area */}
-        <div ref={chartRef} className="flex overflow-y-auto" style={{ 
-          height: `${Math.min(600, Math.max(300, filteredAndSortedProjects.length * 50))}px`
-        }}>
-          {/* Project Names Column */}
-          <div className="w-80 bg-white border-r border-gray-200">
+            {/* Projects and Chart Area */}
+            <div className="flex" style={{ 
+              minHeight: `${Math.max(400, filteredAndSortedProjects.length * 50)}px`
+            }}>
+              {/* Project Names Column - Fixed Width */}
+              <div className="w-80 bg-white border-r border-gray-200 flex-shrink-0">
             {filteredAndSortedProjects.map((project, index) => (
               <div
                 key={project.id}
@@ -383,8 +384,10 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
             ))}
           </div>
 
-          {/* Chart Area */}
-          <div className="flex-1 overflow-x-auto relative bg-white">
+            {/* Chart Area - Expandable */}
+            <div className="flex-1 relative bg-white" style={{ 
+              minWidth: `${timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px`
+            }}>
             {/* Today Line - Show current date in 2025 timeline */}
             <div 
               className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 opacity-75"
@@ -397,29 +400,26 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
               </div>
             </div>
 
-            {/* Weekend/Holiday Columns */}
-            <div className="absolute inset-0 flex pointer-events-none" style={{ 
-              minHeight: `${filteredAndSortedProjects.length * (compactMode ? 80 : 120)}px` 
-            }}>
-              {timeUnits.map((date, index) => (
-                isWeekend(date) && (
-                  <div
-                    key={`weekend-${index}`}
-                    className="bg-red-50/40"
-                    style={{ 
-                      width: `${(viewMode === 'days' ? 80 : viewMode === 'weeks' ? 120 : 150) * zoomLevel}px`,
-                      left: `${index * (viewMode === 'days' ? 80 : viewMode === 'weeks' ? 120 : 150) * zoomLevel}px`
-                    }}
-                  ></div>
-                )
-              ))}
-            </div>
+              {/* Weekend/Holiday Columns */}
+              <div className="absolute inset-0 flex pointer-events-none">
+                {timeUnits.map((date, index) => (
+                  isWeekend(date) && (
+                    <div
+                      key={`weekend-${index}`}
+                      className="bg-red-50/40"
+                      style={{ 
+                        width: `${viewMode === 'weeks' ? 100 : 120}px`,
+                        left: `${index * (viewMode === 'weeks' ? 100 : 120)}px`
+                      }}
+                    ></div>
+                  )
+                ))}
+              </div>
 
-            {/* Project Bars */}
-            <div className="relative" style={{ 
-              minWidth: `${timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px`,
-              minHeight: `${filteredAndSortedProjects.length * 50}px`
-            }}>
+              {/* Project Bars */}
+              <div className="relative w-full" style={{ 
+                minHeight: `${filteredAndSortedProjects.length * 50}px`
+              }}>
               {filteredAndSortedProjects.map((project, index) => {
                 const dimensions = getProjectDimensions(project)
                 return (
@@ -453,6 +453,8 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
                   </div>
                 )
               })}
+              </div>
+            </div>
             </div>
           </div>
         </div>
