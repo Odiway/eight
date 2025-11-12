@@ -19,6 +19,7 @@ import {
   Search,
   Command,
   Lightbulb,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -37,6 +38,13 @@ const allNavigation = [
     href: '/projects',
     icon: FolderKanban,
     description: 'Proje yönetimi ve takibi',
+    requiresAdmin: true,
+  },
+  {
+    name: 'Master Gantt',
+    href: '/master-gantt',
+    icon: Activity,
+    description: 'Tüm projelerin genel Gantt şeması',
     requiresAdmin: true,
   },
   {
