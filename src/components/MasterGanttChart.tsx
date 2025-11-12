@@ -87,6 +87,7 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
   // Refs for scrolling
   const chartRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
+  const headerScrollRef = useRef<HTMLDivElement>(null)
 
   // Calculate time units based on view mode - Fixed to 2025
   const timeUnits = useMemo(() => {
@@ -251,8 +252,139 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
     return date.toDateString() === today.toDateString()
   }
 
+  // State for export dropdown
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Synchronize horizontal scroll between header and body
+  useEffect(() => {
+    const chartElement = chartRef.current
+    const headerElement = headerScrollRef.current
+
+    if (!chartElement || !headerElement) return
+
+    const syncScroll = (source: HTMLElement, target: HTMLElement) => {
+      target.scrollLeft = source.scrollLeft
+    }
+
+    const handleChartScroll = () => syncScroll(chartElement, headerElement)
+    const handleHeaderScroll = () => syncScroll(headerElement, chartElement)
+
+    chartElement.addEventListener('scroll', handleChartScroll)
+    headerElement.addEventListener('scroll', handleHeaderScroll)
+
+    return () => {
+      chartElement.removeEventListener('scroll', handleChartScroll)
+      headerElement.removeEventListener('scroll', handleHeaderScroll)
+    }
+  }, [])
+
   // Export functionality
-  const handleExport = () => {
+  const handleExport = async (format: 'pdf' | 'png' | 'excel') => {
+    setShowExportMenu(false)
+    
+    if (format === 'pdf' || format === 'png') {
+      try {
+        // Dynamic import to reduce bundle size
+        const html2canvas = (await import('html2canvas')).default
+        
+        const element = chartRef.current
+        if (!element) return
+
+        // Create canvas from the chart element
+        const canvas = await html2canvas(element, {
+          useCORS: true,
+          allowTaint: true
+        })
+
+        if (format === 'pdf') {
+          // Create PDF
+          const { default: jsPDF } = await import('jspdf')
+          const imgData = canvas.toDataURL('image/png')
+          const pdf = new jsPDF({
+            orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+            unit: 'mm'
+          })
+          
+          const pdfWidth = pdf.internal.pageSize.getWidth()
+          const pdfHeight = pdf.internal.pageSize.getHeight()
+          const imgWidth = canvas.width
+          const imgHeight = canvas.height
+          const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
+          const imgX = (pdfWidth - imgWidth * ratio) / 2
+          const imgY = 10
+
+          pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio)
+          pdf.save(`master-gantt-chart-${new Date().toISOString().split('T')[0]}.pdf`)
+        } else {
+          // Download as PNG
+          const link = document.createElement('a')
+          link.download = `master-gantt-chart-${new Date().toISOString().split('T')[0]}.png`
+          link.href = canvas.toDataURL()
+          link.click()
+        }
+      } catch (error) {
+        console.error('Export failed:', error)
+        alert('Dışa aktarma başarısız oldu. Lütfen tekrar deneyin.')
+      }
+    } else if (format === 'excel') {
+      try {
+        // Export project data to Excel
+        const XLSX = await import('xlsx')
+        
+        const projectData = filteredAndSortedProjects.map(project => ({
+          'Proje Adı': project.name,
+          'Başlangıç Tarihi': project.startDate.toLocaleDateString('tr-TR'),
+          'Bitiş Tarihi': project.endDate.toLocaleDateString('tr-TR'),
+          'Durum': project.status === 'IN_PROGRESS' ? 'Devam Ediyor' : 
+                   project.status === 'COMPLETED' ? 'Tamamlandı' :
+                   project.status === 'PLANNING' ? 'Planlama' : 
+                   project.status === 'ON_HOLD' ? 'Beklemede' : 'İnceleme',
+          'İlerleme (%)': project.progress,
+          'Öncelik': project.priority === 'URGENT' ? 'Acil' :
+                    project.priority === 'HIGH' ? 'Yüksek' :
+                    project.priority === 'MEDIUM' ? 'Orta' : 'Düşük',
+          'Takım Sayısı': project.teamCount,
+          'Görev Sayısı': project.taskCount,
+          'Tamamlanan Görevler': project.completedTasks,
+          'Gecikmeli mi?': project.isDelayed ? 'Evet' : 'Hayır',
+          'Gecikme (Gün)': project.delayDays || 0,
+          'Bütçe': project.budget ? `₺${project.budget.toLocaleString('tr-TR')}` : 'N/A',
+          'Harcanan': project.spent ? `₺${project.spent.toLocaleString('tr-TR')}` : 'N/A'
+        }))
+
+        const worksheet = XLSX.utils.json_to_sheet(projectData)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Master Gantt Projeler')
+        
+        // Auto-size columns
+        const colWidths = Object.keys(projectData[0] || {}).map(key => ({
+          wch: Math.max(key.length, ...projectData.map(row => String(row[key as keyof typeof row] || '').length))
+        }))
+        worksheet['!cols'] = colWidths
+
+        XLSX.writeFile(workbook, `master-gantt-projeler-${new Date().toISOString().split('T')[0]}.xlsx`)
+      } catch (error) {
+        console.error('Excel export failed:', error)
+        alert('Excel dışa aktarma başarısız oldu. Lütfen tekrar deneyin.')
+      }
+    }
+  }
+
+  // Simple print function as fallback
+  const handlePrint = () => {
     window.print()
   }
 
@@ -278,6 +410,15 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
           .gantt-scroll {
             overflow: visible !important;
           }
+        }
+        /* Ensure sticky positioning works correctly */
+        .sticky {
+          position: sticky;
+          background: white;
+        }
+        /* Synchronize scroll between header and body */
+        .sync-scroll {
+          scrollbar-width: thin;
         }
       `}</style>
       
@@ -313,45 +454,42 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
         </div>
       </div>
 
-      {/* Main Chart Container - Single Scroll for Everything */}
+      {/* Main Chart Container - Sticky Left Panel */}
       <div className="flex-1 flex flex-col">
-        {/* Single Scrollable Container */}
-        <div ref={chartRef} className="flex-1 overflow-auto">
-          <div style={{ 
-            minWidth: `${320 + timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px`,
-          }}>
-            {/* Timeline Header */}
-            <div className="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
-              {/* Project Names Column Header */}
-              <div className="w-80 p-3 font-semibold text-gray-700 bg-white border-r border-gray-200 flex-shrink-0">
-                <span>Görev Adı</span>
-              </div>
-              
-              {/* Timeline Headers */}
-              <div className="flex">
-                {timeUnits.map((date, index) => (
-                  <div
-                    key={index}
-                    className={`flex-shrink-0 p-2 text-center text-sm border-r border-gray-200 ${
-                      isWeekend(date) && viewMode === 'days' ? 'bg-red-50' : 'bg-gray-50'
-                    }`}
-                    style={{ 
-                      width: `${viewMode === 'weeks' ? 100 : 120}px`,
-                      minWidth: `${viewMode === 'weeks' ? 100 : 120}px`
-                    }}
-                  >
-                    <div className="font-medium text-gray-700">{formatTimelineHeader(date)}</div>
-                  </div>
-                ))}
-              </div>
+        {/* Chart Header */}
+        <div className="flex border-b border-gray-200 bg-gray-50">
+          {/* Fixed Task Names Header */}
+          <div className="w-80 p-3 font-semibold text-gray-700 bg-white border-r border-gray-200 flex-shrink-0 sticky left-0 z-20">
+            <span>Görev Adı</span>
+          </div>
+          
+          {/* Scrollable Timeline Headers */}
+          <div ref={headerScrollRef} className="flex-1 overflow-x-auto gantt-scroll sync-scroll">
+            <div className="flex" style={{ minWidth: `${timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px` }}>
+              {timeUnits.map((date, index) => (
+                <div
+                  key={index}
+                  className={`flex-shrink-0 p-2 text-center text-sm border-r border-gray-200 ${
+                    isWeekend(date) && viewMode === 'days' ? 'bg-red-50' : 'bg-gray-50'
+                  }`}
+                  style={{ 
+                    width: `${viewMode === 'weeks' ? 100 : 120}px`,
+                    minWidth: `${viewMode === 'weeks' ? 100 : 120}px`
+                  }}
+                >
+                  <div className="font-medium text-gray-700">{formatTimelineHeader(date)}</div>
+                </div>
+              ))}
             </div>
+          </div>
+        </div>
 
-            {/* Projects and Chart Area */}
-            <div className="flex" style={{ 
-              minHeight: `${Math.max(400, filteredAndSortedProjects.length * 50)}px`
-            }}>
-              {/* Project Names Column - Fixed Width */}
-              <div className="w-80 bg-white border-r border-gray-200 flex-shrink-0">
+        {/* Chart Body */}
+        <div className="flex flex-1" style={{ 
+          minHeight: `${Math.max(400, filteredAndSortedProjects.length * 50)}px`
+        }}>
+          {/* Fixed Task Names Column */}
+          <div className="w-80 bg-white border-r border-gray-200 flex-shrink-0 sticky left-0 z-10 overflow-y-auto">
             {filteredAndSortedProjects.map((project, index) => (
               <div
                 key={project.id}
@@ -384,21 +522,23 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
             ))}
           </div>
 
-            {/* Chart Area - Expandable */}
-            <div className="flex-1 relative bg-white" style={{ 
-              minWidth: `${timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px`
+          {/* Scrollable Chart Area */}
+          <div ref={chartRef} className="flex-1 overflow-x-auto overflow-y-hidden gantt-scroll sync-scroll relative bg-white">
+            <div className="relative" style={{ 
+              minWidth: `${timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px`,
+              height: `${filteredAndSortedProjects.length * 50}px`
             }}>
-            {/* Today Line - Show current date in 2025 timeline */}
-            <div 
-              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 opacity-75"
-              style={{
-                left: `${Math.max(0, Math.min(100, ((new Date(2025, 10, 12).getTime() - new Date(2025, 0, 1).getTime()) / (new Date(2025, 11, 31).getTime() - new Date(2025, 0, 1).getTime())) * 100))}%`
-              }}
-            >
-              <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-30">
-                Bugün (12 Kas 2025)
+              {/* Today Line - Show current date in 2025 timeline */}
+              <div 
+                className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 opacity-75"
+                style={{
+                  left: `${Math.max(0, Math.min(100, ((new Date(2025, 10, 12).getTime() - new Date(2025, 0, 1).getTime()) / (new Date(2025, 11, 31).getTime() - new Date(2025, 0, 1).getTime())) * 100))}%`
+                }}
+              >
+                <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-30">
+                  Bugün (12 Kas 2025)
+                </div>
               </div>
-            </div>
 
               {/* Weekend/Holiday Columns */}
               <div className="absolute inset-0 flex pointer-events-none">
@@ -417,44 +557,40 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
               </div>
 
               {/* Project Bars */}
-              <div className="relative w-full" style={{ 
-                minHeight: `${filteredAndSortedProjects.length * 50}px`
-              }}>
-              {filteredAndSortedProjects.map((project, index) => {
-                const dimensions = getProjectDimensions(project)
-                return (
-                  <div
-                    key={project.id}
-                    className="absolute flex items-center cursor-pointer group"
-                    style={{
-                      top: `${index * 50 + 15}px`,
-                      left: `${dimensions.left}px`,
-                      width: `${dimensions.width}px`,
-                      height: '20px'
-                    }}
-                    onClick={() => handleProjectClick(project)}
-                  >
-                    {/* Simple Project Bar */}
-                    <div 
-                      className={`relative w-full h-full ${getStatusColor(project.status)} rounded group-hover:opacity-80 transition-opacity`}
+              <div className="relative w-full h-full">
+                {filteredAndSortedProjects.map((project, index) => {
+                  const dimensions = getProjectDimensions(project)
+                  return (
+                    <div
+                      key={project.id}
+                      className="absolute flex items-center cursor-pointer group"
+                      style={{
+                        top: `${index * 50 + 15}px`,
+                        left: `${dimensions.left}px`,
+                        width: `${dimensions.width}px`,
+                        height: '20px'
+                      }}
+                      onClick={() => handleProjectClick(project)}
                     >
-                      {/* Progress indicator */}
+                      {/* Simple Project Bar */}
                       <div 
-                        className="absolute inset-0 bg-white/30 rounded"
-                        style={{ width: `${project.progress}%` }}
-                      ></div>
-                      
-                      {/* Project Name on hover */}
-                      <div className="absolute -top-8 left-0 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                        {project.name} ({project.progress}%)
+                        className={`relative w-full h-full ${getStatusColor(project.status)} rounded group-hover:opacity-80 transition-opacity`}
+                      >
+                        {/* Progress indicator */}
+                        <div 
+                          className="absolute inset-0 bg-white/30 rounded"
+                          style={{ width: `${project.progress}%` }}
+                        ></div>
+                        
+                        {/* Project Name on hover */}
+                        <div className="absolute -top-8 left-0 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                          {project.name} ({project.progress}%)
+                        </div>
                       </div>
-
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
               </div>
-            </div>
             </div>
           </div>
         </div>
@@ -483,13 +619,51 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
             </div>
           </div>
           
-          {/* Export button */}
-          <button 
-            className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-            onClick={handleExport}
-          >
-            Dışa Aktar
-          </button>
+          {/* Export dropdown */}
+          <div className="relative" ref={exportMenuRef}>
+            <button 
+              className="flex items-center gap-2 px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              onClick={() => setShowExportMenu(!showExportMenu)}
+            >
+              <Download className="w-4 h-4" />
+              Dışa Aktar
+            </button>
+            
+            {showExportMenu && (
+              <div className="absolute right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48">
+                <button
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                  onClick={() => handleExport('pdf')}
+                >
+                  <Download className="w-4 h-4 text-red-500" />
+                  PDF olarak İndir
+                </button>
+                <button
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                  onClick={() => handleExport('png')}
+                >
+                  <Download className="w-4 h-4 text-blue-500" />
+                  Resim olarak İndir
+                </button>
+                <button
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                  onClick={() => handleExport('excel')}
+                >
+                  <Download className="w-4 h-4 text-green-500" />
+                  Excel olarak İndir
+                </button>
+                <div className="border-t border-gray-200">
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                    onClick={handlePrint}
+                  >
+                    <Download className="w-4 h-4 text-gray-500" />
+                    Yazdır
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
