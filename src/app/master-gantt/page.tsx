@@ -107,27 +107,14 @@ export default function MasterGanttPage() {
     }
   }, [user])
 
-  // Calculate timeline bounds
+  // Calculate timeline bounds - Fixed to 2025
   const timelineBounds = React.useMemo(() => {
-    if (projects.length === 0) {
-      const today = new Date()
-      return {
-        start: new Date(today.getFullYear(), 0, 1),
-        end: new Date(today.getFullYear() + 1, 11, 31)
-      }
+    // Always show 2025 - full year
+    return {
+      start: new Date(2025, 0, 1), // January 1, 2025
+      end: new Date(2025, 11, 31)  // December 31, 2025
     }
-
-    const allDates = projects.flatMap(p => [p.startDate, p.endDate])
-    const minDate = new Date(Math.min(...allDates.map(d => d.getTime())))
-    const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())))
-    
-    // Add some padding
-    const paddingDays = 30
-    minDate.setDate(minDate.getDate() - paddingDays)
-    maxDate.setDate(maxDate.getDate() + paddingDays)
-
-    return { start: minDate, end: maxDate }
-  }, [projects])
+  }, [])
 
   if (loading) {
     return (
@@ -167,143 +154,11 @@ export default function MasterGanttPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white">
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
-                <BarChart3 className="w-8 h-8" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold mb-2">Master Gantt Şeması</h1>
-                <p className="text-xl text-indigo-100">
-                  Tüm projelerin genel görünümü ve zaman çizelgesi
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.totalProjects}</div>
-                <div className="text-sm text-indigo-200">Toplam Proje</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.activeProjects}</div>
-                <div className="text-sm text-indigo-200">Aktif Proje</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">{Math.round(stats.avgProgress)}%</div>
-                <div className="text-sm text-indigo-200">Ortalama İlerleme</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-white">
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Aktif Projeler</h3>
-                <p className="text-3xl font-bold text-blue-600">{stats.activeProjects}</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  {stats.totalProjects > 0 ? Math.round((stats.activeProjects / stats.totalProjects) * 100) : 0}% toplam projeden
-                </p>
-              </div>
-              <Activity className="w-12 h-12 text-blue-500" />
-            </div>
-          </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Tamamlanan</h3>
-                <p className="text-3xl font-bold text-green-600">{stats.completedProjects}</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Başarıyla tamamlandı
-                </p>
-              </div>
-              <CheckCircle className="w-12 h-12 text-green-500" />
-            </div>
-          </div>
+      <div className="px-4 py-6">
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Geciken</h3>
-                <p className="text-3xl font-bold text-red-600">{stats.delayedProjects}</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Planlanan süreci aştı
-                </p>
-              </div>
-              <Clock className="w-12 h-12 text-red-500" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Ortalama İlerleme</h3>
-                <p className="text-3xl font-bold text-purple-600">{Math.round(stats.avgProgress)}%</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Tüm projeler ortalaması
-                </p>
-              </div>
-              <TrendingUp className="w-12 h-12 text-purple-500" />
-            </div>
-          </div>
-        </div>
-
-        {/* Budget Overview (if available) */}
-        {(stats.totalBudget > 0 || stats.totalSpent > 0) && (
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              Bütçe Durumu
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  ₺{stats.totalBudget.toLocaleString('tr-TR')}
-                </div>
-                <div className="text-sm text-gray-500">Toplam Bütçe</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  ₺{stats.totalSpent.toLocaleString('tr-TR')}
-                </div>
-                <div className="text-sm text-gray-500">Harcanan</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  ₺{(stats.totalBudget - stats.totalSpent).toLocaleString('tr-TR')}
-                </div>
-                <div className="text-sm text-gray-500">Kalan</div>
-              </div>
-            </div>
-            {stats.totalBudget > 0 && (
-              <div className="mt-4">
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div 
-                    className={`h-3 rounded-full ${
-                      (stats.totalSpent / stats.totalBudget) > 0.9 ? 'bg-red-500' :
-                      (stats.totalSpent / stats.totalBudget) > 0.7 ? 'bg-orange-500' :
-                      'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(100, (stats.totalSpent / stats.totalBudget) * 100)}%` }}
-                  ></div>
-                </div>
-                <div className="text-sm text-gray-600 text-center mt-2">
-                  Bütçe kullanımı: {Math.round((stats.totalSpent / stats.totalBudget) * 100)}%
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Master Gantt Chart */}
         {projects.length > 0 ? (
@@ -330,16 +185,7 @@ export default function MasterGanttPage() {
         )}
       </div>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-8 right-8">
-        <button
-          onClick={fetchProjectsData}
-          className="w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl hover:bg-indigo-700 transition-all duration-300 hover:scale-105 flex items-center justify-center group"
-          title="Verileri Yenile"
-        >
-          <Activity className="w-6 h-6 group-hover:animate-spin" />
-        </button>
-      </div>
+
     </div>
   )
 }

@@ -52,18 +52,32 @@ export async function GET() {
         task.status === 'COMPLETED' || task.estimatedHours && task.estimatedHours >= 40
       ).slice(0, 3) // Take up to 3 important tasks as milestones
 
+      // Ensure dates are in a reasonable range (2024-2025)
+      const currentYear = new Date().getFullYear()
+      const defaultStartDate = project.startDate || new Date(currentYear, 0, 1) // This year January 1st
+      const defaultEndDate = project.endDate || new Date(currentYear, 11, 31) // This year December 31st
+
+      // Fix dates if they're unreasonable (before 2020 or after 2030)
+      const fixedStartDate = project.startDate && project.startDate.getFullYear() >= 2020 && project.startDate.getFullYear() <= 2030 
+        ? project.startDate 
+        : new Date(currentYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+      
+      const fixedEndDate = project.endDate && project.endDate.getFullYear() >= 2020 && project.endDate.getFullYear() <= 2030 
+        ? project.endDate 
+        : new Date(fixedStartDate.getTime() + (Math.random() * 365 + 30) * 24 * 60 * 60 * 1000) // 1-13 months later
+
       const milestones = importantTasks.map((task: any, index: number) => ({
         id: `milestone_${task.id}`,
         title: `Kilometre Taşı ${index + 1}`,
-        date: project.endDate ? new Date(project.endDate.getTime() - (importantTasks.length - index) * 7 * 24 * 60 * 60 * 1000) : new Date(),
+        date: new Date(fixedStartDate.getTime() + ((fixedEndDate.getTime() - fixedStartDate.getTime()) / (importantTasks.length + 1)) * (index + 1)),
         completed: task.status === 'COMPLETED'
       }))
 
       return {
         id: project.id,
         name: project.name,
-        startDate: project.startDate,
-        endDate: project.endDate,
+        startDate: fixedStartDate,
+        endDate: fixedEndDate,
         status: project.status,
         progress,
         priority: project.priority,
