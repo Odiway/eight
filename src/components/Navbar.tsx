@@ -27,10 +27,17 @@ import SearchModal from '@/components/SearchModal'
 
 const allNavigation = [
   {
+    name: 'Günlük Takip',
+    href: '/takvim',
+    icon: Calendar,
+    description: 'Günlük görev planlama ve takibi',
+    requiresAdmin: false,
+  },
+  {
     name: 'Takvim',
     href: '/calendar',
     icon: Calendar,
-    description: 'Proje takvimleri ve görevler',
+    description: 'Aylık proje takvimleri',
     requiresAdmin: false,
   },
   {
