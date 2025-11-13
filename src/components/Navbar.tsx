@@ -37,7 +37,7 @@ const allNavigation = [
     name: 'Takvim',
     href: '/calendar',
     icon: Calendar,
-    description: 'Aylık proje takvimleri',
+    description: 'Günlük görev takvimleri',
     requiresAdmin: false,
   },
   {

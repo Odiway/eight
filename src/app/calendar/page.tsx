@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
-import CalendarClient from '@/components/CalendarClient'
+import DailyCalendarClient from '@/components/DailyCalendarClient'
 import CalendarIntegration from '@/components/CalendarIntegration'
 import UserDashboard from '@/components/UserDashboard'
 import { cookies } from 'next/headers'
@@ -230,8 +230,8 @@ export default async function CalendarPage({
           <CalendarIntegration />
         </div>
 
-        {/* Main Calendar */}
-        <CalendarClient
+        {/* Daily Calendar */}
+        <DailyCalendarClient
           tasks={tasks}
           projects={projects}
           selectedProjectId={resolvedSearchParams.project}
