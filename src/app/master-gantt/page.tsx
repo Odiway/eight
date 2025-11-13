@@ -14,42 +14,14 @@ import {
   Activity,
   Zap
 } from 'lucide-react'
-import MasterGanttChart from '@/components/MasterGanttChart'
+import OptimizedMasterGanttChart from '@/components/OptimizedMasterGanttChart'
+import type { OptimizedProject } from '@/components/OptimizedMasterGanttChart'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from '@/components/Navbar'
 
-// Project interface for Master Gantt
-export interface MasterProject {
-  id: string
-  name: string
-  startDate: Date
-  endDate: Date
-  status: 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'REVIEW'
-  progress: number
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
-  teamCount: number
-  taskCount: number
-  completedTasks: number
-  budget?: number
-  spent?: number
-  manager?: {
-    id: string
-    name: string
-    avatar?: string
-  }
-  isDelayed?: boolean
-  delayDays?: number
-  milestones: Array<{
-    id: string
-    title: string
-    date: Date
-    completed: boolean
-  }>
-}
-
 export default function MasterGanttPage() {
   const { user, isAdmin } = useAuth()
-  const [projects, setProjects] = useState<MasterProject[]>([])
+  const [projects, setProjects] = useState<OptimizedProject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState({
@@ -81,15 +53,17 @@ export default function MasterGanttPage() {
 
       const data = await response.json()
       
-      // Convert date strings to Date objects
+      // Convert to optimized project format (keep dates as strings for performance)
       const processedProjects = data.projects.map((project: any) => ({
-        ...project,
-        startDate: new Date(project.startDate),
-        endDate: new Date(project.endDate),
-        milestones: project.milestones.map((milestone: any) => ({
-          ...milestone,
-          date: new Date(milestone.date)
-        }))
+        id: project.id,
+        name: project.name,
+        startDate: project.startDate,
+        endDate: project.endDate,
+        status: project.status,
+        progress: project.progress,
+        teamCount: project.teamCount,
+        taskCount: project.taskCount,
+        completedTasks: project.completedTasks
       }))
 
       setProjects(processedProjects)
@@ -108,14 +82,7 @@ export default function MasterGanttPage() {
     }
   }, [user])
 
-  // Calculate timeline bounds - Fixed to 2025
-  const timelineBounds = React.useMemo(() => {
-    // Always show 2025 - full year
-    return {
-      start: new Date(2025, 0, 1), // January 1, 2025
-      end: new Date(2025, 11, 31)  // December 31, 2025
-    }
-  }, [])
+  // Timeline is fixed to 2025 in the optimized component
 
   if (loading) {
     return (
@@ -167,12 +134,10 @@ export default function MasterGanttPage() {
       <div className="px-4 py-6">
 
 
-        {/* Master Gantt Chart */}
+        {/* Optimized Master Gantt Chart */}
         {projects.length > 0 ? (
-          <MasterGanttChart 
+          <OptimizedMasterGanttChart 
             projects={projects}
-            projectStartDate={timelineBounds.start}
-            projectEndDate={timelineBounds.end}
           />
         ) : (
           <div className="bg-white rounded-xl shadow-lg p-12 text-center">
