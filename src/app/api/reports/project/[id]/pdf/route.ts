@@ -1062,8 +1062,8 @@ function generateExecutiveHTMLReport(data: any): string {
             background: linear-gradient(135deg, #ad1457 0%, #e91e63 100%);
         }
         
-        .timeline-card.critical-path {
-            background: linear-gradient(135deg, var(--danger-crimson) 0%, #f44336 100%);
+        .timeline-card.actual-end-date {
+            background: linear-gradient(135deg, var(--success-forest) 0%, #4caf50 100%);
         }
         
         .timeline-icon {
@@ -1494,10 +1494,23 @@ function generateExecutiveHTMLReport(data: any): string {
                     <div class="timeline-label">Hedef Bitiş</div>
                 </div>
                 
-                <div class="timeline-card critical-path">
-                    <span class="timeline-icon">🔴</span>
-                    <div class="timeline-value">${data.tasks.filter((t: any) => t.priority === 'HIGH').length}</div>
-                    <div class="timeline-label">Yüksek Öncelikli</div>
+                <div class="timeline-card actual-end-date">
+                    <span class="timeline-icon">�</span>
+                    <div class="timeline-value">${(() => {
+                      // Calculate actual end date based on completed tasks
+                      const completedTasks = data.tasks.filter((t: any) => t.status === 'COMPLETED')
+                      if (completedTasks.length === 0) return 'Devam Ediyor'
+                      
+                      const latestCompletedDate = completedTasks.reduce((latest: Date, task: any) => {
+                        const taskEndDate = new Date(task.endDate)
+                        return taskEndDate > latest ? taskEndDate : latest
+                      }, new Date(0))
+                      
+                      return latestCompletedDate.getTime() > 0 
+                        ? latestCompletedDate.toLocaleDateString('tr-TR') 
+                        : 'Henüz Yok'
+                    })()}</div>
+                    <div class="timeline-label">Gerçek Bitiş Tarihi</div>
                 </div>
                 
                 <div class="timeline-card">

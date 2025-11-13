@@ -314,23 +314,116 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
         })
 
         if (format === 'pdf') {
-          // Create PDF
+          // Create PDF with both chart and data table
           const { default: jsPDF } = await import('jspdf')
           const imgData = canvas.toDataURL('image/png')
           const pdf = new jsPDF({
-            orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
-            unit: 'mm'
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4'
           })
           
           const pdfWidth = pdf.internal.pageSize.getWidth()
           const pdfHeight = pdf.internal.pageSize.getHeight()
+          
+          // Add title
+          pdf.setFontSize(16)
+          pdf.setFont('helvetica', 'bold')
+          pdf.text('Master Gantt Chart Raporu', 20, 20)
+          
+          // Add date
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 20, 28)
+          
+          // Add chart image
           const imgWidth = canvas.width
           const imgHeight = canvas.height
-          const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
-          const imgX = (pdfWidth - imgWidth * ratio) / 2
-          const imgY = 10
+          const chartRatio = Math.min((pdfWidth - 40) / imgWidth, (pdfHeight - 100) / imgHeight)
+          const chartWidth = imgWidth * chartRatio
+          const chartHeight = imgHeight * chartRatio
+          const chartX = (pdfWidth - chartWidth) / 2
+          const chartY = 35
 
-          pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio)
+          pdf.addImage(imgData, 'PNG', chartX, chartY, chartWidth, chartHeight)
+          
+          // Add new page for data table
+          pdf.addPage()
+          
+          // Data table
+          pdf.setFontSize(14)
+          pdf.setFont('helvetica', 'bold')
+          pdf.text('Proje Detayları', 20, 20)
+          
+          // Table headers
+          const tableY = 35
+          const rowHeight = 6
+          const colWidths = [45, 25, 30, 30, 20, 25, 20, 20, 15]
+          const headers = [
+            'Proje Adı',
+            'Başlangıç',
+            'Planlanan Bitiş', 
+            'Gerçek/Tahmini Bitiş',
+            'Durum',
+            'İlerleme',
+            'Gecikme',
+            'Takım',
+            'Görevler'
+          ]
+          
+          pdf.setFontSize(8)
+          pdf.setFont('helvetica', 'bold')
+          
+          // Draw table headers
+          let currentX = 20
+          headers.forEach((header, index) => {
+            pdf.rect(currentX, tableY, colWidths[index], rowHeight)
+            pdf.text(header, currentX + 2, tableY + 4)
+            currentX += colWidths[index]
+          })
+          
+          // Draw table data
+          pdf.setFont('helvetica', 'normal')
+          filteredAndSortedProjects.forEach((project, rowIndex) => {
+            const y = tableY + rowHeight * (rowIndex + 1)
+            currentX = 20
+            
+            const rowData = [
+              project.name.substring(0, 25),
+              project.startDate.toLocaleDateString('tr-TR'),
+              (project.plannedEndDate || project.endDate).toLocaleDateString('tr-TR'),
+              (project.actualEndDate || project.endDate).toLocaleDateString('tr-TR'),
+              project.status === 'IN_PROGRESS' ? 'Devam' : 
+              project.status === 'COMPLETED' ? 'Tamam' :
+              project.status === 'PLANNING' ? 'Plan' : 'Bekl.',
+              `${project.progress}%`,
+              (project.delayDays || 0) > 0 ? `${project.delayDays || 0} gün` : 'Yok',
+              `${project.teamCount}`,
+              `${project.completedTasks}/${project.taskCount}`
+            ]
+            
+            rowData.forEach((data, colIndex) => {
+              pdf.rect(currentX, y, colWidths[colIndex], rowHeight)
+              pdf.text(data, currentX + 2, y + 4)
+              currentX += colWidths[colIndex]
+            })
+            
+            // Add new page if needed
+            if (y + rowHeight > pdfHeight - 20) {
+              pdf.addPage()
+              // Redraw headers on new page
+              currentX = 20
+              const newTableY = 20
+              pdf.setFont('helvetica', 'bold')
+              headers.forEach((header, index) => {
+                pdf.rect(currentX, newTableY, colWidths[index], rowHeight)
+                pdf.text(header, currentX + 2, newTableY + 4)
+                currentX += colWidths[index]
+              })
+              pdf.setFont('helvetica', 'normal')
+            }
+          })
+
           pdf.save(`master-gantt-chart-${new Date().toISOString().split('T')[0]}.pdf`)
         } else {
           // Download as PNG
