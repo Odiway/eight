@@ -37,6 +37,8 @@ export interface MasterProject {
   name: string
   startDate: Date
   endDate: Date
+  plannedEndDate?: Date // Original planned end date
+  actualEndDate?: Date // Calculated actual/estimated end date
   status: 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'REVIEW'
   progress: number
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
@@ -75,7 +77,7 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
 }) => {
   // State management
   const [viewMode, setViewMode] = useState<'days' | 'weeks' | 'months'>('months')
-  const [filterMode, setFilterMode] = useState<'all' | 'active' | 'delayed' | 'high-priority'>('all')
+  const [filterMode, setFilterMode] = useState<'all' | 'active' | 'delayed' | 'completed'>('all')
   const [showMilestones, setShowMilestones] = useState(true)
   const [showBudget, setShowBudget] = useState(true)
   const [showTeams, setShowTeams] = useState(true)
@@ -129,8 +131,8 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
       case 'delayed':
         filtered = filtered.filter(p => p.isDelayed)
         break
-      case 'high-priority':
-        filtered = filtered.filter(p => p.priority === 'HIGH' || p.priority === 'URGENT')
+      case 'completed':
+        filtered = filtered.filter(p => p.status === 'COMPLETED')
         break
     }
     
@@ -347,7 +349,8 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
         const projectData = filteredAndSortedProjects.map(project => ({
           'Proje Adı': project.name,
           'Başlangıç Tarihi': project.startDate.toLocaleDateString('tr-TR'),
-          'Bitiş Tarihi': project.endDate.toLocaleDateString('tr-TR'),
+          'Planlanan Bitiş': project.plannedEndDate?.toLocaleDateString('tr-TR') || project.endDate.toLocaleDateString('tr-TR'),
+          'Gerçek/Tahmini Bitiş': project.actualEndDate?.toLocaleDateString('tr-TR') || project.endDate.toLocaleDateString('tr-TR'),
           'Durum': project.status === 'IN_PROGRESS' ? 'Devam Ediyor' : 
                    project.status === 'COMPLETED' ? 'Tamamlandı' :
                    project.status === 'PLANNING' ? 'Planlama' : 
@@ -506,8 +509,14 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
                     <h3 className="font-medium text-gray-900 truncate text-sm">
                       {project.name}
                     </h3>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {project.startDate?.toLocaleDateString('tr-TR')} - {project.endDate?.toLocaleDateString('tr-TR')}
+                    <div className="text-xs text-gray-500 mt-0.5 space-y-0.5">
+                      <div>Planlanan: {project.plannedEndDate?.toLocaleDateString('tr-TR') || project.endDate?.toLocaleDateString('tr-TR')}</div>
+                      <div className={`font-medium ${project.isDelayed ? 'text-red-600' : 'text-green-600'}`}>
+                        Gerçek: {project.actualEndDate?.toLocaleDateString('tr-TR') || project.endDate?.toLocaleDateString('tr-TR')}
+                        {project.delayDays && project.delayDays > 0 && (
+                          <span className="ml-1 text-red-500">({project.delayDays} gün gecikme)</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 

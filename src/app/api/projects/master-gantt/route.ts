@@ -11,6 +11,8 @@ export async function GET() {
             id: true,
             status: true,
             estimatedHours: true,
+            endDate: true,
+            completedAt: true,
           },
         },
         members: {
@@ -52,24 +54,53 @@ export async function GET() {
         task.status === 'COMPLETED' || task.estimatedHours && task.estimatedHours >= 40
       ).slice(0, 3) // Take up to 3 important tasks as milestones
 
+      // Calculate actual/estimated end date from tasks
+      const calculateActualEndDate = () => {
+        if (project.status === 'COMPLETED') {
+          // If project is completed, find the latest completion date
+          const completedTasks = project.tasks.filter((task: any) => task.completedAt)
+          if (completedTasks.length > 0) {
+            return new Date(Math.max(...completedTasks.map((task: any) => new Date(task.completedAt).getTime())))
+          }
+        }
+        
+        // For ongoing projects, find the latest task end date
+        const tasksWithEndDate = project.tasks.filter((task: any) => task.endDate)
+        if (tasksWithEndDate.length > 0) {
+          return new Date(Math.max(...tasksWithEndDate.map((task: any) => new Date(task.endDate).getTime())))
+        }
+        
+        // Fallback to project end date
+        return project.endDate
+      }
+
       // Ensure dates are in a reasonable range (2024-2025)
       const currentYear = new Date().getFullYear()
-      const defaultStartDate = project.startDate || new Date(currentYear, 0, 1) // This year January 1st
-      const defaultEndDate = project.endDate || new Date(currentYear, 11, 31) // This year December 31st
-
+      
       // Fix dates if they're unreasonable (before 2020 or after 2030)
       const fixedStartDate = project.startDate && project.startDate.getFullYear() >= 2020 && project.startDate.getFullYear() <= 2030 
         ? project.startDate 
         : new Date(currentYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
       
-      const fixedEndDate = project.endDate && project.endDate.getFullYear() >= 2020 && project.endDate.getFullYear() <= 2030 
-        ? project.endDate 
+      const plannedEndDate = project.originalEndDate || project.endDate
+      const fixedPlannedEndDate = plannedEndDate && plannedEndDate.getFullYear() >= 2020 && plannedEndDate.getFullYear() <= 2030 
+        ? plannedEndDate 
         : new Date(fixedStartDate.getTime() + (Math.random() * 365 + 30) * 24 * 60 * 60 * 1000) // 1-13 months later
+
+      const actualEndDate = calculateActualEndDate()
+      const fixedActualEndDate = actualEndDate && actualEndDate.getFullYear() >= 2020 && actualEndDate.getFullYear() <= 2030 
+        ? actualEndDate 
+        : fixedPlannedEndDate
+
+      // Calculate delay between planned and actual end dates
+      const delayDaysCalculated = fixedPlannedEndDate && fixedActualEndDate 
+        ? Math.ceil((fixedActualEndDate.getTime() - fixedPlannedEndDate.getTime()) / (1000 * 60 * 60 * 24))
+        : project.delayDays || 0
 
       const milestones = importantTasks.map((task: any, index: number) => ({
         id: `milestone_${task.id}`,
         title: `Kilometre Taşı ${index + 1}`,
-        date: new Date(fixedStartDate.getTime() + ((fixedEndDate.getTime() - fixedStartDate.getTime()) / (importantTasks.length + 1)) * (index + 1)),
+        date: new Date(fixedStartDate.getTime() + ((fixedActualEndDate.getTime() - fixedStartDate.getTime()) / (importantTasks.length + 1)) * (index + 1)),
         completed: task.status === 'COMPLETED'
       }))
 
@@ -77,7 +108,9 @@ export async function GET() {
         id: project.id,
         name: project.name,
         startDate: fixedStartDate,
-        endDate: fixedEndDate,
+        endDate: fixedActualEndDate, // Using actual end date for the chart
+        plannedEndDate: fixedPlannedEndDate, // Original planned end date
+        actualEndDate: fixedActualEndDate, // Calculated actual/estimated end date
         status: project.status,
         progress,
         priority: project.priority,
@@ -90,8 +123,8 @@ export async function GET() {
           id: manager.user.id,
           name: manager.user.name,
         } : null,
-        isDelayed: Boolean(isDelayed),
-        delayDays: delayDays || 0,
+        isDelayed: delayDaysCalculated > 0,
+        delayDays: Math.max(0, delayDaysCalculated),
         milestones: milestones,
       }
     })
