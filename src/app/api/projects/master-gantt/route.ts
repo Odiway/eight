@@ -74,13 +74,13 @@ export async function GET() {
         return project.endDate
       }
 
-      // Ensure dates are in a reasonable range (2024-2025)
+      // Ensure dates are in a reasonable range (2025-2027 for Gantt display)
       const currentYear = new Date().getFullYear()
       
       // Fix dates if they're unreasonable (before 2020 or after 2030)
       const fixedStartDate = project.startDate && project.startDate.getFullYear() >= 2020 && project.startDate.getFullYear() <= 2030 
         ? project.startDate 
-        : new Date(currentYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+        : new Date(Math.max(2025, currentYear), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
       
       const plannedEndDate = project.originalEndDate || project.endDate
       const fixedPlannedEndDate = plannedEndDate && plannedEndDate.getFullYear() >= 2020 && plannedEndDate.getFullYear() <= 2030 

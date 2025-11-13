@@ -48,13 +48,6 @@ const allNavigation = [
     requiresAdmin: true,
   },
   {
-    name: 'Stratejik Alan',
-    href: '/playground',
-    icon: Lightbulb,
-    description: 'Kritik yol analizi ve stratejik planlama',
-    requiresAdmin: true,
-  },
-  {
     name: 'Takım',
     href: '/team',
     icon: Users,
@@ -73,13 +66,6 @@ const allNavigation = [
     href: '/reports',
     icon: FileText,
     description: 'Detaylı raporlar ve analitik',
-    requiresAdmin: true,
-  },
-  {
-    name: 'Bildirimler',
-    href: '/notifications',
-    icon: Bell,
-    description: 'Sistem bildirimleri',
     requiresAdmin: true,
   },
 ]

@@ -91,28 +91,30 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
   const timelineRef = useRef<HTMLDivElement>(null)
   const headerScrollRef = useRef<HTMLDivElement>(null)
 
-  // Calculate time units based on view mode - Fixed to 2025
+  // Calculate time units based on view mode - 2025-2027 timeline
   const timeUnits = useMemo(() => {
     const units = []
     const start = new Date(2025, 0, 1) // January 1, 2025
-    const end = new Date(2025, 11, 31) // December 31, 2025
+    const end = new Date(2027, 11, 31) // December 31, 2027
     
     if (viewMode === 'days') {
-      // Show all days of 2025
+      // Show all days from 2025-2027
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         units.push(new Date(d))
       }
     } else if (viewMode === 'weeks') {
-      // Show all weeks of 2025
+      // Show all weeks from 2025-2027
       const startOfWeek = new Date(2024, 11, 30) // Start from the Monday of the first week of 2025
-      const endOfYear = new Date(2026, 0, 5) // End at the Sunday of the last week of 2025
-      for (let d = new Date(startOfWeek); d <= endOfYear; d.setDate(d.getDate() + 7)) {
+      const endOfWeeks = new Date(2028, 0, 7) // End at the Sunday covering end of 2027
+      for (let d = new Date(startOfWeek); d <= endOfWeeks; d.setDate(d.getDate() + 7)) {
         units.push(new Date(d))
       }
     } else { // months
-      // Show all 12 months of 2025
-      for (let month = 0; month < 12; month++) {
-        units.push(new Date(2025, month, 1))
+      // Show all months from 2025-2027 (36 months)
+      for (let year = 2025; year <= 2027; year++) {
+        for (let month = 0; month < 12; month++) {
+          units.push(new Date(year, month, 1))
+        }
       }
     }
     
@@ -154,22 +156,22 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
     return filtered
   }, [projects, filterMode, sortBy])
 
-  // Calculate project position and width - Fixed to 2025 timeline
+  // Calculate project position and width - 2025-2027 timeline
   const getProjectDimensions = (project: MasterProject) => {
-    const yearStart = new Date(2025, 0, 1)
-    const yearEnd = new Date(2025, 11, 31)
-    const totalDays = Math.ceil((yearEnd.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24))
+    const timelineStart = new Date(2025, 0, 1)
+    const timelineEnd = new Date(2027, 11, 31)
+    const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24))
     
-    // Ensure project dates are within 2025, or default to reasonable values
-    const projectStart = project.startDate && project.startDate.getFullYear() === 2025 
+    // Ensure project dates are within 2025-2027, or default to reasonable values
+    const projectStart = project.startDate && project.startDate.getFullYear() >= 2025 && project.startDate.getFullYear() <= 2027
       ? project.startDate 
       : new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
     
-    const projectEnd = project.endDate && project.endDate.getFullYear() === 2025 
+    const projectEnd = project.endDate && project.endDate.getFullYear() >= 2025 && project.endDate.getFullYear() <= 2027
       ? project.endDate 
       : new Date(projectStart.getTime() + (30 + Math.floor(Math.random() * 90)) * 24 * 60 * 60 * 1000)
     
-    const projectStartDays = Math.max(0, Math.ceil((projectStart.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)))
+    const projectStartDays = Math.max(0, Math.ceil((projectStart.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24)))
     const projectDurationDays = Math.max(1, Math.ceil((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24)))
     
     const containerWidth = timeUnits.length * (viewMode === 'weeks' ? 100 : 120)
@@ -236,7 +238,7 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
           'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
           'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
         ]
-        return `${turkishMonths[date.getMonth()]} 2025`
+        return `${turkishMonths[date.getMonth()]} ${date.getFullYear()}`
       default:
         return ''
     }
@@ -537,15 +539,23 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
               minWidth: `${timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px`,
               height: `${filteredAndSortedProjects.length * 50}px`
             }}>
-              {/* Today Line - Show current date in 2025 timeline */}
+              {/* Today Line - Show current date in timeline */}
               <div 
                 className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 opacity-75"
                 style={{
-                  left: `${Math.max(0, Math.min(100, ((new Date(2025, 10, 12).getTime() - new Date(2025, 0, 1).getTime()) / (new Date(2025, 11, 31).getTime() - new Date(2025, 0, 1).getTime())) * 100))}%`
+                  left: `${(() => {
+                    const today = new Date()
+                    const timelineStart = new Date(2025, 0, 1)
+                    const timelineEnd = new Date(2027, 11, 31)
+                    const totalTimespan = timelineEnd.getTime() - timelineStart.getTime()
+                    const todayOffset = today.getTime() - timelineStart.getTime()
+                    const percentage = (todayOffset / totalTimespan) * 100
+                    return Math.max(0, Math.min(100, percentage))
+                  })()}%`
                 }}
               >
                 <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-30">
-                  Bugün (12 Kas 2025)
+                  Bugün ({new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })})
                 </div>
               </div>
 
