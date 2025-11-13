@@ -76,7 +76,7 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
   onProjectClick,
 }) => {
   // State management
-  const [viewMode, setViewMode] = useState<'days' | 'weeks' | 'months'>('months')
+  const [viewMode, setViewMode] = useState<'weeks' | 'months'>('months')
   const [filterMode, setFilterMode] = useState<'all' | 'active' | 'delayed' | 'completed'>('all')
   const [showMilestones, setShowMilestones] = useState(true)
   const [showBudget, setShowBudget] = useState(true)
@@ -91,26 +91,27 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
   const timelineRef = useRef<HTMLDivElement>(null)
   const headerScrollRef = useRef<HTMLDivElement>(null)
 
-  // Calculate time units based on view mode - 2025-2027 timeline
+  // Calculate time units based on view mode - Optimized for performance
   const timeUnits = useMemo(() => {
     const units = []
-    const start = new Date(2025, 0, 1) // January 1, 2025
-    const end = new Date(2027, 11, 31) // December 31, 2027
     
-    if (viewMode === 'days') {
-      // Show all days from 2025-2027
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (viewMode === 'weeks') {
+      // Show weeks for current year + next year (max ~104 weeks)
+      const currentYear = new Date().getFullYear()
+      const start = new Date(currentYear, 0, 1)
+      const end = new Date(currentYear + 1, 11, 31)
+      
+      // Find first Monday
+      const startOfWeek = new Date(start)
+      while (startOfWeek.getDay() !== 1) {
+        startOfWeek.setDate(startOfWeek.getDate() + 1)
+      }
+      
+      for (let d = new Date(startOfWeek); d <= end; d.setDate(d.getDate() + 7)) {
         units.push(new Date(d))
       }
-    } else if (viewMode === 'weeks') {
-      // Show all weeks from 2025-2027
-      const startOfWeek = new Date(2024, 11, 30) // Start from the Monday of the first week of 2025
-      const endOfWeeks = new Date(2028, 0, 7) // End at the Sunday covering end of 2027
-      for (let d = new Date(startOfWeek); d <= endOfWeeks; d.setDate(d.getDate() + 7)) {
-        units.push(new Date(d))
-      }
-    } else { // months
-      // Show all months from 2025-2027 (36 months)
+    } else { // months (default)
+      // Show months for 2025-2027 (36 months) - reasonable amount
       for (let year = 2025; year <= 2027; year++) {
         for (let month = 0; month < 12; month++) {
           units.push(new Date(year, month, 1))
@@ -227,8 +228,6 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
   // Format date for timeline headers
   const formatTimelineHeader = (date: Date) => {
     switch (viewMode) {
-      case 'days':
-        return date.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })
       case 'weeks':
         const weekEnd = new Date(date)
         weekEnd.setDate(date.getDate() + 6)
@@ -567,9 +566,7 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
               {timeUnits.map((date, index) => (
                 <div
                   key={index}
-                  className={`flex-shrink-0 p-2 text-center text-sm border-r border-gray-200 ${
-                    isWeekend(date) && viewMode === 'days' ? 'bg-red-50' : 'bg-gray-50'
-                  }`}
+                  className="flex-shrink-0 p-2 text-center text-sm border-r border-gray-200 bg-gray-50"
                   style={{ 
                     width: `${viewMode === 'weeks' ? 100 : 120}px`,
                     minWidth: `${viewMode === 'weeks' ? 100 : 120}px`
