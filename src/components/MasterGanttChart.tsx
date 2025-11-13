@@ -111,11 +111,9 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
         units.push(new Date(d))
       }
     } else { // months (default)
-      // Show months for 2025-2027 (36 months) - reasonable amount
-      for (let year = 2025; year <= 2027; year++) {
-        for (let month = 0; month < 12; month++) {
-          units.push(new Date(year, month, 1))
-        }
+      // Show months only for 2025 (12 months) to avoid excessive DOM in production
+      for (let month = 0; month < 12; month++) {
+        units.push(new Date(2025, month, 1))
       }
     }
     
@@ -159,8 +157,9 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
 
   // Calculate project position and width - 2025-2027 timeline
   const getProjectDimensions = (project: MasterProject) => {
-    const timelineStart = new Date(2025, 0, 1)
-    const timelineEnd = new Date(2027, 11, 31)
+  // Limit timeline strictly to the year 2025 to prevent huge time ranges in production
+  const timelineStart = new Date(2025, 0, 1)
+  const timelineEnd = new Date(2025, 11, 31)
     const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24))
     
     // Ensure project dates are within 2025-2027, or default to reasonable values
