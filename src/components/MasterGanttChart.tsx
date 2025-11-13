@@ -155,31 +155,30 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
     return filtered
   }, [projects, filterMode, sortBy])
 
-  // Calculate project position and width - 2025-2027 timeline
+  // Calculate project position and width - Simplified for 2025 only
   const getProjectDimensions = (project: MasterProject) => {
-  // Limit timeline strictly to the year 2025 to prevent huge time ranges in production
-  const timelineStart = new Date(2025, 0, 1)
-  const timelineEnd = new Date(2025, 11, 31)
-    const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24))
+    const timelineStart = new Date(2025, 0, 1)
+    const timelineEnd = new Date(2025, 11, 31)
     
-    // Ensure project dates are within 2025-2027, or default to reasonable values
-    const projectStart = project.startDate && project.startDate.getFullYear() >= 2025 && project.startDate.getFullYear() <= 2027
+    // Use project dates or fallback to 2025 dates (remove Math.random for consistency)
+    const projectStart = project.startDate?.getFullYear() === 2025 
       ? project.startDate 
-      : new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+      : new Date(2025, 0, 15) // Default to mid-January 2025
     
-    const projectEnd = project.endDate && project.endDate.getFullYear() >= 2025 && project.endDate.getFullYear() <= 2027
+    const projectEnd = project.endDate?.getFullYear() === 2025 
       ? project.endDate 
-      : new Date(projectStart.getTime() + (30 + Math.floor(Math.random() * 90)) * 24 * 60 * 60 * 1000)
+      : new Date(2025, 5, 15) // Default to mid-June 2025
     
-    const projectStartDays = Math.max(0, Math.ceil((projectStart.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24)))
-    const projectDurationDays = Math.max(1, Math.ceil((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24)))
+    // Calculate position as percentage of year (simpler math)
+    const yearDuration = timelineEnd.getTime() - timelineStart.getTime()
+    const startOffset = Math.max(0, projectStart.getTime() - timelineStart.getTime())
+    const projectDuration = Math.max(86400000, projectEnd.getTime() - projectStart.getTime()) // Min 1 day
     
     const containerWidth = timeUnits.length * (viewMode === 'weeks' ? 100 : 120)
-    const cellWidth = (viewMode === 'weeks' ? 100 : 120)
     
     return {
-      left: Math.max(0, (projectStartDays / totalDays) * containerWidth),
-      width: Math.max(cellWidth * 0.9, (projectDurationDays / totalDays) * containerWidth),
+      left: (startOffset / yearDuration) * containerWidth,
+      width: Math.max(60, (projectDuration / yearDuration) * containerWidth), // Min 60px width
     }
   }
 
@@ -628,41 +627,47 @@ const MasterGanttChart: React.FC<MasterGanttChartProps> = ({
               minWidth: `${timeUnits.length * (viewMode === 'weeks' ? 100 : 120)}px`,
               height: `${filteredAndSortedProjects.length * 50}px`
             }}>
-              {/* Today Line - Show current date in timeline */}
-              <div 
-                className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 opacity-75"
-                style={{
-                  left: `${(() => {
-                    const today = new Date()
-                    const timelineStart = new Date(2025, 0, 1)
-                    const timelineEnd = new Date(2027, 11, 31)
-                    const totalTimespan = timelineEnd.getTime() - timelineStart.getTime()
-                    const todayOffset = today.getTime() - timelineStart.getTime()
-                    const percentage = (todayOffset / totalTimespan) * 100
-                    return Math.max(0, Math.min(100, percentage))
-                  })()}%`
-                }}
-              >
-                <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-30">
-                  Bugün ({new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })})
-                </div>
-              </div>
-
-              {/* Weekend/Holiday Columns */}
-              <div className="absolute inset-0 flex pointer-events-none">
-                {timeUnits.map((date, index) => (
-                  isWeekend(date) && (
-                    <div
-                      key={`weekend-${index}`}
-                      className="bg-red-50/40"
-                      style={{ 
-                        width: `${viewMode === 'weeks' ? 100 : 120}px`,
-                        left: `${index * (viewMode === 'weeks' ? 100 : 120)}px`
-                      }}
-                    ></div>
+              {/* Today Line - Show current date in timeline (2025 only) */}
+              {(() => {
+                const today = new Date()
+                if (today.getFullYear() === 2025) {
+                  const timelineStart = new Date(2025, 0, 1)
+                  const timelineEnd = new Date(2025, 11, 31)
+                  const totalTimespan = timelineEnd.getTime() - timelineStart.getTime()
+                  const todayOffset = today.getTime() - timelineStart.getTime()
+                  const percentage = Math.max(0, Math.min(100, (todayOffset / totalTimespan) * 100))
+                  
+                  return (
+                    <div 
+                      className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 opacity-75"
+                      style={{ left: `${percentage}%` }}
+                    >
+                      <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-30">
+                        Bugün ({today.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })})
+                      </div>
+                    </div>
                   )
-                ))}
-              </div>
+                }
+                return null
+              })()}
+
+              {/* Weekend/Holiday Columns - Only show for weeks view to reduce DOM size */}
+              {viewMode === 'weeks' && (
+                <div className="absolute inset-0 flex pointer-events-none">
+                  {timeUnits.map((date, index) => (
+                    isWeekend(date) && (
+                      <div
+                        key={`weekend-${index}`}
+                        className="bg-red-50/40"
+                        style={{ 
+                          width: '100px',
+                          left: `${index * 100}px`
+                        }}
+                      ></div>
+                    )
+                  ))}
+                </div>
+              )}
 
               {/* Project Bars */}
               <div className="relative w-full h-full">
